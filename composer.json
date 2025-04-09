@@ -1,0 +1,27 @@
+{
+    "name": "listrak/listrak",
+    "description": "listrak/listrak",
+    "type": "shopware-platform-plugin",
+    "version": "1.0.0",
+    "license": "MIT",
+    "require": {
+        "shopware/core": "~6.6.0"
+    },
+    "extra": {
+        "shopware-plugin-class": "Solu1Listrak\\Solu1Listrak",
+        "label": {
+            "de-DE": "Listrak",
+            "en-GB": "Listrak"
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Solu1Listrak\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Solu1Listrak\\Tests\\": "tests/"
+        }
+    }
+}

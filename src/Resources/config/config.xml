@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/shopware/shopware/trunk/src/Core/System/SystemConfig/Schema/config.xsd">
+
+    <card>
+        <title>General Settings</title>
+        <title lang="de-DE">Allgemeine Einstellungen</title>
+
+        <input-field type="bool">
+            <name>active</name>
+            <label>Plugin active in this shop</label>
+            <label lang="de-DE">Plugin in diesem Shop aktiv</label>
+            <defaultValue>true</defaultValue>
+            <!--            <required>true</required>-->
+        </input-field>
+
+        <input-field>
+            <name>clientId</name>
+            <label>Client ID</label>
+            <label lang="de-DE">Client ID</label>
+            <helpText>Client ID</helpText>
+            <helpText lang="de-DE">todo</helpText>
+            <required>true</required>
+        </input-field>
+
+        <input-field>
+            <name>clientSecret</name>
+            <label>Client Secret</label>
+            <label lang="de-DE">Client-Geheimnis</label>
+            <helpText>Client Secret</helpText>
+            <helpText lang="de-DE">todo</helpText>
+            <required>true</required>
+        </input-field>
+
+    </card>
+
+</config>
