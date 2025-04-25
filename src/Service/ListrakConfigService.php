@@ -1,19 +1,27 @@
-<?php declare(strict_types=1);
+<?php
 
-namespace Solu1Listrak\Service;
+declare(strict_types=1);
+
+namespace Listrak\Service;
+
 use Shopware\Core\System\SystemConfig\SystemConfigService;
 
 class ListrakConfigService
 {
-
     private SystemConfigService $systemConfigService;
+
     public function __construct(SystemConfigService $systemConfigService)
     {
         $this->systemConfigService = $systemConfigService;
     }
+
     public function getConfig(string $configName): mixed
     {
-        return $this->systemConfigService->get('Solu1Listrak.config.' . trim($configName));
+        return $this->systemConfigService->get('Listrak.config.' . trim($configName));
     }
 
+    public function isSyncEnabled(string $configName): bool
+    {
+        return $this->getConfig($configName) && $this->getConfig('clientId') && $this->getConfig('clientSecret');
+    }
 }

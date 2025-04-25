@@ -1,27 +1,47 @@
 {
-    "name": "listrak/listrak",
-    "description": "listrak/listrak",
-    "type": "shopware-platform-plugin",
-    "version": "1.0.0",
-    "license": "MIT",
-    "require": {
-        "shopware/core": "~6.6.0"
-    },
-    "extra": {
-        "shopware-plugin-class": "Solu1Listrak\\Solu1Listrak",
-        "label": {
-            "de-DE": "Listrak",
-            "en-GB": "Listrak"
-        }
-    },
-    "autoload": {
-        "psr-4": {
-            "Solu1Listrak\\": "src/"
-        }
-    },
-    "autoload-dev": {
-        "psr-4": {
-            "Solu1Listrak\\Tests\\": "tests/"
-        }
+  "name": "solution25/listrak",
+  "description": "Listrak - Shopware 6 Plugin",
+  "type": "shopware-platform-plugin",
+  "version": "1.0.0",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "solution25",
+      "email": "info@solution25.com",
+      "homepage": "https://solution25.com/"
     }
+  ],
+  "require": {
+    "shopware/core": "~6.6.0"
+  },
+  "extra": {
+    "shopware-plugin-class": "Listrak\\Listrak",
+    "plugin-icon": "src/Resources/config/plugin.png",
+    "label": {
+      "de-DE": "Listrak Plugin",
+      "en-GB": "Listrak Plugin"
+    },
+    "description": {
+      "de-DE": "Listrak Marketing Automation Plugin für Shopware",
+      "en-GB": "Listrak marketing automation plugin for Shopware"
+    },
+    "manufacturerLink": {
+      "de-DE": "https://solution25.com/",
+      "en-GB": "https://solution25.com/en/home_en/"
+    },
+    "supportLink": {
+      "de-DE": "https://solution25.com/",
+      "en-GB": "https://solution25.com/en/home_en/"
+    }
+  },
+  "autoload": {
+    "psr-4": {
+      "Listrak\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Listrak\\Tests\\": "tests/"
+    }
+  }
 }

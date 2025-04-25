@@ -4,9 +4,9 @@ use Shopware\Core\TestBootstrapper;
 
 $loader = (new TestBootstrapper())
     ->addCallingPlugin()
-    ->addActivePlugins('Solu1Listrak')
+    ->addActivePlugins('Listrak')
     ->setForceInstallPlugins(true)
     ->bootstrap()
     ->getClassLoader();
 
-$loader->addPsr4('Solu1Listrak\\Tests\\', __DIR__);
+$loader->addPsr4('Listrak\\Tests\\', __DIR__);

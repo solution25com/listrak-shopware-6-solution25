@@ -7,32 +7,47 @@
         <title>General Settings</title>
         <title lang="de-DE">Allgemeine Einstellungen</title>
 
-        <input-field type="bool">
-            <name>active</name>
-            <label>Plugin active in this shop</label>
-            <label lang="de-DE">Plugin in diesem Shop aktiv</label>
-            <defaultValue>true</defaultValue>
-            <!--            <required>true</required>-->
+        <input-field>
+            <name>merchantId</name>
+            <label>Merchant ID</label>
+            <helpText>Listrak Merchant ID</helpText>
+            <required>true</required>
         </input-field>
 
         <input-field>
             <name>clientId</name>
             <label>Client ID</label>
-            <label lang="de-DE">Client ID</label>
-            <helpText>Client ID</helpText>
-            <helpText lang="de-DE">todo</helpText>
+            <helpText>Listrak Client ID</helpText>
             <required>true</required>
         </input-field>
 
         <input-field>
             <name>clientSecret</name>
             <label>Client Secret</label>
-            <label lang="de-DE">Client-Geheimnis</label>
-            <helpText>Client Secret</helpText>
-            <helpText lang="de-DE">todo</helpText>
+            <helpText>Listrak Client Secret</helpText>
             <required>true</required>
         </input-field>
 
+    </card>
+
+    <card>
+        <title>Sync Settings</title>
+        <title lang="de-DE">
+            Synchronisierungseinstellungen
+        </title>
+        <input-field type="bool">
+            <name>enableCustomerSync</name>
+            <label>Enable Customer Synchronization</label>
+            <label lang="de-DE">Aktivieren Sie die Kundensynchronisierung</label>
+            <defaultValue>false</defaultValue>
+        </input-field>
+
+        <input-field type="bool">
+            <name>enableOrderSync</name>
+            <label>Enable Order Synchronization</label>
+            <label lang="de-DE">Aktivieren Sie die Auftragssynchronisierungg</label>
+            <defaultValue>false</defaultValue>
+        </input-field>
     </card>
 
 </config>

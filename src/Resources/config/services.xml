@@ -6,26 +6,43 @@
 
     <services>
 
-        <service id="Solu1Listrak\Command\ExampleCommand">
-            <tag name="console.command"/>
+        <service id="Listrak\Service\ListrakConfigService">
+            <argument id="Shopware\Core\System\SystemConfig\SystemConfigService" type="service"/>
         </service>
 
-        <service id="Solu1Listrak\ScheduledTask\ExampleTask">
-            <tag name="shopware.scheduled.task"/>
+        <service id="Listrak\Service\ListrakApiService">
+            <argument type="service" id="Listrak\Service\ListrakConfigService"/>
+            <argument type="service" id="logger"/>
+            <argument type="service" id="listrak_failed_requests.repository"/>
         </service>
 
-        <service id="Solu1Listrak\Subscriber\MySubscriber">
+        <service id="Listrak\Subscriber\OrderSubscriber">
+            <argument type="service" id="Listrak\Service\ListrakConfigService"/>
+            <argument type="service" id="Listrak\Service\ListrakApiService"/>
+            <argument type="service" id="logger"/>
             <tag name="kernel.event_subscriber"/>
         </service>
 
-        <service id="Solu1Listrak\Storefront\Controller\ExampleController" public="true">
-            <call method="setContainer">
-                <argument type="service" id="service_container"/>
-            </call>
+        <service id="Listrak\Subscriber\CustomerSubscriber">
+            <argument type="service" id="Listrak\Service\ListrakConfigService"/>
+            <argument type="service" id="Listrak\Service\ListrakApiService"/>
+            <argument type="service" id="logger"/>
+            <tag name="kernel.event_subscriber"/>
         </service>
 
-        <service id="Solu1Listrak\Core\Content\Example\SalesChannel\ExampleRoute">
-            <argument type="service" id="product.repository"/>
+        <service id="Listrak\Core\Content\FailedRequest\FailedRequestDefinition">
+            <tag name="shopware.entity.definition" entity="listrak_failed_requests"/>
+        </service>
+
+        <service id="Listrak\ScheduledTask\RequestRetryTask">
+            <tag name="shopware.scheduled.task"/>
+        </service>
+
+        <service id="Listrak\ScheduledTask\RequestRetryTaskHandler">
+            <argument type="service" id="scheduled_task.repository"/>
+            <argument type="service" id="Listrak\Service\ListrakApiService"/>
+            <argument type="service" id="logger"/>
+            <tag name="messenger.message_handler"/>
         </service>
 
     </services>
