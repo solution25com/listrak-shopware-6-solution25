@@ -83,8 +83,8 @@ class ListrakApiService extends Endpoints
     {
         return [
             'grant_type' => 'client_credentials',
-            'client_id' => $this->listrakConfigService->getConfig('clientId'),
-            'client_secret' => $this->listrakConfigService->getConfig('clientSecret'),
+            'client_id' => $this->listrakConfigService->getConfig('dataClientId'),
+            'client_secret' => $this->listrakConfigService->getConfig('dataClientSecret'),
         ];
     }
 

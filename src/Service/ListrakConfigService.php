@@ -22,6 +22,6 @@ class ListrakConfigService
 
     public function isSyncEnabled(string $configName): bool
     {
-        return $this->getConfig($configName) && $this->getConfig('clientId') && $this->getConfig('clientSecret');
+        return $this->getConfig($configName) && $this->getConfig('dataClientId') && $this->getConfig('dataClientSecret');
     }
 }

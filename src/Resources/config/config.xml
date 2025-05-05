@@ -15,16 +15,16 @@
         </input-field>
 
         <input-field>
-            <name>clientId</name>
+            <name>dataClientId</name>
             <label>Client ID</label>
-            <helpText>Listrak Client ID</helpText>
+            <helpText>Listrak Data Client ID</helpText>
             <required>true</required>
         </input-field>
 
         <input-field>
-            <name>clientSecret</name>
+            <name>dataClientSecret</name>
             <label>Client Secret</label>
-            <helpText>Listrak Client Secret</helpText>
+            <helpText>Listrak Data Client Secret</helpText>
             <required>true</required>
         </input-field>
 
