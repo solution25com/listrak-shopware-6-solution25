@@ -8,7 +8,7 @@ abstract class Endpoints
 {
     protected const CUSTOMER_IMPORT = 'CUSTOMER_IMPORT';
     protected const ORDER_IMPORT = 'ORDER_IMPORT';
-    protected const PRODUCT_IMPORT = 'PRODUCT_IMPORT';
+    protected const CONTACT_CREATE = 'CONTACT_CREATE';
 
     /**
      * @var array<string,string[]> $endpoints
@@ -16,15 +16,15 @@ abstract class Endpoints
     private static array $endpoints = [
         self::CUSTOMER_IMPORT => [
             'method' => 'POST',
-            'url' => '/data/v1/Customer',
+            'url' => '/data/v1/Customer/',
         ],
         self::ORDER_IMPORT => [
             'method' => 'POST',
-            'url' => '/data/v1/Order',
+            'url' => '/data/v1/Order/',
         ],
-        self::PRODUCT_IMPORT => [
+        self::CONTACT_CREATE => [
             'method' => 'POST',
-            'url' => '/data/v1/Product',
+            'url' => '/email/v1/List/',
         ],
     ];
 
@@ -53,7 +53,7 @@ abstract class Endpoints
         $endpointDetails = self::getEndpoint($endpoint);
         $baseUrl = $endpointDetails['url'];
 
-        $paramBuilder = implode('', $params);
+        $paramBuilder = implode('/', $params);
 
         $queryString = !empty($queryParam) ? '?' . http_build_query($queryParam) : '';
 

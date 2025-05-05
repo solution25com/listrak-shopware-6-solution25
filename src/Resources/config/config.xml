@@ -16,15 +16,36 @@
 
         <input-field>
             <name>dataClientId</name>
-            <label>Client ID</label>
-            <helpText>Listrak Data Client ID</helpText>
+            <label>Data Integration Client ID</label>
+            <helpText>Listrak Data Integration Client ID</helpText>
             <required>true</required>
         </input-field>
 
         <input-field>
             <name>dataClientSecret</name>
-            <label>Client Secret</label>
-            <helpText>Listrak Data Client Secret</helpText>
+            <label>Data Integration Client Secret</label>
+            <helpText>Listrak Data Integration Client Secret</helpText>
+            <required>true</required>
+        </input-field>
+
+        <input-field>
+            <name>emailClientId</name>
+            <label>Email Integration Client ID</label>
+            <helpText>Listrak Email Integration Client ID</helpText>
+
+            <required>true</required>
+        </input-field>
+
+        <input-field>
+            <name>emailClientSecret</name>
+            <label>Email Integration Client Secret</label>
+            <helpText>Listrak Email Integration Client Secret</helpText>
+            <required>true</required>
+        </input-field>
+
+        <input-field>
+            <name>listId</name>
+            <label>List ID</label>
             <required>true</required>
         </input-field>
 
@@ -35,6 +56,7 @@
         <title lang="de-DE">
             Synchronisierungseinstellungen
         </title>
+
         <input-field type="bool">
             <name>enableCustomerSync</name>
             <label>Enable Customer Synchronization</label>
@@ -48,6 +70,7 @@
             <label lang="de-DE">Aktivieren Sie die Auftragssynchronisierungg</label>
             <defaultValue>false</defaultValue>
         </input-field>
+
     </card>
 
 </config>

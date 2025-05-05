@@ -6,7 +6,6 @@ namespace Listrak\Service;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
-use GuzzleHttp\Exception\RequestException;
 use Listrak\Core\Content\FailedRequest\FailedRequestEntity;
 use Listrak\Library\Constants\Endpoints;
 use Psr\Log\LoggerInterface;
@@ -24,14 +23,19 @@ class ListrakApiService extends Endpoints
 {
     public const MAX_RETRY_COUNT = 3;
     private const TOKEN_URL = 'https://auth.listrak.com/OAuth2/Token';
+    public const EMAIL_INTEGRATION = 'EMAIL';
+    public const DATA_INTEGRATION = 'DATA';
 
     private LoggerInterface $logger;
 
     private Client $client;
 
     private EntityRepository $failedRequestRepository;
+    private ?string $dataAccessToken = null;
+    private ?int $dataAccessTokenExpiry = null;
 
-    private ?string $accessToken = null;
+    private ?string $emailAccessToken = null;
+    private ?int $emailAccessTokenExpiry = null;
 
     private ListrakConfigService $listrakConfigService;
 
@@ -39,22 +43,33 @@ class ListrakApiService extends Endpoints
 
     public function __construct(
         ListrakConfigService $listrakConfig,
-        LoggerInterface $logger,
         EntityRepository $failedRequestRepository,
+        LoggerInterface $logger
     ) {
         $this->listrakConfigService = $listrakConfig;
-        $this->logger = $logger;
         $this->failedRequestRepository = $failedRequestRepository;
+        $this->emailAccessToken = $this->listrakConfigService->getConfig('emailToken');
+        $this->emailAccessTokenExpiry = $this->listrakConfigService->getConfig('emailTokenExpiry');
+        $this->dataAccessToken = $this->listrakConfigService->getConfig('dataToken');
+        $this->dataAccessTokenExpiry = $this->listrakConfigService->getConfig('dataTokenExpiry');
+        $this->logger = $logger;
         $this->client = new Client();
     }
 
-    public function getAccessToken(): string
+    /**
+     * @param string $type
+     * @return string
+     */
+    public function getAccessToken(string $type): string
     {
-        if ($this->accessToken) {
-            return $this->accessToken;
+        if ($type == self::DATA_INTEGRATION && $this->dataAccessToken && $this->dataAccessTokenExpiry < time()) {
+            return $this->dataAccessToken;
+        }
+        if ($type == self::EMAIL_INTEGRATION && $this->emailAccessToken && $this->emailAccessTokenExpiry < time()) {
+            return $this->emailAccessToken;
         }
 
-        $body = $this->buildAuthRequestBody();
+        $body = $this->buildAuthRequestBody($type);
 
         $options = [
             'form_params' => $body,
@@ -67,24 +82,35 @@ class ListrakApiService extends Endpoints
             if (isset($data['error']) && $data['error']) {
                 return 'Error: ' . ($data['message'] ?? 'Unknown error');
             }
+            if ($type == self::DATA_INTEGRATION) {
+                $this->dataAccessToken = $data['access_token'] ?? 'Unknown error';
+                $this->dataAccessTokenExpiry = time() + 3600;
+                $this->listrakConfigService->setConfig('dataToken', $this->dataAccessToken);
+                $this->listrakConfigService->setConfig('dataTokenExpiry', $this->dataAccessTokenExpiry);
 
-            $this->accessToken = $data['access_token'] ?? 'Unknown error';
-
-            return $this->accessToken;
+                return $this->dataAccessToken;
+            } else {
+                $this->emailAccessToken = $data['access_token'] ?? 'Unknown error';
+                $this->emailAccessTokenExpiry = time() + 3600;
+                $this->listrakConfigService->setConfig('emailToken', $this->emailAccessToken);
+                $this->listrakConfigService->setConfig('dataTokenExpiry', $this->emailAccessTokenExpiry);
+                return $this->emailAccessToken;
+            }
         }
 
         return 'Error: Invalid response received';
     }
 
     /**
+     * @param string $type
      * @return array<string,string>
      */
-    public function buildAuthRequestBody(): array
+    public function buildAuthRequestBody(string $type): array
     {
         return [
             'grant_type' => 'client_credentials',
-            'client_id' => $this->listrakConfigService->getConfig('dataClientId'),
-            'client_secret' => $this->listrakConfigService->getConfig('dataClientSecret'),
+            'client_id' => $type === self::DATA_INTEGRATION ? $this->listrakConfigService->getConfig('dataClientId') : $this->listrakConfigService->getConfig('emailClientId'),
+            'client_secret' => $type === self::DATA_INTEGRATION ? $this->listrakConfigService->getConfig('dataClientSecret') : $this->listrakConfigService->getConfig('emailClientSecret')
         ];
     }
 
@@ -95,13 +121,14 @@ class ListrakApiService extends Endpoints
     public function importCustomer(array $data, Context $context): void
     {
         $fullEndpointUrl = Endpoints::getUrl(Endpoints::CUSTOMER_IMPORT);
+        $this->logger->debug('Importing customer', ['data' => $data]);
 
         $options = [
             'headers' => [
-                'Authorization' => 'Bearer ' . $this->getAccessToken(),
+                'Authorization' => 'Bearer ' . $this->getAccessToken(self::DATA_INTEGRATION),
                 'Content-Type' => 'application/json',
             ],
-            'body' => json_encode([$data]),
+            'body' => json_encode($data),
         ];
 
         $this->request($fullEndpointUrl, $options, $context);
@@ -117,13 +144,35 @@ class ListrakApiService extends Endpoints
         $this->logger->debug('Importing order', ['data' => $data]);
         $options = [
             'headers' => [
-                'Authorization' => 'Bearer ' . $this->getAccessToken(),
+                'Authorization' => 'Bearer ' . $this->getAccessToken(self::DATA_INTEGRATION),
                 'Content-Type' => 'application/json',
             ],
-            'body' => json_encode([$data]),
+            'body' => json_encode($data),
         ];
 
         $this->request($fullEndpointUrl, $options, $context);
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     * @param Context $context
+     */
+    public function createorUpdateContact(array $data, Context $context): void
+    {
+        $listId = $this->listrakConfigService->getConfig('listId');
+        if ($listId) {
+            $fullEndpointUrl = Endpoints::getUrlDynamicParam(Endpoints::CONTACT_CREATE, [$listId, 'Contact']);
+            $this->logger->debug('Creating contact', ['data' => $data]);
+            $options = [
+                'headers' => [
+                    'Authorization' => 'Bearer ' . $this->getAccessToken(self::EMAIL_INTEGRATION),
+                    'Content-Type' => 'application/json',
+                ],
+                'body' => json_encode($data),
+            ];
+
+            $this->request($fullEndpointUrl, $options, $context);
+        }
     }
 
     /**
@@ -208,7 +257,6 @@ class ListrakApiService extends Endpoints
                 $this->failedRequestEntity->setResponse($response);
                 $this->failedRequestEntity->setMethod($method);
                 $this->failedRequestEntity->setEndpoint($endpoint);
-
             }
             $this->failedRequestEntity->setOptions($options);
             $this->failedRequestRepository->upsert([
@@ -222,9 +270,6 @@ class ListrakApiService extends Endpoints
                     'options' => $this->failedRequestEntity->getOptions(),
                 ],
             ], $context);
-            $res = $this->failedRequestRepository->search(new Criteria([$this->failedRequestEntity->getId()]),
-                $context);
-            $this->logger->debug('Retrieved from failed requests', ['rs' => $res->first()]);
         }
     }
 
@@ -297,20 +342,9 @@ class ListrakApiService extends Endpoints
 
     private function handleError(GuzzleException $e): void
     {
-        if ($e instanceof RequestException && $e->hasResponse()) {
-            $response = $e->getResponse() ?? null;
-            if ($response) {
-                $responseBody = $response->getBody()->getContents();
-                $decodedBody = json_decode($responseBody, true);
-                $this->logger->error(
-                    'Data sync failed with error: ' . $decodedBody['message']
-                );
-            }
-        } else {
-            $this->logger->error(
-                'Data sync failed: ' . $e->getMessage()
-            );
-        }
+        $this->logger->error(
+            'Data sync failed: ' . $e->getMessage()
+        );
     }
 
     /**

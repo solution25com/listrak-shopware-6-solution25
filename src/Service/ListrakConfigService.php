@@ -20,6 +20,11 @@ class ListrakConfigService
         return $this->systemConfigService->get('Listrak.config.' . trim($configName));
     }
 
+    public function setConfig(string $configName, mixed $value): void
+    {
+        $this->systemConfigService->set('Listrak.config.' . trim($configName), $value);
+    }
+
     public function isSyncEnabled(string $configName): bool
     {
         return $this->getConfig($configName) && $this->getConfig('dataClientId') && $this->getConfig('dataClientSecret');

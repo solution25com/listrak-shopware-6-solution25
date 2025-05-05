@@ -120,7 +120,7 @@ class OrderSubscriber implements EventSubscriberInterface
             }
         }
 
-        $data = [
+        $data = [[
             'orderNumber' => $order->getOrderNumber(),
             'dateEntered' => '2025-04-22T01:39:35Z',
             'email' => $email,
@@ -135,7 +135,7 @@ class OrderSubscriber implements EventSubscriberInterface
             'shippingTotal' => $order->getShippingTotal(),
             'status' => $orderStatus,
             'taxTotal' => $order->getPrice()->getCalculatedTaxes()->getAmount(),
-        ];
+        ]];
 
         $this->listrakApiService->importOrder($data, $event->getContext());
     }
