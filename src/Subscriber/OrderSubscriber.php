@@ -4,10 +4,17 @@ declare(strict_types=1);
 
 namespace Listrak\Subscriber;
 
+use Listrak\Service\DataMappingService;
 use Listrak\Service\ListrakApiService;
 use Listrak\Service\ListrakConfigService;
 use Psr\Log\LoggerInterface;
-use Shopware\Core\Checkout\Cart\Event\CheckoutOrderPlacedEvent;
+use Shopware\Core\Checkout\Order\OrderEvents;
+use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
+use Shopware\Core\Framework\DataAbstractionLayer\EntityWriteResult;
+use Shopware\Core\Framework\DataAbstractionLayer\Event\EntityWrittenEvent;
+use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
+use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
+use Shopware\Core\System\StateMachine\Event\StateMachineStateChangeEvent;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 class OrderSubscriber implements EventSubscriberInterface
@@ -16,127 +23,59 @@ class OrderSubscriber implements EventSubscriberInterface
 
     private ListrakApiService $listrakApiService;
 
+    private DataMappingService $dataMappingService;
+
     private LoggerInterface $logger;
 
     public function __construct(
         ListrakConfigService $listrakConfigService,
         ListrakApiService $listrakApiService,
+        DataMappingService $dataMappingService,
+        private readonly EntityRepository $orderRepository,
         LoggerInterface $logger
     ) {
         $this->listrakConfigService = $listrakConfigService;
         $this->listrakApiService = $listrakApiService;
+        $this->dataMappingService = $dataMappingService;
         $this->logger = $logger;
     }
 
     public static function getSubscribedEvents(): array
     {
         return [
-            CheckoutOrderPlacedEvent::class => 'onOrderPlaced',
+            OrderEvents::ORDER_WRITTEN_EVENT => 'onOrderWritten',
         ];
     }
 
-    public function onOrderPlaced(CheckoutOrderPlacedEvent $event): void
+    public function onOrderWritten(EntityWrittenEvent $event): void
     {
         if (!$this->listrakConfigService->isSyncEnabled('enableOrderSync')) {
             return;
         }
-
-        $this->logger->debug('Listrak order placed event triggered');
-
-        $order = $event->getOrder();
-        $orderState = $order->getStateMachineState() ? $order->getStateMachineState()->getTechnicalName() : 'Unknown';
-        $orderStatus = $this->listrakApiService->mapOrderStatus($orderState);
-        $customer = $order->getOrderCustomer();
-        $email = $customer && $customer->getEmail() ? $customer->getEmail() : '';
-        $billingAddress = $order->getBillingAddress();
-        $billingAddressItem = [];
-        if ($billingAddress) {
-            $billingAddressItem = [
-                'firstName' => $billingAddress->getFirstName(),
-                'lastName' => $billingAddress->getLastName(),
-                'mobilePhone' => $billingAddress->getPhoneNumber() ?? '',
-                'phone' => $billingAddress->getPhoneNumber() ?? '',
-                'zipCode' => $billingAddress->getZipCode() ?? '',
-                'city' => $billingAddress->getCity(),
-                'country' => $billingAddress->getCountry() ? $billingAddress->getCountry()->getName() : '',
-                'state' => $billingAddress->getCountryState() ? $billingAddress->getCountryState()->getName() : '',
-                'address1' => $billingAddress->getStreet(),
-                'address2' => $billingAddress->getAdditionalAddressLine1() ?? '',
-                'address3' => $billingAddress->getAdditionalAddressLine2() ?? '',
-            ];
-        }
-
         $items = [];
-        $deliveries = [];
-        $firstDelivery = null;
-        if ($order->getDeliveries()) {
-            foreach ($order->getDeliveries() as $delivery) {
-                $deliveries[] = $delivery;
+        foreach ($event->getWriteResults() as $writeResult) {
+            if ($writeResult->getOperation() == EntityWriteResult::OPERATION_DELETE) {
+                continue;
             }
-            $firstDelivery = $deliveries[0];
+            $payload = $writeResult->getPayload();
+            $orderId = $payload['id'];
+            $criteria = new Criteria();
+            $criteria->addFilter(new EqualsFilter('id', $orderId));
+            $criteria->addAssociation('lineItems');
+            $criteria->addAssociation('deliveries');
+            $criteria->addAssociation('addresses');
+            $criteria->addAssociation('lineItems');
+            $criteria->addAssociation('stateMachineState');
+
+            $order = $this->orderRepository->search(
+                $criteria,
+                $event->getContext()
+            )->first();
+
+            $item = $this->dataMappingService->mapOrderData($order);
+            $items[] = $item;
         }
 
-        $shippingAddress = $firstDelivery ? $firstDelivery->getShippingOrderAddress() : null;
-        $shippingAddressItem = [];
-        if ($shippingAddress) {
-            $shippingAddressItem = [
-                'firstName' => $shippingAddress->getFirstName(),
-                'lastName' => $shippingAddress->getLastName(),
-                'mobilePhone' => $shippingAddress->getPhoneNumber() ?? '',
-                'phone' => $shippingAddress->getPhoneNumber() ?? '',
-                'zipCode' => $shippingAddress->getZipCode() ?? '',
-                'city' => $shippingAddress->getCity(),
-                'country' => $shippingAddress->getCountry() ? $shippingAddress->getCountry()->getName() : '',
-                'state' => $shippingAddress->getCountryState() ? $shippingAddress->getCountryState()->getName() : '',
-                'address1' => $shippingAddress->getStreet(),
-                'address2' => $shippingAddress->getAdditionalAddressLine1() ?? '',
-                'address3' => $shippingAddress->getAdditionalAddressLine2() ?? ''
-            ];
-        }
-
-        $orderItemTotal = 0;
-        if ($order->getLineItems()) {
-            foreach ($order->getLineItems() as $lineItem) {
-                $calculatedPrice = $lineItem->getPrice();
-                $sku = $this->listrakApiService->generateSku($lineItem);
-                $listPrice = $calculatedPrice && $calculatedPrice->getListPrice() ? $calculatedPrice->getListPrice()->getPrice() : 0;
-                $unitPrice = $lineItem->getUnitPrice();
-                $discountedPrice = $calculatedPrice && $calculatedPrice->getListPrice() ? $calculatedPrice->getListPrice()->getDiscount() : 0;
-                $quantity = $lineItem->getQuantity();
-                $itemDiscountTotal = ($listPrice - $discountedPrice) * $lineItem->getQuantity();
-                $itemTotal = ($unitPrice * $quantity) - $itemDiscountTotal;
-                $orderItemTotal += $itemTotal;
-                $item = [
-                    'discountedPrice' => $discountedPrice,
-                    'itemTotal' => $itemTotal,
-                    'itemDiscountTotal' => $itemDiscountTotal,
-                    'orderNumber' => $order->getOrderNumber(),
-                    'price' => $unitPrice,
-                    'quantity' => $quantity,
-                    'sku' => $sku,
-                    'status' => $orderStatus,
-                ];
-                $items[] = $item;
-            }
-        }
-
-        $data = [[
-            'orderNumber' => $order->getOrderNumber(),
-            'dateEntered' => '2025-04-22T01:39:35Z',
-            'email' => $email,
-            'customerNumber' => $order->getOrderCustomer() ? $order->getOrderCustomer()->getCustomerNumber() : '',
-            'billingAddress' => $billingAddressItem,
-            'items' => $items,
-            'itemTotal' => $orderItemTotal,
-            'orderTotal' => $order->getPrice()->getTotalPrice(),
-            'shipDate' => $firstDelivery ? $firstDelivery->getShippingDateEarliest()->format('Y-m-d\TH:i:s\Z') : '',
-            'shippingAddress' => $shippingAddressItem,
-            'shippingMethod' => $firstDelivery && $firstDelivery->getShippingMethod() ? $firstDelivery->getShippingMethod()->getName() : '',
-            'shippingTotal' => $order->getShippingTotal(),
-            'status' => $orderStatus,
-            'taxTotal' => $order->getPrice()->getCalculatedTaxes()->getAmount(),
-        ]];
-
-        $this->listrakApiService->importOrder($data, $event->getContext());
+        $this->listrakApiService->importOrder($items, $event->getContext());
     }
 }

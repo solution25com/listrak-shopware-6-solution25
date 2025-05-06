@@ -25,11 +25,8 @@ class ListrakApiService extends Endpoints
     private const TOKEN_URL = 'https://auth.listrak.com/OAuth2/Token';
     public const EMAIL_INTEGRATION = 'EMAIL';
     public const DATA_INTEGRATION = 'DATA';
-
     private LoggerInterface $logger;
-
     private Client $client;
-
     private EntityRepository $failedRequestRepository;
     private ?string $dataAccessToken = null;
     private ?int $dataAccessTokenExpiry = null;
@@ -62,10 +59,10 @@ class ListrakApiService extends Endpoints
      */
     public function getAccessToken(string $type): string
     {
-        if ($type == self::DATA_INTEGRATION && $this->dataAccessToken && $this->dataAccessTokenExpiry < time()) {
+        if ($type == self::DATA_INTEGRATION && $this->dataAccessToken && $this->dataAccessTokenExpiry > time()) {
             return $this->dataAccessToken;
         }
-        if ($type == self::EMAIL_INTEGRATION && $this->emailAccessToken && $this->emailAccessTokenExpiry < time()) {
+        if ($type == self::EMAIL_INTEGRATION && $this->emailAccessToken && $this->emailAccessTokenExpiry > time()) {
             return $this->emailAccessToken;
         }
 
@@ -109,8 +106,8 @@ class ListrakApiService extends Endpoints
     {
         return [
             'grant_type' => 'client_credentials',
-            'client_id' => $type === self::DATA_INTEGRATION ? $this->listrakConfigService->getConfig('dataClientId') : $this->listrakConfigService->getConfig('emailClientId'),
-            'client_secret' => $type === self::DATA_INTEGRATION ? $this->listrakConfigService->getConfig('dataClientSecret') : $this->listrakConfigService->getConfig('emailClientSecret')
+            'client_id' => $type === self::DATA_INTEGRATION ? $this->listrakConfigService->getConfig('dataClientId') :  $this->listrakConfigService->getConfig('emailClientId'),
+            'client_secret' => $type === self::DATA_INTEGRATION ? $this->listrakConfigService->getConfig('dataClientSecret') :  $this->listrakConfigService->getConfig('emailClientSecret')
         ];
     }
 
@@ -157,11 +154,12 @@ class ListrakApiService extends Endpoints
      * @param array<string, mixed> $data
      * @param Context $context
      */
-    public function createorUpdateContact(array $data, Context $context): void
+    public function createOrUpdateContact(array $data, Context $context): void
     {
         $listId = $this->listrakConfigService->getConfig('listId');
+
         if ($listId) {
-            $fullEndpointUrl = Endpoints::getUrlDynamicParam(Endpoints::CONTACT_CREATE, [$listId, 'Contact']);
+            $fullEndpointUrl = Endpoints::getUrlDynamicParam(Endpoints::CONTACT_CREATE, [$listId,'Contact']);
             $this->logger->debug('Creating contact', ['data' => $data]);
             $options = [
                 'headers' => [
@@ -173,25 +171,6 @@ class ListrakApiService extends Endpoints
 
             $this->request($fullEndpointUrl, $options, $context);
         }
-    }
-
-    /**
-     * @param string $status
-     * @return string
-     */
-    public function mapOrderStatus(string $status): string
-    {
-        $sw_order_states = [
-            'open' => 'Pending',
-            'in_progress' => 'Processing',
-            'completed' => 'Completed',
-            'cancelled' => 'Canceled',
-        ];
-        if (array_key_exists($status, $sw_order_states)) {
-            return $sw_order_states[$status];
-        }
-
-        return 'Unknown';
     }
 
     /**

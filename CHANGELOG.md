@@ -2,6 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.3] - 05-06-2025
+- Added option of full synchronization of existing customer and order data.
+
 ## [1.0.2] - 05-05-2025
 - Added newsletter subscription/unsubscription synchronization.
 

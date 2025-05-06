@@ -1,0 +1,15 @@
+{
+  "fullCustomerSyncButton": {
+    "buttonLabel": "Full Customer Import",
+    "title": "Full Customer Import",
+    "success": "Customer import has been queued.",
+    "error": "Customer import failed. Please try again."
+  },
+
+  "fullOrderSyncButton": {
+    "buttonLabel": "Full Order Import",
+    "title": "Full Order Import",
+    "success": "Order import has been queued.",
+    "error": "Order import failed. Please try again."
+  }
+}

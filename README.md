@@ -1,10 +1,8 @@
-![Listrak](https://github.com/user-attachments/assets/b0a01c49-1dcf-4a71-bcb3-63b39e1d7d84)
-
+![1](https://github.com/user-attachments/assets/37c88d5-0bdd-4ca9-ba14-9d2a26cc988a)
 
 # Listrak
 
 ## Introduction
-
 
 The Listrak plugin integrates your Shopware 6 store with Listrak’s marketing platform—bringing advanced features like abandoned cart recovery, customer data sync, and storefront tracking to help you grow your business.
 
@@ -56,9 +54,7 @@ The Listrak plugin integrates your Shopware 6 store with Listrak’s marketing p
 
 - After activation, you will see Listrak in the list of installed plugins.
 - The plugin name, version, and installation date should appear as shown in the screenshot below.
-
-<img width="978" alt="Screenshot 2025-04-24 at 19 09 17" src="https://github.com/user-attachments/assets/6499640f-befa-481e-9155-218c5a5718ee" />
-
+![2](https://github.com/user-attachments/assets/052ef31-11ef-4cb3-ad68-d483343a8412)
 
 ## Plugin Configuration
 
@@ -73,24 +69,29 @@ The Listrak plugin integrates your Shopware 6 store with Listrak’s marketing p
   - Select the sales channel(s) where you want Listrak to be active. If you choose “All Sales Channels,” it will apply to every channel in your store.
 - **Listrak Merchant ID**
   - Enter the Merchant ID provided by Listrak.
-- **Listrak Client ID**
+- **Listrak List ID**
+  - Enter the Email List ID provided by Listrak.
+- **Listrak Data Client ID**
   - Enter the Client ID from your Listrak Data Integration.
-- **Listrak Client Secret**
+- **Listrak Data Client Secret**
   - Enter the Client Secret from your Listrak Data Integration.
-
-<img width="978" alt="Screenshot 2025-04-24 at 19 07 41" src="https://github.com/user-attachments/assets/1b6688fb-d419-4c7d-b608-8c6a26dc8b59" />
+- **Listrak Email Client ID**
+  - Enter the Client ID from your Listrak Email Integration.
+- **Listrak Email Client Secret**
+    - Enter the Client Secret from your Listrak Email Integration.
 
 3. **Sync Settings**
 
-- Enable Customer Synchronization by clicking on the toggle.
-- Enable Order Synchronization by clicking on the toggle.
+- Perform a full synchronization of existing customer data by clicking on Full Customer Import
+- Perform a full synchronization of existing customer data by clicking on Full Order Import
+- Enable ongoing Customer Synchronization by clicking on the toggle.
+- Enable ongoing Order Synchronization by clicking on the toggle.
 
 3. **Save Configuration**
 
 - Click Save in the top-right corner to store your settings.
 
-<img width="978" alt="Screenshot 2025-04-24 at 19 07 49" src="https://github.com/user-attachments/assets/f7d2d7e5-0da7-48fe-b741-bb6531446bc1" />
-
+![3](https://github.com/user-attachments/assets/c5adf85-f999-4ea8-bf1f-11bb32699b25)
 
 ## How It Works
 
