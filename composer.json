@@ -14,6 +14,9 @@
   "require": {
     "shopware/core": "~6.6.0"
   },
+  "require-dev": {
+    "spaze/phpstan-disallowed-calls": "^4.5"
+  },
   "extra": {
     "shopware-plugin-class": "Listrak\\Listrak",
     "plugin-icon": "src/Resources/config/plugin.png",
