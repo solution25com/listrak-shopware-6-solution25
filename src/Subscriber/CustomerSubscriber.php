@@ -9,7 +9,6 @@ use Listrak\Service\ListrakApiService;
 use Listrak\Service\ListrakConfigService;
 use Psr\Log\LoggerInterface;
 use Shopware\Core\Checkout\Customer\CustomerEvents;
-use Shopware\Core\Checkout\Customer\Event\CustomerRegisterEvent;
 use Shopware\Core\Content\Newsletter\Event\NewsletterConfirmEvent;
 use Shopware\Core\Content\Newsletter\Event\NewsletterUnsubscribeEvent;
 use Shopware\Core\Content\Newsletter\NewsletterEvents;
@@ -24,6 +23,7 @@ class CustomerSubscriber implements EventSubscriberInterface
     private ListrakConfigService $listrakConfigService;
 
     private ListrakApiService $listrakApiService;
+
     private DataMappingService $dataMappingService;
 
     private LoggerInterface $logger;
@@ -56,20 +56,22 @@ class CustomerSubscriber implements EventSubscriberInterface
             return;
         }
         $this->logger->notice('Listrak customer written event triggered');
+        $ids = [];
         $items = [];
         foreach ($event->getWriteResults() as $writeResult) {
-            if ($writeResult->getOperation() == EntityWriteResult::OPERATION_DELETE) {
+            if ($writeResult->getOperation() === EntityWriteResult::OPERATION_DELETE) {
                 continue;
             }
 
             $payload = $writeResult->getPayload();
-            $customerId = $payload['id'];
+            $ids[] = $payload['id'];
+        }
+        $customers = $this->customerRepository->search(
+            new Criteria($ids),
+            $event->getContext()
+        )->getEntities();
 
-            $customer = $this->customerRepository->search(
-                new Criteria([$customerId]),
-                $event->getContext()
-            )->first();
-
+        foreach ($customers as $customer) {
             $item = $this->dataMappingService->mapCustomerData($customer);
             $items[] = $item;
         }
@@ -91,7 +93,7 @@ class CustomerSubscriber implements EventSubscriberInterface
         $additionalData = $this->dataMappingService->mapContactData($newsletterRecipient);
         $data = [
             'emailAddress' => $newsletterRecipient->getEmail(),
-            'subscriptionState' => 'Subscribed'
+            'subscriptionState' => 'Subscribed',
         ];
 
         if ($additionalData) {
@@ -111,7 +113,7 @@ class CustomerSubscriber implements EventSubscriberInterface
         $newsletterRecipient = $event->getNewsletterRecipient();
         $data = [
             'emailAddress' => $newsletterRecipient->getEmail(),
-            'subscriptionState' => 'Unsubscribed'
+            'subscriptionState' => 'Unsubscribed',
         ];
 
         $this->listrakApiService->createorUpdateContact($data, $event->getContext());

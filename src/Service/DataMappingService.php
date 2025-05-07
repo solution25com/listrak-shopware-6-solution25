@@ -9,6 +9,7 @@ use Psr\Log\LoggerInterface;
 class DataMappingService
 {
     private $listrakApiService;
+
     private $listrakConfigService;
 
     private LoggerInterface $logger;
@@ -70,7 +71,7 @@ class DataMappingService
                 'state' => $shippingAddress->getCountryState() ? $shippingAddress->getCountryState()->getName() : '',
                 'address1' => $shippingAddress->getStreet(),
                 'address2' => $shippingAddress->getAdditionalAddressLine1() ?? '',
-                'address3' => $shippingAddress->getAdditionalAddressLine2() ?? ''
+                'address3' => $shippingAddress->getAdditionalAddressLine2() ?? '',
             ];
         }
         $items = $this->mapOrderLineItems($order, $orderStatus);
@@ -91,6 +92,7 @@ class DataMappingService
             'status' => $orderStatus,
             'taxTotal' => $order->getPrice()->getCalculatedTaxes()->getAmount(),
         ];
+
         return $data;
     }
 
@@ -120,14 +122,10 @@ class DataMappingService
             ];
             $lineItems[] = $item;
         }
+
         return [$lineItems, $orderItemTotal];
     }
 
-
-    /**
-     * @param string $status
-     * @return string
-     */
     public function mapOrderStatus(string $status): string
     {
         $sw_order_states = [
@@ -136,7 +134,7 @@ class DataMappingService
             'completed' => 'Completed',
             'cancelled' => 'Canceled',
         ];
-        if (array_key_exists($status, $sw_order_states)) {
+        if (\array_key_exists($status, $sw_order_states)) {
             return $sw_order_states[$status];
         }
 
@@ -164,6 +162,7 @@ class DataMappingService
             'email' => $customer->getEmail(),
         ];
         $data['address'] = $addressItem;
+
         return $data;
     }
 

@@ -8,7 +8,6 @@ use Listrak\Service\ListrakApiService;
 use Psr\Log\LoggerInterface;
 use Shopware\Core\Framework\Context;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
-use Shopware\Core\Framework\MessageQueue\ScheduledTask\ScheduledTaskEntity;
 use Shopware\Core\Framework\MessageQueue\ScheduledTask\ScheduledTaskHandler;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
@@ -19,9 +18,7 @@ class RequestRetryTaskHandler extends ScheduledTaskHandler
      * @var LoggerInterface
      */
     private $logger;
-    /**
-     * @var ListrakApiService
-     */
+
     private ListrakApiService $listrakApiService;
 
     public function __construct(

@@ -1,7 +1,6 @@
 import template from './full-order-sync.html.twig';
 import './../base.scss';
 
-
 const { Component, Mixin } = Shopware;
 
 Component.register('full-order-sync', {
@@ -9,9 +8,7 @@ Component.register('full-order-sync', {
     props: ['label'],
     inject: ['fullOrderSync'],
 
-    mixins: [
-        Mixin.getByName('notification')
-    ],
+    mixins: [Mixin.getByName('notification')],
 
     data() {
         return {
@@ -29,7 +26,7 @@ Component.register('full-order-sync', {
             }
 
             return $parent.actualConfigData.null;
-        }
+        },
     },
 
     methods: {
@@ -44,17 +41,17 @@ Component.register('full-order-sync', {
                     this.isImportSuccessful = true;
                     this.createNotificationSuccess({
                         title: this.$tc('fullOrderSyncButton.title'),
-                        message: this.$tc('fullOrderSyncButton.success')
+                        message: this.$tc('fullOrderSyncButton.success'),
                     });
                 } else {
                     this.createNotificationError({
                         title: this.$tc('fullOrderSyncButton.title'),
-                        message: this.$tc('fullOrderSyncButton.error')
+                        message: this.$tc('fullOrderSyncButton.error'),
                     });
                 }
 
                 this.isLoading = false;
             });
-        }
-    }
-})
+        },
+    },
+});

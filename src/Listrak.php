@@ -25,7 +25,7 @@ class Listrak extends Plugin
             return;
         }
         if ($this->container !== null) {
-            /** @var \Doctrine\DBAL\Connection $connection */
+            /** @var Connection $connection */
             $connection = $this->container->get(Connection::class);
             $connection->executeStatement('DROP TABLE IF EXISTS `listrak_failed_requests`');
         }

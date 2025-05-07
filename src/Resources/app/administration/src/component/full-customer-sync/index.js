@@ -1,7 +1,6 @@
 import template from './full-customer-sync.html.twig';
 import './../base.scss';
 
-
 const { Component, Mixin } = Shopware;
 
 Component.register('full-customer-sync', {
@@ -10,9 +9,7 @@ Component.register('full-customer-sync', {
     props: ['label'],
     inject: ['fullCustomerSync'],
 
-    mixins: [
-        Mixin.getByName('notification')
-    ],
+    mixins: [Mixin.getByName('notification')],
 
     data() {
         return {
@@ -30,7 +27,7 @@ Component.register('full-customer-sync', {
             }
 
             return $parent.actualConfigData.null;
-        }
+        },
     },
 
     methods: {
@@ -45,17 +42,17 @@ Component.register('full-customer-sync', {
                     this.isImportSuccessful = true;
                     this.createNotificationSuccess({
                         title: this.$tc('fullCustomerSyncButton.title'),
-                        message: this.$tc('fullCustomerSyncButton.success')
+                        message: this.$tc('fullCustomerSyncButton.success'),
                     });
                 } else {
                     this.createNotificationError({
                         title: this.$tc('fullCustomerSyncButton.title'),
-                        message: this.$tc('fullCustomerSyncButton.error')
+                        message: this.$tc('fullCustomerSyncButton.error'),
                     });
                 }
 
                 this.isLoading = false;
             });
-        }
-    }
-})
+        },
+    },
+});

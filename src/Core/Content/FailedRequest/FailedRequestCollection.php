@@ -12,6 +12,7 @@ use Shopware\Core\Framework\DataAbstractionLayer\EntityCollection;
  * @method FailedRequestEntity|null get(string $key)
  * @method FailedRequestEntity|null first()
  * @method FailedRequestEntity|null last()
+ *
  * @extends EntityCollection<FailedRequestEntity>
  */
 class FailedRequestCollection extends EntityCollection

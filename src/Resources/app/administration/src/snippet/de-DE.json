@@ -1,14 +1,14 @@
 {
-  "fullCustomerSyncButton": {
-    "buttonLabel": "Vollständiger Kundenimport",
-    "title": "Vollständiger Kundenimport",
-    "success": "Der Kundenimport wurde in die Warteschlange gestellt",
-    "error": "Der Kundenimport ist fehlgeschlagen. Bitte versuchen Sie es erneut."
-  },
-  "fullOrderSyncButton": {
-    "buttonLabel": "Vollständiger Bestellimport",
-    "title": "Vollständiger Bestellimport",
-    "success": "Der Auftragsimport wurde in die Warteschlange gestellt.",
-    "error": "Der Import der Bestellung ist fehlgeschlagen. Bitte versuchen Sie es erneut."
-  }
+    "fullCustomerSyncButton": {
+        "buttonLabel": "Vollständiger Kundenimport",
+        "title": "Vollständiger Kundenimport",
+        "success": "Der Kundenimport wurde in die Warteschlange gestellt",
+        "error": "Der Kundenimport ist fehlgeschlagen. Bitte versuchen Sie es erneut."
+    },
+    "fullOrderSyncButton": {
+        "buttonLabel": "Vollständiger Bestellimport",
+        "title": "Vollständiger Bestellimport",
+        "success": "Der Auftragsimport wurde in die Warteschlange gestellt.",
+        "error": "Der Import der Bestellung ist fehlgeschlagen. Bitte versuchen Sie es erneut."
+    }
 }

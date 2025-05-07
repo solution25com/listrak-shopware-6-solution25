@@ -13,8 +13,6 @@ use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityWriteResult;
 use Shopware\Core\Framework\DataAbstractionLayer\Event\EntityWrittenEvent;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
-use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
-use Shopware\Core\System\StateMachine\Event\StateMachineStateChangeEvent;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 class OrderSubscriber implements EventSubscriberInterface
@@ -53,25 +51,26 @@ class OrderSubscriber implements EventSubscriberInterface
             return;
         }
         $items = [];
+        $ids = [];
         foreach ($event->getWriteResults() as $writeResult) {
-            if ($writeResult->getOperation() == EntityWriteResult::OPERATION_DELETE) {
+            if ($writeResult->getOperation() === EntityWriteResult::OPERATION_DELETE) {
                 continue;
             }
             $payload = $writeResult->getPayload();
-            $orderId = $payload['id'];
-            $criteria = new Criteria();
-            $criteria->addFilter(new EqualsFilter('id', $orderId));
-            $criteria->addAssociation('lineItems');
-            $criteria->addAssociation('deliveries');
-            $criteria->addAssociation('addresses');
-            $criteria->addAssociation('lineItems');
-            $criteria->addAssociation('stateMachineState');
+            $ids[] = $payload['id'];
+        }
+        $criteria = new Criteria([$ids]);
+        $criteria->addAssociation('lineItems');
+        $criteria->addAssociation('deliveries');
+        $criteria->addAssociation('addresses');
+        $criteria->addAssociation('lineItems');
+        $criteria->addAssociation('stateMachineState');
 
-            $order = $this->orderRepository->search(
-                $criteria,
-                $event->getContext()
-            )->first();
-
+        $orders = $this->orderRepository->search(
+            $criteria,
+            $event->getContext()
+        )->getEntities();
+        foreach ($orders as $order) {
             $item = $this->dataMappingService->mapOrderData($order);
             $items[] = $item;
         }

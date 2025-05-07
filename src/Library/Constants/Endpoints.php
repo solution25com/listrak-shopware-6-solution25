@@ -11,7 +11,7 @@ abstract class Endpoints
     protected const CONTACT_CREATE = 'CONTACT_CREATE';
 
     /**
-     * @var array<string,string[]> $endpoints
+     * @var array<string,string[]>
      */
     private static array $endpoints = [
         self::CUSTOMER_IMPORT => [
@@ -43,9 +43,9 @@ abstract class Endpoints
     }
 
     /**
-     * @param string $endpoint
      * @param array<string> $params
      * @param array<string> $queryParam
+     *
      * @return array<string,array<string>|string>
      */
     public static function getUrlDynamicParam(string $endpoint, ?array $params = [], ?array $queryParam = []): array
@@ -64,7 +64,6 @@ abstract class Endpoints
     }
 
     /**
-     * @param string $endpoint
      * @return array<string>
      */
     protected static function getEndpoint(string $endpoint): array

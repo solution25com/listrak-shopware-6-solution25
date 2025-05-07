@@ -58,7 +58,6 @@
         <service id="Listrak\Controller\FullImportController" public="true">
             <argument type="service" id="Listrak\Service\ListrakConfigService"/>
             <argument type="service" id="Listrak\Service\ListrakApiService"/>
-            <argument type="service" id="listrak_failed_requests.repository"/>
             <argument type="service" id="customer.repository"/>
             <argument type="service" id="order.repository"/>
             <argument type="service" id="messenger.default_bus"/>

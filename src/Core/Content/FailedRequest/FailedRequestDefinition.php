@@ -4,17 +4,14 @@ namespace Listrak\Core\Content\FailedRequest;
 
 use Shopware\Core\Framework\DataAbstractionLayer\EntityDefinition;
 use Shopware\Core\Framework\DataAbstractionLayer\Field\DateTimeField;
-use Shopware\Core\Framework\DataAbstractionLayer\Field\FkField;
 use Shopware\Core\Framework\DataAbstractionLayer\Field\Flag\PrimaryKey;
 use Shopware\Core\Framework\DataAbstractionLayer\Field\Flag\Required;
 use Shopware\Core\Framework\DataAbstractionLayer\Field\IdField;
 use Shopware\Core\Framework\DataAbstractionLayer\Field\IntField;
 use Shopware\Core\Framework\DataAbstractionLayer\Field\JsonField;
 use Shopware\Core\Framework\DataAbstractionLayer\Field\LongTextField;
-use Shopware\Core\Framework\DataAbstractionLayer\Field\ManyToOneAssociationField;
 use Shopware\Core\Framework\DataAbstractionLayer\Field\StringField;
 use Shopware\Core\Framework\DataAbstractionLayer\FieldCollection;
-use Shopware\Core\System\SalesChannel\SalesChannelDefinition;
 
 class FailedRequestDefinition extends EntityDefinition
 {
@@ -44,7 +41,7 @@ class FailedRequestDefinition extends EntityDefinition
             new LongTextField('response', 'response'),
             new StringField('method', 'method'),
             new StringField('endpoint', 'endpoint'),
-            new JsonField('options', 'options')
+            new JsonField('options', 'options'),
         ]);
     }
 }
