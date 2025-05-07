@@ -1,4 +1,4 @@
-![1](https://github.com/user-attachments/assets/37c88d5-0bdd-4ca9-ba14-9d2a26cc988a)
+![Listrak](https://github.com/user-attachments/assets/b0a01c49-1dcf-4a71-bcb3-63b39e1d7d84)
 
 # Listrak
 
@@ -54,7 +54,9 @@ The Listrak plugin integrates your Shopware 6 store with Listrak’s marketing p
 
 - After activation, you will see Listrak in the list of installed plugins.
 - The plugin name, version, and installation date should appear as shown in the screenshot below.
-![2](https://github.com/user-attachments/assets/052ef31-11ef-4cb3-ad68-d483343a8412)
+
+<img width="979" alt="Screenshot 2025-05-06 at 20 59 55" src="https://github.com/user-attachments/assets/cb36131e-4201-492b-a1c8-80ab2949bce5" />
+
 
 ## Plugin Configuration
 
@@ -79,6 +81,9 @@ The Listrak plugin integrates your Shopware 6 store with Listrak’s marketing p
   - Enter the Client ID from your Listrak Email Integration.
 - **Listrak Email Client Secret**
     - Enter the Client Secret from your Listrak Email Integration.
+ 
+<img width="979" alt="Screenshot 2025-05-06 at 20 59 25" src="https://github.com/user-attachments/assets/a524a903-e851-4b5d-9307-984816de1baf" />
+<img width="979" alt="Screenshot 2025-05-06 at 20 59 36" src="https://github.com/user-attachments/assets/2ccb153f-5a16-45c3-8ca4-fee933666eb7" />
 
 3. **Sync Settings**
 
@@ -87,11 +92,12 @@ The Listrak plugin integrates your Shopware 6 store with Listrak’s marketing p
 - Enable ongoing Customer Synchronization by clicking on the toggle.
 - Enable ongoing Order Synchronization by clicking on the toggle.
 
+<img width="979" alt="Screenshot 2025-05-06 at 20 58 58" src="https://github.com/user-attachments/assets/ac2c0162-4e58-4080-990d-7bf7ace8379c" />
+
+
 3. **Save Configuration**
 
 - Click Save in the top-right corner to store your settings.
-
-![3](https://github.com/user-attachments/assets/c5adf85-f999-4ea8-bf1f-11bb32699b25)
 
 ## How It Works
 
