@@ -55,8 +55,7 @@ The Listrak plugin integrates your Shopware 6 store with Listrak’s marketing p
 - After activation, you will see Listrak in the list of installed plugins.
 - The plugin name, version, and installation date should appear as shown in the screenshot below.
 
-<img width="979" alt="Screenshot 2025-05-06 at 20 59 55" src="https://github.com/user-attachments/assets/cb36131e-4201-492b-a1c8-80ab2949bce5" />
-
+<img width="978" alt="Screenshot 2025-05-07 at 14 03 46" src="https://github.com/user-attachments/assets/c9aa07a4-9d66-4571-b7ad-e57f0932cc76" />
 
 ## Plugin Configuration
 
@@ -73,6 +72,9 @@ The Listrak plugin integrates your Shopware 6 store with Listrak’s marketing p
   - Enter the Client ID from your Listrak Data Integration.
 - **Listrak Data Client Secret**
   - Enter the Client Secret from your Listrak Data Integration.
+    
+<img width="978" alt="Screenshot 2025-05-07 at 14 04 18" src="https://github.com/user-attachments/assets/ef9d8f1f-d863-4a4e-ae62-9ae763cda0d8" />
+ 
 
 2. **Email Integration Settings**
 
@@ -88,9 +90,9 @@ The Listrak plugin integrates your Shopware 6 store with Listrak’s marketing p
   - Optionally enter the first name field id from your Listrak Email Profile field, if it exists.
 - **Last Name Field Id**
 - Optionally enter the last name field id from your Listrak Email Profile field, if it exists.
- 
-<img width="979" alt="Screenshot 2025-05-06 at 20 59 25" src="https://github.com/user-attachments/assets/a524a903-e851-4b5d-9307-984816de1baf" />
-<img width="979" alt="Screenshot 2025-05-06 at 20 59 36" src="https://github.com/user-attachments/assets/2ccb153f-5a16-45c3-8ca4-fee933666eb7" />
+
+
+<img width="978" alt="Screenshot 2025-05-07 at 14 04 45" src="https://github.com/user-attachments/assets/7b1dc3b6-572e-46d3-812b-85a15b070455" />
 
 3. **Sync Settings**
 
@@ -99,7 +101,7 @@ The Listrak plugin integrates your Shopware 6 store with Listrak’s marketing p
 - Enable ongoing Customer Synchronization by clicking on the toggle.
 - Enable ongoing Order Synchronization by clicking on the toggle.
 
-<img width="979" alt="Screenshot 2025-05-06 at 20 58 58" src="https://github.com/user-attachments/assets/ac2c0162-4e58-4080-990d-7bf7ace8379c" />
+<img width="978" alt="Screenshot 2025-05-07 at 14 04 53" src="https://github.com/user-attachments/assets/9e4e08ee-1c41-4807-8101-f1216612c906" />
 
 
 3. **Save Configuration**
