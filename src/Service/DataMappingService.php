@@ -9,14 +9,17 @@ use Psr\Log\LoggerInterface;
 class DataMappingService
 {
     private $listrakApiService;
+    private $listrakConfigService;
 
     private LoggerInterface $logger;
 
     public function __construct(
         ListrakApiService $listrakApiService,
+        ListrakConfigService $listrakConfigService,
         LoggerInterface $logger
     ) {
         $this->listrakApiService = $listrakApiService;
+        $this->listrakConfigService = $listrakConfigService;
         $this->logger = $logger;
     }
 
@@ -161,6 +164,29 @@ class DataMappingService
             'email' => $customer->getEmail(),
         ];
         $data['address'] = $addressItem;
+        return $data;
+    }
+
+    public function mapContactData($newsletterRecipient): array
+    {
+        $salutationListrakFieldId = $this->listrakConfigService->getConfig('salutationSegmentationFieldId') ?? '';
+        $firstNameListrakFieldId = $this->listrakConfigService->getConfig('firstNameSegmentationFieldId') ?? '';
+        $lastNameListrakFieldId = $this->listrakConfigService->getConfig('lastNameSegmentationFieldId') ?? '';
+        $data = [];
+
+        if ($salutationListrakFieldId) {
+            $data[] = ['segmentationFieldId' => $salutationListrakFieldId,
+                'value' => $newsletterRecipient->getSalutation() ?? ''];
+        }
+        if ($firstNameListrakFieldId) {
+            $data[] = ['segmentationFieldId' => $firstNameListrakFieldId,
+                'value' => $newsletterRecipient->getFirstName() ?? ''];
+        }
+        if ($lastNameListrakFieldId) {
+            $data[] = ['segmentationFieldId' => $lastNameListrakFieldId,
+                'value' => $newsletterRecipient->getLastName() ?? ''];
+        }
+
         return $data;
     }
 }

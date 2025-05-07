@@ -82,11 +82,17 @@ class CustomerSubscriber implements EventSubscriberInterface
         $this->logger->notice('Listrak newsletter confirm event triggered');
 
         $newsletterRecipient = $event->getNewsletterRecipient();
+        $additionalData = $this->dataMappingService->mapContactData($newsletterRecipient);
         $data = [
             'emailAddress' => $newsletterRecipient->getEmail(),
-            'subscriptionState' => 'Subscribed',
+            'subscriptionState' => 'Subscribed'
         ];
-        $this->listrakApiService->createOrUpdateContact($data, $event->getContext());
+
+        if ($additionalData) {
+            $data['segmentationFieldValues'] = $additionalData;
+        }
+
+        $this->listrakApiService->createorUpdateContact($data, $event->getContext());
     }
 
     public function onNewsletterUnsubscribe(NewsletterUnsubscribeEvent $event): void
@@ -98,6 +104,7 @@ class CustomerSubscriber implements EventSubscriberInterface
             'emailAddress' => $newsletterRecipient->getEmail(),
             'subscriptionState' => 'Unsubscribed'
         ];
-        $this->listrakApiService->createOrUpdateContact($data, $event->getContext());
+
+        $this->listrakApiService->createorUpdateContact($data, $event->getContext());
     }
 }

@@ -9,7 +9,7 @@ The Listrak plugin integrates your Shopware 6 store with Listrak’s marketing p
 ### Key Features
 
 1. **Customer Data Sync**
-   - Automatically send customer registrations to Listrak.
+   - Automatically send customer registrations and newsletter signups to Listrak.
 2. **Order Data Sync**
    - Push order information to Listrak for personalized post-purchase campaigns.
 3. **Admin Panel Integration**
@@ -65,22 +65,29 @@ The Listrak plugin integrates your Shopware 6 store with Listrak’s marketing p
 - Go to Settings > System > Plugins.
 - Locate Listrak and click the three dots (...) icon or the plugin name to open its settings.
 
-2. **General Settings**
+2. **Data Integration Settings**
 
-- **Sales Channel**
-  - Select the sales channel(s) where you want Listrak to be active. If you choose “All Sales Channels,” it will apply to every channel in your store.
 - **Listrak Merchant ID**
   - Enter the Merchant ID provided by Listrak.
-- **Listrak List ID**
-  - Enter the Email List ID provided by Listrak.
 - **Listrak Data Client ID**
   - Enter the Client ID from your Listrak Data Integration.
 - **Listrak Data Client Secret**
   - Enter the Client Secret from your Listrak Data Integration.
+
+2. **Email Integration Settings**
+
+- **Listrak List ID**
+  - Enter the List ID provided by Listrak.
 - **Listrak Email Client ID**
   - Enter the Client ID from your Listrak Email Integration.
 - **Listrak Email Client Secret**
-    - Enter the Client Secret from your Listrak Email Integration.
+  - Enter the Client Secret from your Listrak Email Integration.
+- **Salutation Field Id**
+  - Optionally enter the Salutation field id from your Listrak Email Profile field, if it exists.
+- **First Name Field Id**
+  - Optionally enter the first name field id from your Listrak Email Profile field, if it exists.
+- **Last Name Field Id**
+- Optionally enter the last name field id from your Listrak Email Profile field, if it exists.
  
 <img width="979" alt="Screenshot 2025-05-06 at 20 59 25" src="https://github.com/user-attachments/assets/a524a903-e851-4b5d-9307-984816de1baf" />
 <img width="979" alt="Screenshot 2025-05-06 at 20 59 36" src="https://github.com/user-attachments/assets/2ccb153f-5a16-45c3-8ca4-fee933666eb7" />
@@ -111,7 +118,7 @@ The Listrak plugin integrates your Shopware 6 store with Listrak’s marketing p
 
 ## FAQ
 - **Is a Listrak account required?** 
-   - Yes. You need an active Listrak account and a Data Integration for syncing data.  
+   - Yes. You need an active Listrak account, a Data Integration and an Email Integration for syncing data.  
 
 ## Wiki Documentation
 Read more about the plugin configuration on our [Wiki](https://github.com/solution25com/listrak-shopware-6-solution25/wiki).

@@ -4,19 +4,13 @@
         xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/shopware/shopware/trunk/src/Core/System/SystemConfig/Schema/config.xsd">
 
     <card>
-        <title>General Settings</title>
-        <title lang="de-DE">Allgemeine Einstellungen</title>
+        <title>Data Integration Settings</title>
+        <title lang="de-DE">Datenintegrationseinstellungen</title>
 
         <input-field>
             <name>merchantId</name>
             <label>Merchant ID</label>
             <helpText>Listrak Merchant ID</helpText>
-            <required>true</required>
-        </input-field>
-
-        <input-field>
-            <name>listId</name>
-            <label>List ID</label>
             <required>true</required>
         </input-field>
 
@@ -33,6 +27,18 @@
             <required>true</required>
         </input-field>
 
+    </card>
+
+    <card>
+        <title>Email Integration Settings</title>
+        <title lang="de-DE">E-Mail-Integrationseinstellungen</title>
+
+        <input-field>
+            <name>listId</name>
+            <label>List ID</label>
+            <required>true</required>
+        </input-field>
+
         <input-field>
             <name>emailClientId</name>
             <label>Email Integration Client ID</label>
@@ -45,6 +51,20 @@
             <required>true</required>
         </input-field>
 
+        <input-field type="int">
+            <name>salutationSegmentationFieldId</name>
+            <label>Salutation Field Id</label>
+        </input-field>
+
+        <input-field type="int">
+            <name>firstNameSegmentationFieldId</name>
+            <label>First Name Field Id</label>
+        </input-field>
+
+        <input-field type="int">
+            <name>lastNameSegmentationFieldId</name>
+            <label>Last Name Field Id</label>
+        </input-field>
     </card>
 
     <card>

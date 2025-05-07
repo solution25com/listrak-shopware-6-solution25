@@ -18,6 +18,7 @@
 
         <service id="Listrak\Service\DataMappingService">
             <argument type="service" id="Listrak\Service\ListrakApiService"/>
+            <argument type="service" id="Listrak\Service\ListrakConfigService"/>
             <argument type="service" id="logger"/>
         </service>
 

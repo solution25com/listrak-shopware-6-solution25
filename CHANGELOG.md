@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.4] - 05-07-2025
+- Added additional data to newsletter subscriptions.
+- Restructured plugin configuration settings.
+
 ## [1.0.3] - 05-06-2025
 - Added option of full synchronization of existing customer and order data.
 
