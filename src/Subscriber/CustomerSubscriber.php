@@ -52,6 +52,9 @@ class CustomerSubscriber implements EventSubscriberInterface
 
     public function onCustomerWritten(EntityWrittenEvent $event): void
     {
+        if (!$this->listrakConfigService->isSyncEnabled('enableCustomerSync')) {
+            return;
+        }
         $this->logger->notice('Listrak customer written event triggered');
         $items = [];
         foreach ($event->getWriteResults() as $writeResult) {
@@ -79,6 +82,9 @@ class CustomerSubscriber implements EventSubscriberInterface
 
     public function onNewsletterConfirm(NewsletterConfirmEvent $event): void
     {
+        if (!$this->listrakConfigService->isSyncEnabled('enableCustomerSync')) {
+            return;
+        }
         $this->logger->notice('Listrak newsletter confirm event triggered');
 
         $newsletterRecipient = $event->getNewsletterRecipient();
@@ -97,6 +103,9 @@ class CustomerSubscriber implements EventSubscriberInterface
 
     public function onNewsletterUnsubscribe(NewsletterUnsubscribeEvent $event): void
     {
+        if (!$this->listrakConfigService->isSyncEnabled('enableCustomerSync')) {
+            return;
+        }
         $this->logger->notice('Listrak newsletter confirm event triggered');
 
         $newsletterRecipient = $event->getNewsletterRecipient();

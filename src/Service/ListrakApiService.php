@@ -273,7 +273,7 @@ class ListrakApiService extends Endpoints
      */
     public function retry(Context $context): void
     {
-        if ($this->listrakConfigService->getConfig('enableOrderSync') | $this->listrakConfigService->getConfig('enableCustomerSync')) {
+        if ($this->listrakConfigService->getConfig('enableOrderSync') || $this->listrakConfigService->getConfig('enableCustomerSync')) {
             foreach ($this->findEntries($context) as $failedRequestEntry) {
                 $this->request(
                     ['url' => $failedRequestEntry->getEndpoint(), 'method' => $failedRequestEntry->getMethod()],
