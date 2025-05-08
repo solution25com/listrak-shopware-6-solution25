@@ -10,13 +10,14 @@ use Psr\Log\LoggerInterface;
 use Shopware\Core\Framework\DataAbstractionLayer\Dbal\Common\RepositoryIterator;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
+use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsAnyFilter;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Sorting\FieldSorting;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Messenger\MessageBusInterface;
 
 #[AsMessageHandler]
-final class ImportOrdersMessageHandler
+final class ImportNewsletterRecipientsMessageHandler
 {
     private ListrakApiService $listrakApiService;
 
@@ -27,7 +28,7 @@ final class ImportOrdersMessageHandler
     public function __construct(
         private readonly MessageBusInterface $messageBus,
         private readonly EventDispatcherInterface $eventDispatcher,
-        private readonly EntityRepository $orderRepository,
+        private readonly EntityRepository $newsletterRecipientRepository,
         DataMappingService $dataMappingService,
         ListrakApiService $listrakApiService,
         LoggerInterface $logger,
@@ -39,24 +40,25 @@ final class ImportOrdersMessageHandler
 
     public function __invoke(ImportOrdersMessage $message): void
     {
-        $this->logger->notice('Full listrak order sync started.');
+        $this->logger->notice('Full listrak newsletter recipient sync started.');
         $context = $message->getContext();
         try {
             $criteria = new Criteria();
             $criteria->setLimit(1000);
+            $criteria->addFilter(new EqualsAnyFilter('status', ['direct', 'unsubscribed']));
             $criteria->addSorting(new FieldSorting('id'));
-            $iterator = new RepositoryIterator($this->orderRepository, $context, $criteria);
+            $iterator = new RepositoryIterator($this->newsletterRecipientRepository, $context, $criteria);
             while (($result = $iterator->fetch()) !== null) {
-                $orders = $result->getEntities();
+                $newsletterRecipients = $result->getEntities();
                 $items = [];
-                if (!empty($orders)) {
-                    foreach ($orders as $order) {
-                        $item = $this->dataMappingService->mapOrderData($order);
+                if (!empty($newsletterRecipients)) {
+                    foreach ($newsletterRecipients as $newsletterRecipient) {
+                        $item = $this->dataMappingService->mapContactData($newsletterRecipient);
                         $items[] = $item;
                     }
                 }
                 if (!empty($items)) {
-                    $this->listrakApiService->importOrder($items, $context);
+                    $this->listrakApiService->createOrUpdateContact($newsletterRecipients, $context);
                 }
             }
         } catch (\Exception $e) {

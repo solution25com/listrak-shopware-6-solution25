@@ -11,5 +11,26 @@
         "title": "Full Order Import",
         "success": "Order import has been queued.",
         "error": "Order import failed. Please try again."
+    },
+
+    "fullNewsletterRecipientSyncButton": {
+        "buttonLabel": "Full Newsletter Recipient Import",
+        "title": "Full Newsletter Recipient Import",
+        "success": "Newsletter recipient import has been queued.",
+        "error": "Newsletter recipient import failed. Please try again."
+    },
+
+    "dataApiTest": {
+        "buttonLabel": "Test API connection",
+        "title": "Data Integration API Test",
+        "success": "Connection was successfully tested",
+        "error": "Could not connect. Please check your credentials."
+    },
+
+    "emailApiTest": {
+        "buttonLabel": "Test API connection",
+        "title": "Email Integration API Test",
+        "success": "Connection was successfully tested.",
+        "error": "Could not connect. Please check your credentials."
     }
 }

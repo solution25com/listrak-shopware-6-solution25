@@ -3,6 +3,7 @@
 namespace Listrak\Controller;
 
 use Listrak\Message\ImportCustomersMessage;
+use Listrak\Message\ImportNewsletterRecipientsMessage;
 use Listrak\Message\ImportOrdersMessage;
 use Listrak\Service\ListrakApiService;
 use Listrak\Service\ListrakConfigService;
@@ -24,15 +25,15 @@ class FullImportController
     private LoggerInterface $logger;
 
     public function __construct(
-        ListrakConfigService $listrakConfig,
-        ListrakApiService $listrakApi,
+        ListrakConfigService $listrakConfigService,
+        ListrakApiService $listrakApiService,
         private readonly EntityRepository $customerRepository,
         private readonly EntityRepository $orderRepository,
         private readonly MessageBusInterface $messageBus,
         LoggerInterface $logger
     ) {
-        $this->listrakConfigService = $listrakConfig;
-        $this->listrakApiService = $listrakApi;
+        $this->listrakConfigService = $listrakConfigService;
+        $this->listrakApiService = $listrakApiService;
         $this->logger = $logger;
     }
 
@@ -60,19 +61,35 @@ class FullImportController
     #[Route(path: '/api/_action/listrak-order-sync', name: 'api.action.listrak.order-sync', methods: ['POST'])]
     public function importOrders(Request $request, Context $context): JsonResponse
     {
+        $success = ['success' => false];
         if (!$this->listrakConfigService->getConfig('dataClientId') || !$this->listrakConfigService->getConfig('dataClientSecret')) {
-            $success = ['success' => false];
-
             return new JsonResponse($success);
         }
         try {
             $message = new ImportOrdersMessage($context);
             $this->messageBus->dispatch($message);
         } catch (\Exception $e) {
-            $success = ['success' => false];
-
             return new JsonResponse($success);
         }
+        $success = ['success' => true];
+
+        return new JsonResponse($success);
+    }
+
+    #[Route(path: '/api/_action/listrak-newsletter-recipient-sync', name: 'api.action.listrak.newsletter-recipient-sync', methods: ['POST'])]
+    public function importNewsletterRecipients(Request $request, Context $context): JsonResponse
+    {
+        $success = ['success' => false];
+        if (!$this->listrakConfigService->getConfig('emailClientId') || !$this->listrakConfigService->getConfig('emailClientSecret')) {
+            return new JsonResponse($success);
+        }
+        try {
+            $message = new ImportNewsletterRecipientsMessage($context);
+            $this->messageBus->dispatch($message);
+        } catch (\Exception $e) {
+            return new JsonResponse($success);
+        }
+
         $success = ['success' => true];
 
         return new JsonResponse($success);

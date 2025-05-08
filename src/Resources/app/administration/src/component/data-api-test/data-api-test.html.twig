@@ -1,0 +1,10 @@
+<div>
+    <sw-button-process
+        :is-loading="isLoading"
+        :process-success="isSaveSuccessful"
+        @process-finish="saveFinish"
+        @click="check"
+    >
+        {{ $tc('dataApiTest.buttonLabel') }}
+    </sw-button-process>
+</div>

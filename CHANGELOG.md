@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.6] - 05-09-2025
+- Added API Connection Test feature.
+- Added Full Newsletter Recipient Sync feature.
+
 ## [1.0.5] - 05-08-2025
 - Fixed Order Sync issue.
 - Added Cart Abandonment Tracking feature.

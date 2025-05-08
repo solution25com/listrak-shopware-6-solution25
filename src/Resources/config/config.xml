@@ -27,6 +27,10 @@
             <required>true</required>
         </input-field>
 
+        <component name="data-api-test">
+            <name>dataApiTest</name>
+        </component>
+
     </card>
 
 
@@ -64,6 +68,11 @@
             <name>lastNameSegmentationFieldId</name>
             <label>Last Name Field Id</label>
         </input-field>
+
+        <component name="email-api-test">
+            <name>emailApiTest</name>
+        </component>
+
     </card>
 
     <card>
@@ -77,6 +86,9 @@
         </component>
         <component name="full-order-sync">
             <name>fullOrderSync</name>
+        </component>
+        <component name="full-newsletter-recipient-sync">
+            <name>fullNewsletterRecipientSync</name>
         </component>
 
         <input-field type="bool">

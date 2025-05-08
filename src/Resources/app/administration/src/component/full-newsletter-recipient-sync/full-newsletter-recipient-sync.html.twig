@@ -1,0 +1,12 @@
+<template>
+    <div class="listrak-process-button">
+        <sw-button-process
+            :is-loading="isLoading"
+            :process-success="isImportSuccessful"
+            @process-finish="importFinish"
+            @click="importNewsletterRecipients"
+        >
+            {{ $tc('fullNewsletterRecipientSyncButton.buttonLabel') }}
+        </sw-button-process>
+    </div>
+</template>

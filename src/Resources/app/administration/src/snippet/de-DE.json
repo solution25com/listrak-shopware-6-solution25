@@ -10,5 +10,24 @@
         "title": "Vollständiger Bestellimport",
         "success": "Der Auftragsimport wurde in die Warteschlange gestellt.",
         "error": "Der Import der Bestellung ist fehlgeschlagen. Bitte versuchen Sie es erneut."
+    },
+    "fullNewsletterRecipientSyncButton": {
+        "buttonLabel": "Vollständiger Newsletter-Empfängerimport",
+        "title": "Vollständiger Newsletter-Empfängerimport",
+        "success": "Der Import des Newsletter-Empfängers wurde in die Warteschlange gestellt.",
+        "error": "Der Import des Newsletter-Empfängers ist fehlgeschlagen. Bitte versuchen Sie es erneut."
+    },
+
+    "dataApiTest": {
+        "buttonLabel": "API-Verbindung testen",
+        "title": "Datenintegrations-API-Test",
+        "success": "Verbindung wurde erfolgreich getestet.",
+        "error": "Verbindung konnte nicht hergestellt werden. Bitte prüfen Sie Ihre Zugangsdaten."
+    },
+    "emailApiTest": {
+        "buttonLabel": "API-Verbindung testen",
+        "title": "E-Mail-Integrations-API-Test",
+        "success": "Verbindung wurde erfolgreich getestet.",
+        "error": "Verbindung konnte nicht hergestellt werden. Bitte prüfen Sie Ihre Zugangsdaten."
     }
 }

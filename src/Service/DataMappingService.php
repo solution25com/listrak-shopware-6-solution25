@@ -142,25 +142,29 @@ class DataMappingService
 
     public function mapContactData($newsletterRecipient): array
     {
+        $data = [
+            'emailAddress' => $newsletterRecipient->getEmail(),
+            'subscriptionState' => $this->mapSubscriptionStatus($newsletterRecipient->getStatus()),
+        ];
+
         $salutationListrakFieldId = $this->listrakConfigService->getConfig('salutationSegmentationFieldId') ?? '';
         $firstNameListrakFieldId = $this->listrakConfigService->getConfig('firstNameSegmentationFieldId') ?? '';
         $lastNameListrakFieldId = $this->listrakConfigService->getConfig('lastNameSegmentationFieldId') ?? '';
-        $data = [];
         if ($salutationListrakFieldId) {
-            $data[] = [
+            $data['segmentationFieldValues'] = [
                 'segmentationFieldId' => $salutationListrakFieldId,
                 'value' => $newsletterRecipient->getSalutation() ?? '',
             ];
         }
 
         if ($firstNameListrakFieldId) {
-            $data[] = [
+            $data['segmentationFieldValues'] = [
                 'segmentationFieldId' => $firstNameListrakFieldId,
                 'value' => $newsletterRecipient->getFirstName() ?? '',
             ];
         }
         if ($lastNameListrakFieldId) {
-            $data[] = [
+            $data['segmentationFieldValues'] = [
                 'segmentationFieldId' => $lastNameListrakFieldId,
                 'value' => $newsletterRecipient->getLastName() ?? '',
             ];
@@ -185,6 +189,17 @@ class DataMappingService
             default:
                 return 'CUSTOM_ITEM_' . $lineItem->getId();
         }
+    }
+
+    private function mapSubscriptionStatus($status): string
+    {
+        $data = ['direct' => 'Subscribed',
+            'unsubscribed' => 'Unsubscribed'];
+        if (\array_key_exists($status, $data)) {
+            return $data[$status];
+        }
+
+        return 'Unsubscribed';
     }
 
     private function mapAddress(mixed $address): array

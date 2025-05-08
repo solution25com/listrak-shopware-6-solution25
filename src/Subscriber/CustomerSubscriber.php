@@ -91,15 +91,7 @@ class CustomerSubscriber implements EventSubscriberInterface
         $this->logger->debug('Listrak newsletter confirm event triggered');
 
         $newsletterRecipient = $event->getNewsletterRecipient();
-        $additionalData = $this->dataMappingService->mapContactData($newsletterRecipient);
-        $data = [
-            'emailAddress' => $newsletterRecipient->getEmail(),
-            'subscriptionState' => 'Subscribed',
-        ];
-
-        if ($additionalData) {
-            $data['segmentationFieldValues'] = $additionalData;
-        }
+        $data = $this->dataMappingService->mapContactData($newsletterRecipient);
 
         $this->listrakApiService->createorUpdateContact($data, $event->getContext());
     }

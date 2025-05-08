@@ -97,5 +97,21 @@
             <tag name="messenger.message_handler"/>
         </service>
 
+        <service id="Listrak\Message\ImportNewsletterRecipientsMessageHandler">
+            <argument type="service" id="messenger.default_bus"/>
+            <argument type="service" id="event_dispatcher"/>
+            <argument type="service" id="newsletter_recipient.repository"/>
+            <argument type="service" id="Listrak\Service\DataMappingService"/>
+            <argument type="service" id="Listrak\Service\ListrakApiService"/>
+            <argument type="service" id="logger"/>
+            <tag name="messenger.message_handler"/>
+        </service>
+
+        <service id="Listrak\Controller\ApiTestController" public="true">
+            <argument type="service" id="Listrak\Service\ListrakApiService"/>
+            <argument type="service" id="logger"/>
+            <tag name="controller.service_arguments"/>
+        </service>
+
     </services>
 </container>
