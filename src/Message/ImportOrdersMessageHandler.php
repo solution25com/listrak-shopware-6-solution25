@@ -48,12 +48,17 @@ final class ImportOrdersMessageHandler
             $iterator = new RepositoryIterator($this->orderRepository, $context, $criteria);
             while (($result = $iterator->fetch()) !== null) {
                 $orders = $result->getEntities();
+                $this->logger->notice('Full listrak order sync finished.', ['orders' => $orders]);
                 $items = [];
-                foreach ($orders as $order) {
-                    $item = $this->dataMappingService->mapOrderData($order);
-                    $items[] = $item;
+                if (!empty($orders)) {
+                    foreach ($orders as $order) {
+                        $item = $this->dataMappingService->mapOrderData($order);
+                        $items[] = $item;
+                    }
                 }
-                $this->listrakApiService->importOrder($items, $context);
+                if (!empty($items)) {
+                    $this->listrakApiService->importOrder($items, $context);
+                }
             }
         } catch (\Exception $e) {
             $this->logger->error($e->getMessage());

@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.5] - 05-08-2025
+- Fixed Order Sync issue.
+- Added Cart Abandonment Tracking feature.
+
 ## [1.0.4] - 05-07-2025
 - Added additional data to newsletter subscriptions.
 - Restructured plugin configuration settings.

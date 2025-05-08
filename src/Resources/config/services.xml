@@ -22,6 +22,12 @@
             <argument type="service" id="logger"/>
         </service>
 
+        <service id="Listrak\Subscriber\NewsletterStatusSubscriber">
+            <argument type="service" id="newsletter_recipient.repository"/>
+            <argument type="service" id="logger"/>
+            <tag name="kernel.event_subscriber"/>
+        </service>
+
         <service id="Listrak\Subscriber\OrderSubscriber">
             <argument type="service" id="Listrak\Service\ListrakConfigService"/>
             <argument type="service" id="Listrak\Service\ListrakApiService"/>
@@ -53,6 +59,12 @@
             <argument type="service" id="Listrak\Service\ListrakApiService"/>
             <argument type="service" id="logger"/>
             <tag name="messenger.message_handler"/>
+        </service>
+
+        <service id="Listrak\Service\ListrakCookieProvider"
+                 decorates="Shopware\Storefront\Framework\Cookie\CookieProviderInterface">
+            <argument type="service"
+                      id="Listrak\Service\ListrakCookieProvider.inner"/>
         </service>
 
         <service id="Listrak\Controller\FullImportController" public="true">

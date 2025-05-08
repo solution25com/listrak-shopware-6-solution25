@@ -9,8 +9,6 @@ use GuzzleHttp\Exception\GuzzleException;
 use Listrak\Core\Content\FailedRequest\FailedRequestEntity;
 use Listrak\Library\Constants\Endpoints;
 use Psr\Log\LoggerInterface;
-use Shopware\Core\Checkout\Cart\LineItem\LineItem;
-use Shopware\Core\Checkout\Order\Aggregate\OrderLineItem\OrderLineItemEntity;
 use Shopware\Core\Framework\Context;
 use Shopware\Core\Framework\DataAbstractionLayer\DataAbstractionLayerException;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityCollection;
@@ -69,13 +67,12 @@ class ListrakApiService extends Endpoints
         }
 
         $body = $this->buildAuthRequestBody($type);
-
         $options = [
             'form_params' => $body,
             'headers' => ['Content-Type' => 'application/x-www-form-urlencoded'],
         ];
-        $responseContent = $this->request(['method' => 'POST', 'url' => self::TOKEN_URL], $options);
 
+        $responseContent = $this->request(['method' => 'POST', 'url' => self::TOKEN_URL], $options);
         if ($responseContent) {
             $data = json_decode($responseContent, true);
             if (isset($data['error']) && $data['error']) {
@@ -83,19 +80,20 @@ class ListrakApiService extends Endpoints
             }
             if ($type === self::DATA_INTEGRATION) {
                 $this->dataAccessToken = $data['access_token'] ?? 'Unknown error';
-                $this->dataAccessTokenExpiry = time() + 3600;
+                $this->dataAccessTokenExpiry = time() + 3599;
                 $this->listrakConfigService->setConfig('dataToken', $this->dataAccessToken);
                 $this->listrakConfigService->setConfig('dataTokenExpiry', $this->dataAccessTokenExpiry);
 
                 return $this->dataAccessToken;
             }
             $this->emailAccessToken = $data['access_token'] ?? 'Unknown error';
-            $this->emailAccessTokenExpiry = time() + 3600;
+            $this->emailAccessTokenExpiry = time() + 3599;
             $this->listrakConfigService->setConfig('emailToken', $this->emailAccessToken);
-            $this->listrakConfigService->setConfig('dataTokenExpiry', $this->emailAccessTokenExpiry);
+            $this->listrakConfigService->setConfig('emailTokenExpiry', $this->emailAccessTokenExpiry);
 
             return $this->emailAccessToken;
         }
+        $this->logger->error('Unable to retrieve access token');
 
         return 'Error: Invalid response received';
     }
@@ -155,7 +153,6 @@ class ListrakApiService extends Endpoints
     public function createOrUpdateContact(array $data, Context $context): void
     {
         $listId = $this->listrakConfigService->getConfig('listId');
-
         if ($listId) {
             $fullEndpointUrl = Endpoints::getUrlDynamicParam(Endpoints::CONTACT_CREATE, [$listId, 'Contact']);
             $this->logger->debug('Creating contact', ['data' => $data]);
@@ -168,24 +165,6 @@ class ListrakApiService extends Endpoints
             ];
 
             $this->request($fullEndpointUrl, $options, $context);
-        }
-    }
-
-    public function generateSku(OrderLineItemEntity $lineItem): string
-    {
-        switch ($lineItem->getType()) {
-            case LineItem::PRODUCT_LINE_ITEM_TYPE:
-                return $lineItem->getPayload()['productNumber'] ?? 'PRODUCT_[' . $lineItem->getIdentifier() . ']';
-            case LineItem::CONTAINER_LINE_ITEM:
-                return 'CONTAINER_ITEM_[' . $lineItem->getIdentifier() . ']';
-            case LineItem::DISCOUNT_LINE_ITEM:
-                return 'DISCOUNT_ITEM_[' . $lineItem->getIdentifier() . ']';
-            case LineItem::PROMOTION_LINE_ITEM_TYPE:
-                return 'PROMOTION_ITEM_[' . $lineItem->getIdentifier() . ']';
-            case LineItem::CREDIT_LINE_ITEM_TYPE:
-                return 'CREDIT_LINE_ITEM_[' . $lineItem->getIdentifier() . ']';
-            default:
-                return 'CUSTOM_ITEM_[' . $lineItem->getIdentifier() . ']';
         }
     }
 
@@ -255,7 +234,7 @@ class ListrakApiService extends Endpoints
      */
     public function retry(Context $context): void
     {
-        if ($this->listrakConfigService->getConfig('enableOrderSync') || $this->listrakConfigService->getConfig('enableCustomerSync')) {
+        if ($this->listrakConfigService->getConfig('enableOrderSync') | $this->listrakConfigService->getConfig('enableCustomerSync')) {
             foreach ($this->findEntries($context) as $failedRequestEntry) {
                 $this->request(
                     ['url' => $failedRequestEntry->getEndpoint(), 'method' => $failedRequestEntry->getMethod()],

@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Listrak\Service;
 
 use Psr\Log\LoggerInterface;
+use Shopware\Core\Checkout\Cart\LineItem\LineItem;
+use Shopware\Core\Checkout\Order\Aggregate\OrderLineItem\OrderLineItemEntity;
 
 class DataMappingService
 {
@@ -31,22 +33,7 @@ class DataMappingService
         $customer = $order->getOrderCustomer();
         $email = $customer && $customer->getEmail() ? $customer->getEmail() : '';
         $billingAddress = $order->getBillingAddress();
-        $billingAddressItem = [];
-        if ($billingAddress) {
-            $billingAddressItem = [
-                'firstName' => $billingAddress->getFirstName(),
-                'lastName' => $billingAddress->getLastName(),
-                'mobilePhone' => $billingAddress->getPhoneNumber() ?? '',
-                'phone' => $billingAddress->getPhoneNumber() ?? '',
-                'zipCode' => $billingAddress->getZipCode() ?? '',
-                'city' => $billingAddress->getCity(),
-                'country' => $billingAddress->getCountry() ? $billingAddress->getCountry()->getName() : '',
-                'state' => $billingAddress->getCountryState() ? $billingAddress->getCountryState()->getName() : '',
-                'address1' => $billingAddress->getStreet(),
-                'address2' => $billingAddress->getAdditionalAddressLine1() ?? '',
-                'address3' => $billingAddress->getAdditionalAddressLine2() ?? '',
-            ];
-        }
+        $billingAddressItem = $this->mapAddress($billingAddress);
 
         $deliveries = [];
         $firstDelivery = null;
@@ -58,27 +45,12 @@ class DataMappingService
         }
 
         $shippingAddress = $firstDelivery ? $firstDelivery->getShippingOrderAddress() : null;
-        $shippingAddressItem = [];
-        if ($shippingAddress) {
-            $shippingAddressItem = [
-                'firstName' => $shippingAddress->getFirstName(),
-                'lastName' => $shippingAddress->getLastName(),
-                'mobilePhone' => $shippingAddress->getPhoneNumber() ?? '',
-                'phone' => $shippingAddress->getPhoneNumber() ?? '',
-                'zipCode' => $shippingAddress->getZipCode() ?? '',
-                'city' => $shippingAddress->getCity(),
-                'country' => $shippingAddress->getCountry() ? $shippingAddress->getCountry()->getName() : '',
-                'state' => $shippingAddress->getCountryState() ? $shippingAddress->getCountryState()->getName() : '',
-                'address1' => $shippingAddress->getStreet(),
-                'address2' => $shippingAddress->getAdditionalAddressLine1() ?? '',
-                'address3' => $shippingAddress->getAdditionalAddressLine2() ?? '',
-            ];
-        }
+        $shippingAddressItem = $this->mapAddress($shippingAddress);
         $items = $this->mapOrderLineItems($order, $orderStatus);
 
         $data = [
             'orderNumber' => $order->getOrderNumber(),
-            'dateEntered' => '2025-04-22T01:39:35Z',
+            'dateEntered' => $order->getOrderDateTime()->format('Y-m-d\TH:i:s\Z') ?? '',
             'email' => $email,
             'customerNumber' => $order->getOrderCustomer() ? $order->getOrderCustomer()->getCustomerNumber() : '',
             'billingAddress' => $billingAddressItem,
@@ -100,27 +72,29 @@ class DataMappingService
     {
         $lineItems = [];
         $orderItemTotal = 0;
-        foreach ($order->getLineItems() as $lineItem) {
-            $calculatedPrice = $lineItem->getPrice();
-            $sku = $this->listrakApiService->generateSku($lineItem);
-            $listPrice = $calculatedPrice && $calculatedPrice->getListPrice() ? $calculatedPrice->getListPrice()->getPrice() : 0;
-            $unitPrice = $lineItem->getUnitPrice();
-            $discountedPrice = $calculatedPrice && $calculatedPrice->getListPrice() ? $calculatedPrice->getListPrice()->getDiscount() : 0;
-            $quantity = $lineItem->getQuantity();
-            $itemDiscountTotal = ($listPrice - $discountedPrice) * $lineItem->getQuantity();
-            $itemTotal = ($unitPrice * $quantity) - $itemDiscountTotal;
-            $orderItemTotal += $itemTotal;
-            $item = [
-                'discountedPrice' => $discountedPrice,
-                'itemTotal' => $itemTotal,
-                'itemDiscountTotal' => $itemDiscountTotal,
-                'orderNumber' => $order->getOrderNumber(),
-                'price' => $unitPrice,
-                'quantity' => $quantity,
-                'sku' => $sku,
-                'status' => $orderStatus,
-            ];
-            $lineItems[] = $item;
+        if ($order->getLineItems()) {
+            foreach ($order->getLineItems() as $lineItem) {
+                $calculatedPrice = $lineItem->getPrice();
+                $sku = $this->generateSKU($lineItem);
+                $listPrice = $calculatedPrice && $calculatedPrice->getListPrice() ? $calculatedPrice->getListPrice()->getPrice() : 0;
+                $unitPrice = $lineItem->getUnitPrice();
+                $discountedPrice = $calculatedPrice && $calculatedPrice->getListPrice() ? $calculatedPrice->getListPrice()->getDiscount() : 0;
+                $quantity = $lineItem->getQuantity();
+                $itemDiscountTotal = ($listPrice - $discountedPrice) * $lineItem->getQuantity();
+                $itemTotal = ($unitPrice * $quantity) - $itemDiscountTotal;
+                $orderItemTotal += $itemTotal;
+                $item = [
+                    'discountedPrice' => $discountedPrice,
+                    'itemTotal' => $itemTotal,
+                    'itemDiscountTotal' => $itemDiscountTotal,
+                    'orderNumber' => $order->getOrderNumber(),
+                    'price' => $unitPrice,
+                    'quantity' => $quantity,
+                    'sku' => $sku,
+                    'status' => $orderStatus,
+                ];
+                $lineItems[] = $item;
+            }
         }
 
         return [$lineItems, $orderItemTotal];
@@ -172,20 +146,65 @@ class DataMappingService
         $firstNameListrakFieldId = $this->listrakConfigService->getConfig('firstNameSegmentationFieldId') ?? '';
         $lastNameListrakFieldId = $this->listrakConfigService->getConfig('lastNameSegmentationFieldId') ?? '';
         $data = [];
-
         if ($salutationListrakFieldId) {
-            $data[] = ['segmentationFieldId' => $salutationListrakFieldId,
-                'value' => $newsletterRecipient->getSalutation() ?? ''];
+            $data[] = [
+                'segmentationFieldId' => $salutationListrakFieldId,
+                'value' => $newsletterRecipient->getSalutation() ?? '',
+            ];
         }
+
         if ($firstNameListrakFieldId) {
-            $data[] = ['segmentationFieldId' => $firstNameListrakFieldId,
-                'value' => $newsletterRecipient->getFirstName() ?? ''];
+            $data[] = [
+                'segmentationFieldId' => $firstNameListrakFieldId,
+                'value' => $newsletterRecipient->getFirstName() ?? '',
+            ];
         }
         if ($lastNameListrakFieldId) {
-            $data[] = ['segmentationFieldId' => $lastNameListrakFieldId,
-                'value' => $newsletterRecipient->getLastName() ?? ''];
+            $data[] = [
+                'segmentationFieldId' => $lastNameListrakFieldId,
+                'value' => $newsletterRecipient->getLastName() ?? '',
+            ];
         }
 
         return $data;
+    }
+
+    public function generateSKU(OrderLineItemEntity $lineItem): string
+    {
+        switch ($lineItem->getType()) {
+            case LineItem::PRODUCT_LINE_ITEM_TYPE:
+                return $lineItem->getPayload()['productNumber'] ?? 'PRODUCT_ITEM_' . $lineItem->getId();
+            case LineItem::CONTAINER_LINE_ITEM:
+                return 'CONTAINER_ITEM_' . $lineItem->getId();
+            case LineItem::DISCOUNT_LINE_ITEM:
+                return 'DISCOUNT_ITEM_' . $lineItem->getId();
+            case LineItem::PROMOTION_LINE_ITEM_TYPE:
+                return 'PROMOTION_ITEM_' . $lineItem->getId();
+            case LineItem::CREDIT_LINE_ITEM_TYPE:
+                return 'CREDIT_ITEM_' . $lineItem->getId();
+            default:
+                return 'CUSTOM_ITEM_' . $lineItem->getId();
+        }
+    }
+
+    private function mapAddress(mixed $address): array
+    {
+        if ($address) {
+            return [
+                'firstName' => $address->getFirstName(),
+                'lastName' => $address->getLastName(),
+                'mobilePhone' => $address->getPhoneNumber() ?? '',
+                'phone' => $address->getPhoneNumber() ?? '',
+                'zipCode' => $address->getZipCode() ?? '',
+                'city' => $address->getCity(),
+                'country' => $address->getCountry() ? $address->getCountry()->getName() : '',
+                'state' => $address->getCountryState() ? $address->getCountryState()->getName() : '',
+                'address1' => $address->getStreet(),
+                'address2' => $address->getAdditionalAddressLine1() ?? '',
+                'address3' => $address->getAdditionalAddressLine2() ?? '',
+            ];
+        }
+
+        return [];
     }
 }

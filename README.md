@@ -14,7 +14,7 @@ The Listrak plugin integrates your Shopware 6 store with Listrak’s marketing p
    - Push order information to Listrak for personalized post-purchase campaigns.
 3. **Admin Panel Integration**
    - Manage API credentials and feature toggles directly from the Shopware admin panel.
-4. **Abandoned Cart Recovery - Coming Soon** 
+4. **Abandoned Cart Recovery** 
    - Capture cart data and sync it with Listrak for automated follow-up campaigns.
 
 
@@ -98,6 +98,7 @@ The Listrak plugin integrates your Shopware 6 store with Listrak’s marketing p
 
 - Perform a full synchronization of existing customer data by clicking on Full Customer Import
 - Perform a full synchronization of existing customer data by clicking on Full Order Import
+- Enable Cart Abandonment Tracking by clicking on the toggle.
 - Enable ongoing Customer Synchronization by clicking on the toggle.
 - Enable ongoing Order Synchronization by clicking on the toggle.
 

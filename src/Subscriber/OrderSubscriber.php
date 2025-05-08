@@ -50,16 +50,19 @@ class OrderSubscriber implements EventSubscriberInterface
         if (!$this->listrakConfigService->isSyncEnabled('enableOrderSync')) {
             return;
         }
-        $items = [];
+        $this->logger->debug('Listrak order written event triggered');
         $ids = [];
+        $items = [];
+
         foreach ($event->getWriteResults() as $writeResult) {
-            if ($writeResult->getOperation() === EntityWriteResult::OPERATION_DELETE) {
+            $id = $writeResult->getPrimaryKey();
+            if ($writeResult->getOperation() === EntityWriteResult::OPERATION_DELETE && !$id) {
                 continue;
             }
-            $payload = $writeResult->getPayload();
-            $ids[] = $payload['id'];
+            $ids[] = $id;
         }
-        $criteria = new Criteria([$ids]);
+
+        $criteria = new Criteria($ids);
         $criteria->addAssociation('lineItems');
         $criteria->addAssociation('deliveries');
         $criteria->addAssociation('addresses');
@@ -70,6 +73,7 @@ class OrderSubscriber implements EventSubscriberInterface
             $criteria,
             $event->getContext()
         )->getEntities();
+
         foreach ($orders as $order) {
             $item = $this->dataMappingService->mapOrderData($order);
             $items[] = $item;

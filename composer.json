@@ -2,7 +2,7 @@
   "name": "solution25/listrak",
   "description": "Listrak - Shopware 6 Plugin",
   "type": "shopware-platform-plugin",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "license": "MIT",
   "authors": [
     {
@@ -13,9 +13,6 @@
   ],
   "require": {
     "shopware/core": "~6.6.0"
-  },
-  "require-dev": {
-    "spaze/phpstan-disallowed-calls": "^4.5"
   },
   "extra": {
     "shopware-plugin-class": "Listrak\\Listrak",

@@ -1,0 +1,7 @@
+{% sw_extends '@Storefront/storefront/component/checkout/offcanvas-cart.html.twig' %}
+
+{% block utilities_offcanvas_content %}
+    {{ parent() }}
+
+    {% sw_include '@Listrak/storefront/component/cart-tracker.html.twig' %}
+{% endblock %}

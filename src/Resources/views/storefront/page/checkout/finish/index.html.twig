@@ -1,0 +1,10 @@
+{% sw_extends '@Storefront/storefront/page/checkout/finish/index.html.twig' %}
+
+{% block base_body_script %}
+    {{ parent() }}
+
+    {% sw_include '@Listrak/storefront/component/cart-tracker.html.twig' with {
+        order_completed: true
+    } %}
+
+{% endblock %}

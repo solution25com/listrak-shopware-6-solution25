@@ -1,0 +1,89 @@
+{% if config('Listrak.config.merchantId') and config('Listrak.config.enableCartAbandonmentTracking') %}
+    {% set merchantId = config('Listrak.config.merchantId') | default('') %}
+
+    {% set subscribedCustomer = context.customer is not empty and page.extensions.newsletterInfo is defined and page.extensions.newsletterInfo.subscribed %}
+
+    {% if subscribedCustomer %}
+        {% set orderCompleted = order_completed | default(false) %}
+        {% set payloadData = {
+            email: context.customer.email | default(''),
+            firstName: context.customer.firstName | default(''),
+            lastName: context.customer.lastName | default(''),
+            currency: context.currency.isoCode | default(''),
+        } %}
+
+        {% if orderCompleted %}
+
+            {% set cartObject = page.order %}
+
+            {% set discountTotal = 0 %}
+            {% set processedLineItems = [] %}
+
+            {% for lineItem in cartObject.lineItems %}
+                {% if lineItem.type == "promotion" %}
+                    {% set discountTotal = discountTotal + lineItem.price.totalPrice %}
+                    {% set sku = 'PROMOTION_ITEM_'  ~ lineItem.id %}
+                {% elseif lineItem.type == 'container' %}
+                    {% set sku = 'CONTAINER_ITEM_'  ~ lineItem.id %}
+                {% elseif lineItem.type == 'custom' %}
+                    {% set sku = 'CUSTOM_ITEM_'  ~ lineItem.id %}
+                {% elseif lineItem.type == 'custom' %}
+                    {% set sku = 'CREDIT_ITEM_'  ~ lineItem.id %}
+                {% elseif lineItem.type == 'custom' %}
+                    {% set sku = 'DISCOUNT_ITEM_'  ~ lineItem.id %}
+                {% elseif lineItem.type == 'product' %}
+                    {% set sku = lineItem.payload.productNumber | default('PRODUCT_ITEM_' ~ lineItem.id ) %}
+                {% else %}
+                    {% set sku = 'CUSTOM_ITEM_'  ~ lineItem.id %}
+                {% endif %}
+
+                {% set unitPrice = lineItem.price.listPrice and lineItem.price.listPrice.price > lineItem.price.unitPrice ?
+                    lineItem.price.listPrice.price :
+                    lineItem.price.unitPrice %}
+
+                {% set imageUrl = lineItem.cover.url | default('') %}
+
+                {% set productData = {
+                    sku: sku,
+                    name: lineItem.label,
+                    quantity: lineItem.quantity,
+                    price: unitPrice,
+                    imageUrl: imageUrl,
+                    productUrl: productUrl | default('')
+                } %}
+
+                {% set processedLineItems = processedLineItems|merge([productData]) %}
+
+            {% endfor %}
+
+            {% set taxTotal = 0 %}
+            {% for item in cartObject.price.calculatedTaxes %}
+                {% set taxTotal = taxTotal + item.tax %}
+            {% endfor %}
+
+            {% set shippingTotal = 0 %}
+            {% for item in cartObject.deliveries %}
+                {% set shippingTotal = shippingTotal + item.shippingCosts.totalPrice %}
+            {% endfor %}
+
+            {% set payloadData = payloadData|merge({
+                orderCompleted: orderCompleted,
+                orderNumber: page.order.orderNumber,
+                shippingTotal: shippingTotal,
+                discountTotal: discountTotal,
+                taxTotal: taxTotal,
+                orderTotal: cartObject.price.totalPrice | default(0),
+                lineItems: processedLineItems
+            }) %}
+
+        {% endif %}
+
+        {% set abandonedCartTrackingOptions = {
+            merchantId: merchantId,
+            data: payloadData
+        } %}
+
+        <template data-abandoned-cart-tracking
+                  data-abandoned-cart-tracking-options='{{ abandonedCartTrackingOptions|json_encode }}'></template>
+    {% endif %}
+{% endif %}

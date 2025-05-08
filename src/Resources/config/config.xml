@@ -29,6 +29,7 @@
 
     </card>
 
+
     <card>
         <title>Email Integration Settings</title>
         <title lang="de-DE">E-Mail-Integrationseinstellungen</title>
@@ -55,12 +56,10 @@
             <name>salutationSegmentationFieldId</name>
             <label>Salutation Field Id</label>
         </input-field>
-
         <input-field type="int">
             <name>firstNameSegmentationFieldId</name>
             <label>First Name Field Id</label>
         </input-field>
-
         <input-field type="int">
             <name>lastNameSegmentationFieldId</name>
             <label>Last Name Field Id</label>
@@ -79,6 +78,13 @@
         <component name="full-order-sync">
             <name>fullOrderSync</name>
         </component>
+
+        <input-field type="bool">
+            <name>enableCartAbandonmentTracking</name>
+            <label>Enable Cart Abandonment Tracking</label>
+            <label lang="de-DE">Aktivieren Sie die Verfolgung abgebrochener Warenkörbe</label>
+            <defaultValue>false</defaultValue>
+        </input-field>
 
         <input-field type="bool">
             <name>enableCustomerSync</name>

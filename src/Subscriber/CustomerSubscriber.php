@@ -55,17 +55,18 @@ class CustomerSubscriber implements EventSubscriberInterface
         if (!$this->listrakConfigService->isSyncEnabled('enableCustomerSync')) {
             return;
         }
-        $this->logger->notice('Listrak customer written event triggered');
+        $this->logger->debug('Listrak customer written event triggered');
         $ids = [];
         $items = [];
+
         foreach ($event->getWriteResults() as $writeResult) {
-            if ($writeResult->getOperation() === EntityWriteResult::OPERATION_DELETE) {
+            $id = $writeResult->getPrimaryKey();
+            if ($writeResult->getOperation() === EntityWriteResult::OPERATION_DELETE || !$id) {
                 continue;
             }
-
-            $payload = $writeResult->getPayload();
-            $ids[] = $payload['id'];
+            $ids[] = $id;
         }
+
         $customers = $this->customerRepository->search(
             new Criteria($ids),
             $event->getContext()
@@ -87,7 +88,7 @@ class CustomerSubscriber implements EventSubscriberInterface
         if (!$this->listrakConfigService->isSyncEnabled('enableCustomerSync')) {
             return;
         }
-        $this->logger->notice('Listrak newsletter confirm event triggered');
+        $this->logger->debug('Listrak newsletter confirm event triggered');
 
         $newsletterRecipient = $event->getNewsletterRecipient();
         $additionalData = $this->dataMappingService->mapContactData($newsletterRecipient);

@@ -49,11 +49,15 @@ final class ImportCustomersMessageHandler
             while (($result = $iterator->fetch()) !== null) {
                 $customers = $result->getEntities();
                 $items = [];
-                foreach ($customers as $customer) {
-                    $item = $this->dataMappingService->mapCustomerData($customer);
-                    $items[] = $item;
+                if (!empty($customers)) {
+                    foreach ($customers as $customer) {
+                        $item = $this->dataMappingService->mapCustomerData($customer);
+                        $items[] = $item;
+                    }
                 }
-                $this->listrakApiService->importCustomer($items, $context);
+                if (!empty($items)) {
+                    $this->listrakApiService->importCustomer($items, $context);
+                }
             }
         } catch (\Exception $e) {
             $this->logger->error($e->getMessage());

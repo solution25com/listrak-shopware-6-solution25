@@ -1,0 +1,7 @@
+{% sw_extends '@Storefront/storefront/page/checkout/cart/index.html.twig' %}
+
+{% block page_checkout_cart_product_table %}
+    {{ parent() }}
+    {% sw_include '@Listrak/storefront/component/cart-tracker.html.twig' %}
+
+{% endblock %}
