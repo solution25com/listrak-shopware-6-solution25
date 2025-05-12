@@ -55,7 +55,7 @@ The Listrak plugin integrates your Shopware 6 store with Listrak’s marketing p
 - After activation, you will see Listrak in the list of installed plugins.
 - The plugin name, version, and installation date should appear as shown in the screenshot below.
 
-<img width="978" alt="Screenshot 2025-05-07 at 14 03 46" src="https://github.com/user-attachments/assets/c9aa07a4-9d66-4571-b7ad-e57f0932cc76" />
+<img width="980" alt="Screenshot 2025-05-12 at 16 55 38 1" src="https://github.com/user-attachments/assets/8f7ef694-4282-46aa-8ec6-aa35045d16c8" />
 
 ## Plugin Configuration
 
@@ -75,8 +75,8 @@ The Listrak plugin integrates your Shopware 6 store with Listrak’s marketing p
 - **Test API connection**
   - Test Data API connection.
     
-<img width="978" alt="Screenshot 2025-05-07 at 14 04 18" src="https://github.com/user-attachments/assets/ef9d8f1f-d863-4a4e-ae62-9ae763cda0d8" />
- 
+ <img width="980" alt="Screenshot 2025-05-12 at 16 59 37" src="https://github.com/user-attachments/assets/4ac4732c-da1d-4236-aad0-2e76ffd530db" />
+
 
 2. **Email Integration Settings**
 
@@ -107,7 +107,7 @@ The Listrak plugin integrates your Shopware 6 store with Listrak’s marketing p
 - Enable ongoing Customer Synchronization by clicking on the toggle.
 - Enable ongoing Order Synchronization by clicking on the toggle.
 
-<img width="978" alt="Screenshot 2025-05-07 at 14 04 53" src="https://github.com/user-attachments/assets/9e4e08ee-1c41-4807-8101-f1216612c906" />
+<img width="980" alt="Screenshot 2025-05-12 at 16 59 52" src="https://github.com/user-attachments/assets/2d2b9cd1-46dc-4379-ab76-10bcc0be1993" />
 
 
 3. **Save Configuration**
