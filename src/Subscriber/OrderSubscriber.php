@@ -47,7 +47,7 @@ class OrderSubscriber implements EventSubscriberInterface
 
     public function onOrderWritten(EntityWrittenEvent $event): void
     {
-        if (!$this->listrakConfigService->isSyncEnabled('enableOrderSync')) {
+        if (!$this->listrakConfigService->isDataSyncEnabled('enableOrderSync')) {
             return;
         }
         $this->logger->debug('Listrak order written event triggered');

@@ -25,8 +25,13 @@ class ListrakConfigService
         $this->systemConfigService->set('Listrak.config.' . trim($configName), $value);
     }
 
-    public function isSyncEnabled(string $configName): bool
+    public function isDataSyncEnabled(string $configName): bool
     {
         return $this->getConfig($configName) && $this->getConfig('dataClientId') && $this->getConfig('dataClientSecret');
+    }
+
+    public function isEmailSyncEnabled(): bool
+    {
+        return $this->getConfig('enableNewsletterRecipientSync') && $this->getConfig('emailClientId') && $this->getConfig('emailClientSecret') && $this->getConfig('listId');
     }
 }

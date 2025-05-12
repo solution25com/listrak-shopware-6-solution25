@@ -16,7 +16,7 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Messenger\MessageBusInterface;
 
 #[AsMessageHandler]
-final class ImportCustomersMessageHandler
+final class SyncOrdersMessageHandler
 {
     private ListrakApiService $listrakApiService;
 
@@ -27,7 +27,7 @@ final class ImportCustomersMessageHandler
     public function __construct(
         private readonly MessageBusInterface $messageBus,
         private readonly EventDispatcherInterface $eventDispatcher,
-        private readonly EntityRepository $customerRepository,
+        private readonly EntityRepository $orderRepository,
         DataMappingService $dataMappingService,
         ListrakApiService $listrakApiService,
         LoggerInterface $logger,
@@ -37,26 +37,26 @@ final class ImportCustomersMessageHandler
         $this->logger = $logger;
     }
 
-    public function __invoke(ImportCustomersMessage $message): void
+    public function __invoke(SyncOrdersMessage $message): void
     {
-        $this->logger->notice('Full Listrak customer import started.');
+        $this->logger->notice('Full listrak order sync started.');
         $context = $message->getContext();
         try {
             $criteria = new Criteria();
             $criteria->setLimit(1000);
             $criteria->addSorting(new FieldSorting('id'));
-            $iterator = new RepositoryIterator($this->customerRepository, $context, $criteria);
+            $iterator = new RepositoryIterator($this->orderRepository, $context, $criteria);
             while (($result = $iterator->fetch()) !== null) {
-                $customers = $result->getEntities();
+                $orders = $result->getEntities();
                 $items = [];
-                if (!empty($customers)) {
-                    foreach ($customers as $customer) {
-                        $item = $this->dataMappingService->mapCustomerData($customer);
+                if (!empty($orders)) {
+                    foreach ($orders as $order) {
+                        $item = $this->dataMappingService->mapOrderData($order);
                         $items[] = $item;
                     }
                 }
                 if (!empty($items)) {
-                    $this->listrakApiService->importCustomer($items, $context);
+                    $this->listrakApiService->importOrder($items, $context);
                 }
             }
         } catch (\Exception $e) {

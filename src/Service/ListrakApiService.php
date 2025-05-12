@@ -22,7 +22,7 @@ class ListrakApiService extends Endpoints
     public const MAX_RETRY_COUNT = 3;
     public const EMAIL_INTEGRATION = 'EMAIL';
     public const DATA_INTEGRATION = 'DATA';
-    private const TOKEN_URL = 'https://auth.listrak.com/OAuth2/Token';
+    public const TOKEN_URL = 'https://auth.listrak.com/OAuth2/Token';
 
     private LoggerInterface $logger;
 
@@ -250,7 +250,7 @@ class ListrakApiService extends Endpoints
      * @param array<string,string> $endpoint
      * @param array<string,mixed> $options
      */
-    private function request(
+    public function request(
         array $endpoint,
         array $options,
         ?Context $context = null,

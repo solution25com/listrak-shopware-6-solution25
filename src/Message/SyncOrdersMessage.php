@@ -7,7 +7,7 @@ namespace Listrak\Message;
 use Shopware\Core\Framework\Context;
 use Shopware\Core\Framework\MessageQueue\AsyncMessageInterface;
 
-class ImportOrdersMessage implements AsyncMessageInterface
+class SyncOrdersMessage implements AsyncMessageInterface
 {
     /**
      * @internal

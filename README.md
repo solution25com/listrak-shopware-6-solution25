@@ -73,7 +73,7 @@ The Listrak plugin integrates your Shopware 6 store with Listrak’s marketing p
 - **Listrak Data Client Secret**
   - Enter the Client Secret from your Listrak Data Integration.
 - **Test API connection**
-  - Test API connection.
+  - Test Data API connection.
     
 <img width="978" alt="Screenshot 2025-05-07 at 14 04 18" src="https://github.com/user-attachments/assets/ef9d8f1f-d863-4a4e-ae62-9ae763cda0d8" />
  
@@ -93,16 +93,16 @@ The Listrak plugin integrates your Shopware 6 store with Listrak’s marketing p
 - **Last Name Field Id**
   - Optionally enter the last name field id from your Listrak Email Profile field, if it exists.
 - **Test API connection**
-  - Test API connection.
+  - Test Email API connection.
 
 
 <img width="978" alt="Screenshot 2025-05-07 at 14 04 45" src="https://github.com/user-attachments/assets/7b1dc3b6-572e-46d3-812b-85a15b070455" />
 
 3. **Sync Settings**
 
-- Perform a full synchronization of existing customer data by clicking on Full Customer Import
-- Perform a full synchronization of existing customer data by clicking on Full Order Import
-- Perform a full synchronization of existing newsletter recipient data by clicking on Full Newsletter Recipient Import
+- Perform a full synchronization of existing customer data by clicking on Full Customer Synchronization
+- Perform a full synchronization of existing customer data by clicking on Full Order Synchronization
+- Perform a full synchronization of existing newsletter recipient data by clicking on Full Newsletter Recipient Synchronization
 - Enable Cart Abandonment Tracking by clicking on the toggle.
 - Enable ongoing Customer Synchronization by clicking on the toggle.
 - Enable ongoing Order Synchronization by clicking on the toggle.

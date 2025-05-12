@@ -36,6 +36,7 @@ Component.register('email-api-test', {
 
         check() {
             this.isLoading = true;
+
             this.emailApiTest.check(this.pluginConfig).then((res) => {
                 if (res.success) {
                     this.isSaveSuccessful = true;

@@ -67,7 +67,7 @@
                       id="Listrak\Service\ListrakCookieProvider.inner"/>
         </service>
 
-        <service id="Listrak\Controller\FullImportController" public="true">
+        <service id="Listrak\Controller\FullSyncController" public="true">
             <argument type="service" id="Listrak\Service\ListrakConfigService"/>
             <argument type="service" id="Listrak\Service\ListrakApiService"/>
             <argument type="service" id="customer.repository"/>
@@ -77,7 +77,7 @@
             <tag name="controller.service_arguments"/>
         </service>
 
-        <service id="Listrak\Message\ImportCustomersMessageHandler">
+        <service id="Listrak\Message\SyncCustomersMessageHandler">
             <argument type="service" id="messenger.default_bus"/>
             <argument type="service" id="event_dispatcher"/>
             <argument type="service" id="customer.repository"/>
@@ -87,7 +87,7 @@
             <tag name="messenger.message_handler"/>
         </service>
 
-        <service id="Listrak\Message\ImportOrdersMessageHandler">
+        <service id="Listrak\Message\SyncOrdersMessageHandler">
             <argument type="service" id="messenger.default_bus"/>
             <argument type="service" id="event_dispatcher"/>
             <argument type="service" id="order.repository"/>
@@ -97,7 +97,7 @@
             <tag name="messenger.message_handler"/>
         </service>
 
-        <service id="Listrak\Message\ImportNewsletterRecipientsMessageHandler">
+        <service id="Listrak\Message\SyncNewsletterRecipientsMessageHandler">
             <argument type="service" id="messenger.default_bus"/>
             <argument type="service" id="event_dispatcher"/>
             <argument type="service" id="newsletter_recipient.repository"/>

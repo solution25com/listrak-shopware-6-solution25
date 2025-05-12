@@ -16,8 +16,7 @@
 
         <input-field>
             <name>dataClientId</name>
-            <label>Data Client ID</label>
-            <helpText>Data Integration Client ID</helpText>
+            <label>Data Integration Client ID</label>
             <required>true</required>
         </input-field>
 
@@ -59,14 +58,17 @@
         <input-field type="int">
             <name>salutationSegmentationFieldId</name>
             <label>Salutation Field Id</label>
+            <helpText>Listrak Profile Field Id</helpText>
         </input-field>
         <input-field type="int">
             <name>firstNameSegmentationFieldId</name>
             <label>First Name Field Id</label>
+            <helpText>Listrak Profile Field Id</helpText>
         </input-field>
         <input-field type="int">
             <name>lastNameSegmentationFieldId</name>
             <label>Last Name Field Id</label>
+            <helpText>Listrak Profile Field Id</helpText>
         </input-field>
 
         <component name="email-api-test">
@@ -80,13 +82,14 @@
         <title lang="de-DE">
             Synchronisierungseinstellungen
         </title>
+        <component name="full-order-sync">
+            <name>fullOrderSync</name>
+        </component>
 
         <component name="full-customer-sync">
             <name>fullCustomerSync</name>
         </component>
-        <component name="full-order-sync">
-            <name>fullOrderSync</name>
-        </component>
+
         <component name="full-newsletter-recipient-sync">
             <name>fullNewsletterRecipientSync</name>
         </component>
@@ -99,6 +102,13 @@
         </input-field>
 
         <input-field type="bool">
+            <name>enableOrderSync</name>
+            <label>Enable Order Synchronization</label>
+            <label lang="de-DE">Aktivieren Sie die Auftragssynchronisierungg</label>
+            <defaultValue>false</defaultValue>
+        </input-field>
+
+        <input-field type="bool">
             <name>enableCustomerSync</name>
             <label>Enable Customer Synchronization</label>
             <label lang="de-DE">Aktivieren Sie die Kundensynchronisierung</label>
@@ -106,11 +116,13 @@
         </input-field>
 
         <input-field type="bool">
-            <name>enableOrderSync</name>
-            <label>Enable Order Synchronization</label>
-            <label lang="de-DE">Aktivieren Sie die Auftragssynchronisierungg</label>
+            <name>enableNewsletterRecipientSync</name>
+            <label>Enable Newsletter Recipient Synchronization</label>
+            <label lang="de-DE">Synchronisierung der Newsletter-Empfänger aktivieren</label>
             <defaultValue>false</defaultValue>
         </input-field>
+
+
 
     </card>
 

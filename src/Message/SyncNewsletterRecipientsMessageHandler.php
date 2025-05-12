@@ -17,7 +17,7 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Messenger\MessageBusInterface;
 
 #[AsMessageHandler]
-final class ImportNewsletterRecipientsMessageHandler
+final class SyncNewsletterRecipientsMessageHandler
 {
     private ListrakApiService $listrakApiService;
 
@@ -38,7 +38,7 @@ final class ImportNewsletterRecipientsMessageHandler
         $this->logger = $logger;
     }
 
-    public function __invoke(ImportOrdersMessage $message): void
+    public function __invoke(SyncOrdersMessage $message): void
     {
         $this->logger->notice('Full listrak newsletter recipient sync started.');
         $context = $message->getContext();

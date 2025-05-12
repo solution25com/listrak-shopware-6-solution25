@@ -1,23 +1,23 @@
 {
     "fullCustomerSyncButton": {
-        "buttonLabel": "Full Customer Import",
-        "title": "Full Customer Import",
-        "success": "Customer import has been queued.",
-        "error": "Customer import failed. Please try again."
+        "buttonLabel": "Full Customer Synchronization",
+        "title": "Full Customer Synchronization",
+        "success": "Customer synchronization has been queued.",
+        "error": "Customer synchronization failed. Please try again."
     },
 
     "fullOrderSyncButton": {
-        "buttonLabel": "Full Order Import",
-        "title": "Full Order Import",
-        "success": "Order import has been queued.",
-        "error": "Order import failed. Please try again."
+        "buttonLabel": "Full Order Synchronization",
+        "title": "Full Order Synchronization",
+        "success": "Order synchronization has been queued.",
+        "error": "Order synchronization failed. Please try again."
     },
 
     "fullNewsletterRecipientSyncButton": {
-        "buttonLabel": "Full Newsletter Recipient Import",
-        "title": "Full Newsletter Recipient Import",
-        "success": "Newsletter recipient import has been queued.",
-        "error": "Newsletter recipient import failed. Please try again."
+        "buttonLabel": "Full Newsletter Recipient Synchronization",
+        "title": "Full Newsletter Recipient Synchronization",
+        "success": "Newsletter recipient synchronization has been queued.",
+        "error": "Newsletter recipient synchronization failed. Please try again."
     },
 
     "dataApiTest": {

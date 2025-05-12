@@ -36,6 +36,7 @@ Component.register('data-api-test', {
 
         check() {
             this.isLoading = true;
+
             this.dataApiTest.check(this.pluginConfig).then((res) => {
                 if (res.success) {
                     this.isSaveSuccessful = true;

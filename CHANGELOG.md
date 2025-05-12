@@ -2,7 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.0.6] - 05-09-2025
+## [1.0.7] - 05-12-2025
+- Fixed API Connection Test issue.
+- Restructured plugin configuration.
+
+## [1.0.6] - 05-08-2025
 - Added API Connection Test feature.
 - Added Full Newsletter Recipient Sync feature.
 
