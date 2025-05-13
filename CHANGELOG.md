@@ -2,6 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.8] - 05-13-2025
+-Fixed Abandoned Cart issue
+
 ## [1.0.7] - 05-12-2025
 - Fixed API Connection Test issue.
 - Restructured plugin configuration.
