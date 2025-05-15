@@ -1,18 +1,15 @@
-{% if config('Listrak.config.merchantId') and config('Listrak.config.enableCartAbandonmentTracking') %}
+{% if config('Listrak.config.merchantId') and config('Listrak.config.enableListrakTracking') and  context.customer is not empty and page.extensions.newsletterInfo is defined and page.extensions.newsletterInfo.subscribed %}
     {% set merchantId = config('Listrak.config.merchantId') | default('') %}
-
-    {% set subscribedCustomer = context.customer is not empty and page.extensions.newsletterInfo is defined and page.extensions.newsletterInfo.subscribed %}
-
-    {% if subscribedCustomer %}
-        {% set orderCompleted = order_completed | default(false) %}
+    {% set placement = placement | default('base') %}
         {% set payloadData = {
+            placement: placement,
             email: context.customer.email | default(''),
             firstName: context.customer.firstName | default(''),
             lastName: context.customer.lastName | default(''),
             currency: context.currency.isoCode | default(''),
         } %}
 
-        {% if orderCompleted %}
+        {% if placement == 'order' %}
 
             {% set cartObject = page.order %}
 
@@ -67,7 +64,6 @@
             {% endfor %}
 
             {% set payloadData = payloadData|merge({
-                orderCompleted: orderCompleted,
                 orderNumber: page.order.orderNumber,
                 shippingTotal: shippingTotal,
                 discountTotal: discountTotal,
@@ -78,12 +74,11 @@
 
         {% endif %}
 
-        {% set abandonedCartTrackingOptions = {
+        {% set listrakTrackingOptions = {
             merchantId: merchantId,
-            data: payloadData
+            data: payloadData | default('')
         } %}
 
-        <template data-abandoned-cart-tracking
-                  data-abandoned-cart-tracking-options='{{ abandonedCartTrackingOptions|json_encode }}'></template>
+        <template data-listrak-tracking
+                  data-listrak-tracking-options='{{ listrakTrackingOptions|json_encode }}'></template>
     {% endif %}
-{% endif %}

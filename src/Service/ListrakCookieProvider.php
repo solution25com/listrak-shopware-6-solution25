@@ -11,7 +11,7 @@ class ListrakCookieProvider implements CookieProviderInterface
     private const singleCookie = [
         'snippet_name' => 'Listrak Cookies',
         'snippet_description' => 'Track cart and order information',
-        'cookie' => 'listrakCartAbandonmentTracking',
+        'cookie' => 'listrakTracking',
         'value' => true,
         'expiration' => '30',
     ];

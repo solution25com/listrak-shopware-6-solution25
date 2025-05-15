@@ -1,7 +1,7 @@
-import AbandonedCartTracking from './plugins/abandoned-cart-tracking/abandoned-cart-tracking';
+import ListrakTracking from './plugins/listrak-tracking/listrak-tracking';
 
 window.PluginManager.register(
-    'AbandonedCartTracking',
-    AbandonedCartTracking,
-    '[data-abandoned-cart-tracking]'
+    'ListrakTracking',
+    ListrakTracking,
+    '[data-listrak-tracking]'
 );

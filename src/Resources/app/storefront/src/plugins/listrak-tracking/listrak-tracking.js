@@ -3,9 +3,9 @@ import OrderData from '../../order-data';
 import CartData from '../../cart-data';
 const { PluginBaseClass } = window;
 
-export default class AbandonedCartTracking extends PluginBaseClass {
+export default class ListrakTracking extends PluginBaseClass {
     static options = {
-        listrakTrackingCookie: 'listrakCartAbandonmentTracking',
+        listrakTrackingCookie: 'listrakTracking',
     };
 
     init() {
@@ -14,29 +14,15 @@ export default class AbandonedCartTracking extends PluginBaseClass {
             this.options.listrakTrackingCookie
         );
         if (listrakCookie && merchant) {
-            (function (d, tid, vid) {
-                if (typeof _ltk != 'undefined') {
-                    return;
-                }
-                var js = d.createElement('script');
-                js.id = 'ltkSDK';
-                js.src =
-                    'https://cdn.listrakbi.com/scripts/script.js?m=' +
-                    tid +
-                    '&v=' +
-                    vid;
-                d.querySelector('head').appendChild(js);
-            })(document, merchant, '1');
-
-            this._orderData = new OrderData();
-            this._cartData = new CartData();
-
             if (this.options.data) {
-                const orderCompleted = this.options.data.orderCompleted;
-                if (orderCompleted) {
+                const placement = this.options.data.placement;
+                if (placement === 'order') {
+                    this._orderData = new OrderData();
                     this._orderData.init(this.options.data);
-                } else {
+                } else if (placement === 'cart') {
+                    this._cartData = new CartData();
                     this.getCart();
+                } else {
                 }
             }
         }
@@ -116,6 +102,30 @@ export default class AbandonedCartTracking extends PluginBaseClass {
             }
         })(function () {
             _ltk.SCA.ClearCart();
+        });
+    }
+
+    setEmail(email) {
+        (function (d) {
+            if (typeof _ltk == 'undefined') {
+                if (document.addEventListener) {
+                    document.addEventListener('ltkAsyncListener', function () {
+                        _ltk_util.ready(d);
+                    });
+                } else {
+                    e = document.documentElement;
+                    e.ltkAsyncProperty = 0;
+                    e.attachEvent('onpropertychange', function (e) {
+                        if (e.propertyName == 'ltkAsyncProperty') {
+                            _ltk_util.ready(d);
+                        }
+                    });
+                }
+            } else {
+                _ltk_util.ready(d);
+            }
+        })(function () {
+            _ltk.SCA.Update('email', email);
         });
     }
 }

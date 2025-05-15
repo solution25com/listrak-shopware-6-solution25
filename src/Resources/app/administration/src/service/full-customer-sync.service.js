@@ -13,7 +13,7 @@ export default class FullCustomerSyncService extends ApiService {
         const headers = this.getBasicHeaders();
 
         return this.httpClient
-            .post(`_action/${this.getApiBasePath()}`, '', {
+            .post(`_action /${this.getApiBasePath()}`, '', {
                 headers,
             })
             .then((response) => {

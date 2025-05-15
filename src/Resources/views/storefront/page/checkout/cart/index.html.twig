@@ -2,6 +2,8 @@
 
 {% block page_checkout_cart_product_table %}
     {{ parent() }}
-    {% sw_include '@Listrak/storefront/component/cart-tracker.html.twig' %}
+    {% sw_include '@Listrak/storefront/component/cart-tracker.html.twig' with {
+        placement: 'cart'
+    }  %}
 
 {% endblock %}

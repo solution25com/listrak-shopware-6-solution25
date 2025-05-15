@@ -6,12 +6,12 @@ namespace Listrak\Service;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
+use Listrak\Core\Content\FailedRequest\FailedRequestCollection;
 use Listrak\Core\Content\FailedRequest\FailedRequestEntity;
 use Listrak\Library\Constants\Endpoints;
 use Psr\Log\LoggerInterface;
 use Shopware\Core\Framework\Context;
 use Shopware\Core\Framework\DataAbstractionLayer\DataAbstractionLayerException;
-use Shopware\Core\Framework\DataAbstractionLayer\EntityCollection;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\RangeFilter;
@@ -28,6 +28,9 @@ class ListrakApiService extends Endpoints
 
     private Client $client;
 
+    /**
+     * @var EntityRepository<FailedRequestCollection>
+     */
     private EntityRepository $failedRequestRepository;
 
     private ?string $dataAccessToken = null;
@@ -42,6 +45,9 @@ class ListrakApiService extends Endpoints
 
     private ?FailedRequestEntity $failedRequestEntity;
 
+    /**
+     * @param EntityRepository<FailedRequestCollection> $failedRequestRepository
+     */
     public function __construct(
         ListrakConfigService $listrakConfig,
         EntityRepository $failedRequestRepository,
@@ -111,7 +117,7 @@ class ListrakApiService extends Endpoints
     }
 
     /**
-     * @param array<string,array<string, string|null>|string> $data
+     * @param array<string, mixed> $data
      */
     public function importCustomer(array $data, Context $context): void
     {
@@ -247,7 +253,7 @@ class ListrakApiService extends Endpoints
     }
 
     /**
-     * @param array<string,string> $endpoint
+     * @param array<string,mixed> $endpoint
      * @param array<string,mixed> $options
      */
     public function request(
@@ -287,7 +293,7 @@ class ListrakApiService extends Endpoints
     /**
      * @throws DataAbstractionLayerException
      */
-    private function findEntries(Context $context): EntityCollection
+    private function findEntries(Context $context): FailedRequestCollection
     {
         $criteria = new Criteria();
         $criteria->addFilter(new RangeFilter('retryCount', [

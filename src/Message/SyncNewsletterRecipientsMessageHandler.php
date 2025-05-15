@@ -7,14 +7,13 @@ namespace Listrak\Message;
 use Listrak\Service\DataMappingService;
 use Listrak\Service\ListrakApiService;
 use Psr\Log\LoggerInterface;
+use Shopware\Core\Content\Newsletter\Aggregate\NewsletterRecipient\NewsletterRecipientCollection;
 use Shopware\Core\Framework\DataAbstractionLayer\Dbal\Common\RepositoryIterator;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsAnyFilter;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Sorting\FieldSorting;
-use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
-use Symfony\Component\Messenger\MessageBusInterface;
 
 #[AsMessageHandler]
 final class SyncNewsletterRecipientsMessageHandler
@@ -25,9 +24,10 @@ final class SyncNewsletterRecipientsMessageHandler
 
     private LoggerInterface $logger;
 
+    /**
+     * @param EntityRepository<NewsletterRecipientCollection> $newsletterRecipientRepository
+     */
     public function __construct(
-        private readonly MessageBusInterface $messageBus,
-        private readonly EventDispatcherInterface $eventDispatcher,
         private readonly EntityRepository $newsletterRecipientRepository,
         DataMappingService $dataMappingService,
         ListrakApiService $listrakApiService,
@@ -38,7 +38,7 @@ final class SyncNewsletterRecipientsMessageHandler
         $this->logger = $logger;
     }
 
-    public function __invoke(SyncOrdersMessage $message): void
+    public function __invoke(SyncNewsletterRecipientsMessage $message): void
     {
         $this->logger->notice('Full listrak newsletter recipient sync started.');
         $context = $message->getContext();
@@ -51,14 +51,12 @@ final class SyncNewsletterRecipientsMessageHandler
             while (($result = $iterator->fetch()) !== null) {
                 $newsletterRecipients = $result->getEntities();
                 $items = [];
-                if (!empty($newsletterRecipients)) {
-                    foreach ($newsletterRecipients as $newsletterRecipient) {
-                        $item = $this->dataMappingService->mapContactData($newsletterRecipient);
-                        $items[] = $item;
-                    }
+                foreach ($newsletterRecipients as $newsletterRecipient) {
+                    $item = $this->dataMappingService->mapContactData($newsletterRecipient);
+                    $items[] = $item;
                 }
                 if (!empty($items)) {
-                    $this->listrakApiService->createOrUpdateContact($newsletterRecipients, $context);
+                    $this->listrakApiService->createOrUpdateContact(['Contacts' => $items], $context);
                 }
             }
         } catch (\Exception $e) {

@@ -103,7 +103,7 @@ The Listrak plugin integrates your Shopware 6 store with Listrak’s marketing p
 - Perform a full synchronization of existing customer data by clicking on Full Customer Synchronization
 - Perform a full synchronization of existing customer data by clicking on Full Order Synchronization
 - Perform a full synchronization of existing newsletter recipient data by clicking on Full Newsletter Recipient Synchronization
-- Enable Cart Abandonment Tracking by clicking on the toggle.
+- Enable Listrak Browser Tracking by clicking on the toggle.
 - Enable ongoing Customer Synchronization by clicking on the toggle.
 - Enable ongoing Order Synchronization by clicking on the toggle.
 

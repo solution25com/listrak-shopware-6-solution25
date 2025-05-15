@@ -4,7 +4,7 @@
     {{ parent() }}
 
     {% sw_include '@Listrak/storefront/component/cart-tracker.html.twig' with {
-        order_completed: true
+        placement: 'order'
     } %}
 
 {% endblock %}

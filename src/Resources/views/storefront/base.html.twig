@@ -1,0 +1,6 @@
+{% sw_extends '@Storefront/storefront/base.html.twig' %}
+
+{% block base_body_script %}
+    {{ parent() }}
+{% sw_include '@Listrak/storefront/component/listrak-framework.html.twig' %}
+{% endblock %}

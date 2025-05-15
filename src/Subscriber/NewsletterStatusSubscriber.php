@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Listrak\Subscriber;
 
-use Psr\Log\LoggerInterface;
+use Shopware\Core\Content\Newsletter\Aggregate\NewsletterRecipient\NewsletterRecipientCollection;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
@@ -14,13 +14,12 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 class NewsletterStatusSubscriber implements EventSubscriberInterface
 {
-    private LoggerInterface $logger;
-
+    /**
+     * @param EntityRepository<NewsletterRecipientCollection> $newsletterRecipientRepository
+     */
     public function __construct(
         private readonly EntityRepository $newsletterRecipientRepository,
-        LoggerInterface $logger
     ) {
-        $this->logger = $logger;
     }
 
     public static function getSubscribedEvents(): array

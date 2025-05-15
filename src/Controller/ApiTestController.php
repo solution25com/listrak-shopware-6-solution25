@@ -3,7 +3,6 @@
 namespace Listrak\Controller;
 
 use Listrak\Service\ListrakApiService;
-use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
@@ -13,14 +12,10 @@ class ApiTestController
 {
     private ListrakApiService $listrakApiService;
 
-    private LoggerInterface $logger;
-
     public function __construct(
         ListrakApiService $listrakApiService,
-        LoggerInterface $logger
     ) {
         $this->listrakApiService = $listrakApiService;
-        $this->logger = $logger;
     }
 
     #[Route(path: '/api/_action/listrak-data-api-test/verify', name: 'api.action.listrak-data-api-test.verify', methods: ['POST'])]

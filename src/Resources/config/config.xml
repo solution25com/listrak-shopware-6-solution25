@@ -95,9 +95,9 @@
         </component>
 
         <input-field type="bool">
-            <name>enableCartAbandonmentTracking</name>
-            <label>Enable Cart Abandonment Tracking</label>
-            <label lang="de-DE">Aktivieren Sie die Verfolgung abgebrochener Warenkörbe</label>
+            <name>enableListrakTracking</name>
+            <label>Enable Listrak Tracking</label>
+            <label lang="de-DE">Aktivieren Sie die Listrak-Verfolgung</label>
             <defaultValue>false</defaultValue>
         </input-field>
 

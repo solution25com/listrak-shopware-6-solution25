@@ -7,13 +7,12 @@ namespace Listrak\Message;
 use Listrak\Service\DataMappingService;
 use Listrak\Service\ListrakApiService;
 use Psr\Log\LoggerInterface;
+use Shopware\Core\Checkout\Order\OrderCollection;
 use Shopware\Core\Framework\DataAbstractionLayer\Dbal\Common\RepositoryIterator;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Sorting\FieldSorting;
-use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
-use Symfony\Component\Messenger\MessageBusInterface;
 
 #[AsMessageHandler]
 final class SyncOrdersMessageHandler
@@ -24,9 +23,10 @@ final class SyncOrdersMessageHandler
 
     private LoggerInterface $logger;
 
+    /**
+     * @param EntityRepository<OrderCollection> $orderRepository
+     */
     public function __construct(
-        private readonly MessageBusInterface $messageBus,
-        private readonly EventDispatcherInterface $eventDispatcher,
         private readonly EntityRepository $orderRepository,
         DataMappingService $dataMappingService,
         ListrakApiService $listrakApiService,
@@ -49,11 +49,9 @@ final class SyncOrdersMessageHandler
             while (($result = $iterator->fetch()) !== null) {
                 $orders = $result->getEntities();
                 $items = [];
-                if (!empty($orders)) {
-                    foreach ($orders as $order) {
-                        $item = $this->dataMappingService->mapOrderData($order);
-                        $items[] = $item;
-                    }
+                foreach ($orders as $order) {
+                    $item = $this->dataMappingService->mapOrderData($order);
+                    $items[] = $item;
                 }
                 if (!empty($items)) {
                     $this->listrakApiService->importOrder($items, $context);

@@ -3,5 +3,8 @@
 {% block utilities_offcanvas_content %}
     {{ parent() }}
 
-    {% sw_include '@Listrak/storefront/component/cart-tracker.html.twig' %}
+    {% sw_include '@Listrak/storefront/component/cart-tracker.html.twig' with {
+        placement: 'cart'
+    }  %}
+
 {% endblock %}

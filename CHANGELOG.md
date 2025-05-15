@@ -2,8 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.9] - 05-15-2025
+- Added Page Browse and Product Browse tracking features.
+
 ## [1.0.8] - 05-13-2025
--Fixed Abandoned Cart issue
+- Fixed Abandoned Cart script not loading issue.
 
 ## [1.0.7] - 05-12-2025
 - Fixed API Connection Test issue.

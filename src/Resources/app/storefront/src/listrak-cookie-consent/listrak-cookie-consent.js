@@ -9,7 +9,7 @@ function eventCallback(updatedCookies) {
         let listrakTracking = updatedCookies.detail['listrakTracking'];
 
         if (!listrakTracking) {
-            removeListrakCookie('listrakCartAbandonmentTracking');
+            removeListrakCookie('listrakTracking');
         } else {
             enableListrakTracking();
         }

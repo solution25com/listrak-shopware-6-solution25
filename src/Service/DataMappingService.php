@@ -4,29 +4,23 @@ declare(strict_types=1);
 
 namespace Listrak\Service;
 
-use Psr\Log\LoggerInterface;
 use Shopware\Core\Checkout\Cart\LineItem\LineItem;
+use Shopware\Core\Checkout\Customer\CustomerEntity;
 use Shopware\Core\Checkout\Order\Aggregate\OrderLineItem\OrderLineItemEntity;
+use Shopware\Core\Checkout\Order\OrderEntity;
+use Shopware\Core\Content\Newsletter\Aggregate\NewsletterRecipient\NewsletterRecipientEntity;
 
 class DataMappingService
 {
-    private $listrakApiService;
-
-    private $listrakConfigService;
-
-    private LoggerInterface $logger;
+    private ListrakConfigService $listrakConfigService;
 
     public function __construct(
-        ListrakApiService $listrakApiService,
         ListrakConfigService $listrakConfigService,
-        LoggerInterface $logger
     ) {
-        $this->listrakApiService = $listrakApiService;
         $this->listrakConfigService = $listrakConfigService;
-        $this->logger = $logger;
     }
 
-    public function mapOrderData($order)
+    public function mapOrderData(OrderEntity $order): array
     {
         $orderState = $order->getStateMachineState() ? $order->getStateMachineState()->getTechnicalName() : 'Unknown';
         $orderStatus = $this->mapOrderStatus($orderState);
@@ -50,7 +44,7 @@ class DataMappingService
 
         $data = [
             'orderNumber' => $order->getOrderNumber(),
-            'dateEntered' => $order->getOrderDateTime()->format('Y-m-d\TH:i:s\Z') ?? '',
+            'dateEntered' => $order->getOrderDateTime()->format('Y-m-d\TH:i:s\Z'),
             'email' => $email,
             'customerNumber' => $order->getOrderCustomer() ? $order->getOrderCustomer()->getCustomerNumber() : '',
             'billingAddress' => $billingAddressItem,
@@ -68,7 +62,7 @@ class DataMappingService
         return $data;
     }
 
-    public function mapOrderLineItems($order, $orderStatus)
+    public function mapOrderLineItems(OrderEntity $order, string $orderStatus): array
     {
         $lineItems = [];
         $orderItemTotal = 0;
@@ -115,14 +109,14 @@ class DataMappingService
         return 'Unknown';
     }
 
-    public function mapCustomerData($customer): array
+    public function mapCustomerData(CustomerEntity $customer): array
     {
         $address = $customer->getDefaultBillingAddress();
         $addressItem = [];
         if ($address) {
             $addressItem = [
-                'street' => $address->getStreet() ?? '',
-                'city' => $address->getCity() ?? '',
+                'street' => $address->getStreet(),
+                'city' => $address->getCity(),
                 'state' => $address->getCountryState() ? $address->getCountryState()->getName() : '',
                 'postalCode' => $address->getZipcode() ?? '',
                 'country' => $address->getCountry() ? $address->getCountry()->getName() : '',
@@ -140,7 +134,7 @@ class DataMappingService
         return $data;
     }
 
-    public function mapContactData($newsletterRecipient): array
+    public function mapContactData(NewsletterRecipientEntity $newsletterRecipient): array
     {
         $data = [
             'emailAddress' => $newsletterRecipient->getEmail(),
@@ -191,11 +185,11 @@ class DataMappingService
         }
     }
 
-    private function mapSubscriptionStatus($status): string
+    private function mapSubscriptionStatus(?string $status): string
     {
         $data = ['direct' => 'Subscribed',
             'unsubscribed' => 'Unsubscribed'];
-        if (\array_key_exists($status, $data)) {
+        if ($status !== null && \array_key_exists($status, $data)) {
             return $data[$status];
         }
 

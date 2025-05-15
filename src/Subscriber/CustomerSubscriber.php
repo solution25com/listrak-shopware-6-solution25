@@ -8,6 +8,7 @@ use Listrak\Service\DataMappingService;
 use Listrak\Service\ListrakApiService;
 use Listrak\Service\ListrakConfigService;
 use Psr\Log\LoggerInterface;
+use Shopware\Core\Checkout\Customer\CustomerCollection;
 use Shopware\Core\Checkout\Customer\CustomerEvents;
 use Shopware\Core\Content\Newsletter\Event\NewsletterConfirmEvent;
 use Shopware\Core\Content\Newsletter\Event\NewsletterUnsubscribeEvent;
@@ -28,6 +29,9 @@ class CustomerSubscriber implements EventSubscriberInterface
 
     private LoggerInterface $logger;
 
+    /**
+     * @param EntityRepository<CustomerCollection> $customerRepository
+     */
     public function __construct(
         ListrakConfigService $listrakConfigService,
         ListrakApiService $listrakApiService,

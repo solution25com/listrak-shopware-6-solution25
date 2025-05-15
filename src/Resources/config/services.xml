@@ -17,9 +17,7 @@
         </service>
 
         <service id="Listrak\Service\DataMappingService">
-            <argument type="service" id="Listrak\Service\ListrakApiService"/>
             <argument type="service" id="Listrak\Service\ListrakConfigService"/>
-            <argument type="service" id="logger"/>
         </service>
 
         <service id="Listrak\Subscriber\NewsletterStatusSubscriber">
@@ -69,17 +67,11 @@
 
         <service id="Listrak\Controller\FullSyncController" public="true">
             <argument type="service" id="Listrak\Service\ListrakConfigService"/>
-            <argument type="service" id="Listrak\Service\ListrakApiService"/>
-            <argument type="service" id="customer.repository"/>
-            <argument type="service" id="order.repository"/>
             <argument type="service" id="messenger.default_bus"/>
-            <argument type="service" id="logger"/>
             <tag name="controller.service_arguments"/>
         </service>
 
         <service id="Listrak\Message\SyncCustomersMessageHandler">
-            <argument type="service" id="messenger.default_bus"/>
-            <argument type="service" id="event_dispatcher"/>
             <argument type="service" id="customer.repository"/>
             <argument type="service" id="Listrak\Service\DataMappingService"/>
             <argument type="service" id="Listrak\Service\ListrakApiService"/>
@@ -88,8 +80,6 @@
         </service>
 
         <service id="Listrak\Message\SyncOrdersMessageHandler">
-            <argument type="service" id="messenger.default_bus"/>
-            <argument type="service" id="event_dispatcher"/>
             <argument type="service" id="order.repository"/>
             <argument type="service" id="Listrak\Service\DataMappingService"/>
             <argument type="service" id="Listrak\Service\ListrakApiService"/>
@@ -98,8 +88,6 @@
         </service>
 
         <service id="Listrak\Message\SyncNewsletterRecipientsMessageHandler">
-            <argument type="service" id="messenger.default_bus"/>
-            <argument type="service" id="event_dispatcher"/>
             <argument type="service" id="newsletter_recipient.repository"/>
             <argument type="service" id="Listrak\Service\DataMappingService"/>
             <argument type="service" id="Listrak\Service\ListrakApiService"/>

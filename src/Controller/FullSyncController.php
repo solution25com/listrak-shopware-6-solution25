@@ -5,11 +5,8 @@ namespace Listrak\Controller;
 use Listrak\Message\SyncCustomersMessage;
 use Listrak\Message\SyncNewsletterRecipientsMessage;
 use Listrak\Message\SyncOrdersMessage;
-use Listrak\Service\ListrakApiService;
 use Listrak\Service\ListrakConfigService;
-use Psr\Log\LoggerInterface;
 use Shopware\Core\Framework\Context;
-use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -20,21 +17,11 @@ class FullSyncController
 {
     private ListrakConfigService $listrakConfigService;
 
-    private ListrakApiService $listrakApiService;
-
-    private LoggerInterface $logger;
-
     public function __construct(
         ListrakConfigService $listrakConfigService,
-        ListrakApiService $listrakApiService,
-        private readonly EntityRepository $customerRepository,
-        private readonly EntityRepository $orderRepository,
         private readonly MessageBusInterface $messageBus,
-        LoggerInterface $logger
     ) {
         $this->listrakConfigService = $listrakConfigService;
-        $this->listrakApiService = $listrakApiService;
-        $this->logger = $logger;
     }
 
     #[Route(path: '/api/_action/listrak-customer-sync', name: 'api.action.listrak.customer-sync', methods: ['POST'])]

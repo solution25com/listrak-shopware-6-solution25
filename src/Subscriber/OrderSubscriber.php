@@ -8,6 +8,7 @@ use Listrak\Service\DataMappingService;
 use Listrak\Service\ListrakApiService;
 use Listrak\Service\ListrakConfigService;
 use Psr\Log\LoggerInterface;
+use Shopware\Core\Checkout\Order\OrderCollection;
 use Shopware\Core\Checkout\Order\OrderEvents;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityWriteResult;
@@ -25,6 +26,9 @@ class OrderSubscriber implements EventSubscriberInterface
 
     private LoggerInterface $logger;
 
+    /**
+     * @param EntityRepository<OrderCollection> $orderRepository
+     */
     public function __construct(
         ListrakConfigService $listrakConfigService,
         ListrakApiService $listrakApiService,
@@ -69,6 +73,7 @@ class OrderSubscriber implements EventSubscriberInterface
         $criteria->addAssociation('lineItems');
         $criteria->addAssociation('stateMachineState');
 
+        /** @var OrderCollection $orders */
         $orders = $this->orderRepository->search(
             $criteria,
             $event->getContext()
