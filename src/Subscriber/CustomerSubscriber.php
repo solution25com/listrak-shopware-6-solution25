@@ -10,6 +10,7 @@ use Listrak\Service\ListrakConfigService;
 use Psr\Log\LoggerInterface;
 use Shopware\Core\Checkout\Customer\CustomerCollection;
 use Shopware\Core\Checkout\Customer\CustomerEvents;
+use Shopware\Core\Checkout\Customer\Event\CustomerLoginEvent;
 use Shopware\Core\Content\Newsletter\Event\NewsletterConfirmEvent;
 use Shopware\Core\Content\Newsletter\Event\NewsletterUnsubscribeEvent;
 use Shopware\Core\Content\Newsletter\NewsletterEvents;
@@ -48,6 +49,7 @@ class CustomerSubscriber implements EventSubscriberInterface
     public static function getSubscribedEvents(): array
     {
         return [
+            CustomerEvents::CUSTOMER_LOGIN_EVENT => 'onCustomerLogin',
             CustomerEvents::CUSTOMER_WRITTEN_EVENT => 'onCustomerWritten',
             NewsletterEvents::NEWSLETTER_CONFIRM_EVENT => 'onNewsletterConfirm',
             NewsletterEvents::NEWSLETTER_UNSUBSCRIBE_EVENT => 'onNewsletterUnsubscribe',

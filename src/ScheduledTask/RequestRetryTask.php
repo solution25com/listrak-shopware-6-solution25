@@ -15,6 +15,6 @@ class RequestRetryTask extends ScheduledTask
 
     public static function getDefaultInterval(): int
     {
-        return 600;
+        return 15 * 60;
     }
 }

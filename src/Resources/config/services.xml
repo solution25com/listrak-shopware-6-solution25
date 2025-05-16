@@ -87,14 +87,6 @@
             <tag name="messenger.message_handler"/>
         </service>
 
-        <service id="Listrak\Message\SyncNewsletterRecipientsMessageHandler">
-            <argument type="service" id="newsletter_recipient.repository"/>
-            <argument type="service" id="Listrak\Service\DataMappingService"/>
-            <argument type="service" id="Listrak\Service\ListrakApiService"/>
-            <argument type="service" id="logger"/>
-            <tag name="messenger.message_handler"/>
-        </service>
-
         <service id="Listrak\Controller\ApiTestController" public="true">
             <argument type="service" id="Listrak\Service\ListrakApiService"/>
             <argument type="service" id="logger"/>

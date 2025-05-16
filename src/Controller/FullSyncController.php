@@ -59,23 +59,4 @@ class FullSyncController
 
         return new JsonResponse($success);
     }
-
-    #[Route(path: '/api/_action/listrak-newsletter-recipient-sync', name: 'api.action.listrak.newsletter-recipient-sync', methods: ['POST'])]
-    public function syncNewsletterRecipients(Request $request, Context $context): JsonResponse
-    {
-        $success = ['success' => false];
-        if (!$this->listrakConfigService->getConfig('listId') || !$this->listrakConfigService->getConfig('emailClientId') || !$this->listrakConfigService->getConfig('emailClientSecret')) {
-            return new JsonResponse($success);
-        }
-        try {
-            $message = new SyncNewsletterRecipientsMessage($context);
-            $this->messageBus->dispatch($message);
-        } catch (\Exception $e) {
-            return new JsonResponse($success);
-        }
-
-        $success = ['success' => true];
-
-        return new JsonResponse($success);
-    }
 }

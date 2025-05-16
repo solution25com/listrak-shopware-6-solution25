@@ -90,10 +90,6 @@
             <name>fullCustomerSync</name>
         </component>
 
-        <component name="full-newsletter-recipient-sync">
-            <name>fullNewsletterRecipientSync</name>
-        </component>
-
         <input-field type="bool">
             <name>enableListrakTracking</name>
             <label>Enable Listrak Tracking</label>
@@ -121,8 +117,6 @@
             <label lang="de-DE">Synchronisierung der Newsletter-Empfänger aktivieren</label>
             <defaultValue>false</defaultValue>
         </input-field>
-
-
 
     </card>
 

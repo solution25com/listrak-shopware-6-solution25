@@ -22,7 +22,6 @@ export default class ListrakTracking extends PluginBaseClass {
                 } else if (placement === 'cart') {
                     this._cartData = new CartData();
                     this.getCart();
-                } else {
                 }
             }
         }

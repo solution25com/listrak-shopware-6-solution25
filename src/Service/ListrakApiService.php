@@ -117,7 +117,7 @@ class ListrakApiService extends Endpoints
     }
 
     /**
-     * @param array<string, mixed> $data
+     * @param list<array> $data
      */
     public function importCustomer(array $data, Context $context): void
     {
@@ -136,7 +136,7 @@ class ListrakApiService extends Endpoints
     }
 
     /**
-     * @param array<string, mixed> $data
+     * @param list<array> $data
      */
     public function importOrder(array $data, Context $context): void
     {
@@ -154,7 +154,7 @@ class ListrakApiService extends Endpoints
     }
 
     /**
-     * @param array<string, mixed> $data
+     * @param array $data
      */
     public function createOrUpdateContact(array $data, Context $context): void
     {
@@ -240,7 +240,7 @@ class ListrakApiService extends Endpoints
      */
     public function retry(Context $context): void
     {
-        if ($this->listrakConfigService->getConfig('enableOrderSync') | $this->listrakConfigService->getConfig('enableCustomerSync')) {
+        if ($this->listrakConfigService->getConfig('enableOrderSync') || $this->listrakConfigService->getConfig('enableCustomerSync')) {
             foreach ($this->findEntries($context) as $failedRequestEntry) {
                 $this->request(
                     ['url' => $failedRequestEntry->getEndpoint(), 'method' => $failedRequestEntry->getMethod()],

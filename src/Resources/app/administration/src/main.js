@@ -1,13 +1,10 @@
 import './component/full-customer-sync';
 import './component/full-order-sync';
-import './component/full-newsletter-recipient-sync';
 import './component/data-api-test';
 import './component/email-api-test';
 
 import FullCustomerSyncService from './service/full-customer-sync.service';
 import FullOrderSyncService from './service/full-order-sync.service';
-import FullNewsletterRecipientSyncService from './service/full-newsletter-recipient-sync.service';
-
 import DataApiTestService from './service/data-api-test.service';
 import EmailApiTestService from './service/email-api-test.service';
 
@@ -33,13 +30,6 @@ Shopware.Service().register('fullCustomerSync', () => {
 });
 Shopware.Service().register('fullOrderSync', () => {
     return new FullOrderSyncService(
-        Shopware.Application.getContainer('init').httpClient,
-        Shopware.Service('loginService')
-    );
-});
-
-Shopware.Service().register('fullNewsletterRecipientSync', () => {
-    return new FullNewsletterRecipientSyncService(
         Shopware.Application.getContainer('init').httpClient,
         Shopware.Service('loginService')
     );

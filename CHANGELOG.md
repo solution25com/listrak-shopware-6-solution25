@@ -2,6 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.10] - 05-16-2025
+- Improved code quality.
+
 ## [1.0.9] - 05-15-2025
 - Added Page Browse and Product Browse tracking features.
 
