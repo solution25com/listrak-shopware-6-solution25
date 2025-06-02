@@ -1,11 +1,7 @@
 const ApiService = Shopware.Classes.ApiService;
 
 export default class DataApiTestService extends ApiService {
-    constructor(
-        httpClient,
-        loginService,
-        apiEndpoint = 'listrak-data-api-test'
-    ) {
+    constructor(httpClient, loginService, apiEndpoint = 'listrak-data-api') {
         super(httpClient, loginService, apiEndpoint);
     }
 
@@ -13,7 +9,7 @@ export default class DataApiTestService extends ApiService {
         const headers = this.getBasicHeaders();
 
         return this.httpClient
-            .post(`_action/${this.getApiBasePath()}/verify`, values, {
+            .post(`_action/${this.getApiBasePath()}/test`, values, {
                 headers,
             })
             .then((response) => {

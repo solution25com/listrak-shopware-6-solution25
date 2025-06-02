@@ -4,52 +4,32 @@ declare(strict_types=1);
 
 namespace Listrak\Subscriber;
 
-use Listrak\Service\DataMappingService;
-use Listrak\Service\ListrakApiService;
+use Listrak\Message\SubscribeNewsletterRecipientMessage;
+use Listrak\Message\SyncCustomersMessage;
+use Listrak\Message\UnsubscribeNewsletterRecipientMessage;
 use Listrak\Service\ListrakConfigService;
 use Psr\Log\LoggerInterface;
-use Shopware\Core\Checkout\Customer\CustomerCollection;
 use Shopware\Core\Checkout\Customer\CustomerEvents;
-use Shopware\Core\Checkout\Customer\Event\CustomerLoginEvent;
 use Shopware\Core\Content\Newsletter\Event\NewsletterConfirmEvent;
 use Shopware\Core\Content\Newsletter\Event\NewsletterUnsubscribeEvent;
 use Shopware\Core\Content\Newsletter\NewsletterEvents;
-use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityWriteResult;
 use Shopware\Core\Framework\DataAbstractionLayer\Event\EntityWrittenEvent;
-use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 class CustomerSubscriber implements EventSubscriberInterface
 {
-    private ListrakConfigService $listrakConfigService;
-
-    private ListrakApiService $listrakApiService;
-
-    private DataMappingService $dataMappingService;
-
-    private LoggerInterface $logger;
-
-    /**
-     * @param EntityRepository<CustomerCollection> $customerRepository
-     */
     public function __construct(
-        ListrakConfigService $listrakConfigService,
-        ListrakApiService $listrakApiService,
-        DataMappingService $dataMappingService,
-        readonly EntityRepository $customerRepository,
-        LoggerInterface $logger
+        private readonly ListrakConfigService $listrakConfigService,
+        private readonly MessageBusInterface $messageBus,
+        private readonly LoggerInterface $logger
     ) {
-        $this->listrakConfigService = $listrakConfigService;
-        $this->listrakApiService = $listrakApiService;
-        $this->dataMappingService = $dataMappingService;
-        $this->logger = $logger;
     }
 
     public static function getSubscribedEvents(): array
     {
         return [
-            CustomerEvents::CUSTOMER_LOGIN_EVENT => 'onCustomerLogin',
             CustomerEvents::CUSTOMER_WRITTEN_EVENT => 'onCustomerWritten',
             NewsletterEvents::NEWSLETTER_CONFIRM_EVENT => 'onNewsletterConfirm',
             NewsletterEvents::NEWSLETTER_UNSUBSCRIBE_EVENT => 'onNewsletterUnsubscribe',
@@ -59,12 +39,12 @@ class CustomerSubscriber implements EventSubscriberInterface
     public function onCustomerWritten(EntityWrittenEvent $event): void
     {
         if (!$this->listrakConfigService->isDataSyncEnabled('enableCustomerSync')) {
+            $this->logger->debug('Customer sync skipped — sync not enabled');
+
             return;
         }
-        $this->logger->debug('Listrak customer written event triggered');
-        $ids = [];
-        $items = [];
 
+        $ids = [];
         foreach ($event->getWriteResults() as $writeResult) {
             $id = $writeResult->getPrimaryKey();
             if ($writeResult->getOperation() === EntityWriteResult::OPERATION_DELETE || !$id) {
@@ -72,49 +52,53 @@ class CustomerSubscriber implements EventSubscriberInterface
             }
             $ids[] = $id;
         }
-
-        $customers = $this->customerRepository->search(
-            new Criteria($ids),
-            $event->getContext()
-        )->getEntities();
-
-        foreach ($customers as $customer) {
-            $item = $this->dataMappingService->mapCustomerData($customer);
-            $items[] = $item;
+        try {
+            $message = new SyncCustomersMessage($event->getContext(), 0, 500, $ids);
+            $this->messageBus->dispatch($message);
+        } catch (\Exception $e) {
+            $this->logger->error($e->getMessage());
         }
-
-        $this->listrakApiService->importCustomer(
-            $items,
-            $event->getContext(),
-        );
     }
 
     public function onNewsletterConfirm(NewsletterConfirmEvent $event): void
     {
         if (!$this->listrakConfigService->isEmailSyncEnabled()) {
+            $this->logger->debug('Newsletter recipient sync skipped — sync not enabled for SalesChannel', [
+                'salesChannelId' => $event->getSalesChannelId(),
+            ]);
+
             return;
         }
         $this->logger->debug('Listrak newsletter confirm event triggered');
 
-        $newsletterRecipient = $event->getNewsletterRecipient();
-        $data = $this->dataMappingService->mapContactData($newsletterRecipient);
+        $newsletterRecipientId = $event->getNewsletterRecipientId();
 
-        $this->listrakApiService->createorUpdateContact($data, $event->getContext());
+        try {
+            $message = new SubscribeNewsletterRecipientMessage($event->getContext(), $newsletterRecipientId);
+            $this->messageBus->dispatch($message);
+        } catch (\Exception $e) {
+            $this->logger->error($e->getMessage());
+        }
     }
 
     public function onNewsletterUnsubscribe(NewsletterUnsubscribeEvent $event): void
     {
         if (!$this->listrakConfigService->isEmailSyncEnabled()) {
+            $this->logger->debug('Newsletter recipient sync skipped — sync not enabled for SalesChannel', [
+                'salesChannelId' => $event->getSalesChannelId(),
+            ]);
+
             return;
         }
-        $this->logger->notice('Listrak newsletter confirm event triggered');
+        $this->logger->debug('Listrak newsletter confirm event triggered');
 
-        $newsletterRecipient = $event->getNewsletterRecipient();
-        $data = [
-            'emailAddress' => $newsletterRecipient->getEmail(),
-            'subscriptionState' => 'Unsubscribed',
-        ];
+        $newsletterRecipientId = $event->getNewsletterRecipientId();
 
-        $this->listrakApiService->createorUpdateContact($data, $event->getContext());
+        try {
+            $message = new UnsubscribeNewsletterRecipientMessage($event->getContext(), $newsletterRecipientId);
+            $this->messageBus->dispatch($message);
+        } catch (\Exception $e) {
+            $this->logger->error($e->getMessage());
+        }
     }
 }

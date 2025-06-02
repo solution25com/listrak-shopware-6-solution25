@@ -37,22 +37,24 @@ Component.register('email-api-test', {
         check() {
             this.isLoading = true;
 
-            this.emailApiTest.check(this.pluginConfig).then((res) => {
-                if (res.success) {
+            this.emailApiTest
+                .check(this.pluginConfig)
+                .then(() => {
                     this.isSaveSuccessful = true;
                     this.createNotificationSuccess({
                         title: this.$tc('emailApiTest.title'),
                         message: this.$tc('emailApiTest.success'),
                     });
-                } else {
+                })
+                .catch(() => {
                     this.createNotificationError({
                         title: this.$tc('emailApiTest.title'),
                         message: this.$tc('emailApiTest.error'),
                     });
-                }
-
-                this.isLoading = false;
-            });
+                })
+                .finally(() => {
+                    this.isLoading = false;
+                });
         },
     },
 });

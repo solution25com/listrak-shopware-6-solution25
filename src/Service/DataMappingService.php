@@ -12,17 +12,14 @@ use Shopware\Core\Content\Newsletter\Aggregate\NewsletterRecipient\NewsletterRec
 
 class DataMappingService
 {
-    private ListrakConfigService $listrakConfigService;
-
     public function __construct(
-        ListrakConfigService $listrakConfigService,
+        private readonly ListrakConfigService $listrakConfigService
     ) {
-        $this->listrakConfigService = $listrakConfigService;
     }
 
     public function mapOrderData(OrderEntity $order): array
     {
-        $orderState = $order->getStateMachineState() ? $order->getStateMachineState()->getTechnicalName() : 'Unknown';
+        $orderState = $order->getStateMachineState()->getTechnicalName();
         $orderStatus = $this->mapOrderStatus($orderState);
         $customer = $order->getOrderCustomer();
         $email = $customer && $customer->getEmail() ? $customer->getEmail() : '';
@@ -62,53 +59,6 @@ class DataMappingService
         return $data;
     }
 
-    public function mapOrderLineItems(OrderEntity $order, string $orderStatus): array
-    {
-        $lineItems = [];
-        $orderItemTotal = 0;
-        if ($order->getLineItems()) {
-            foreach ($order->getLineItems() as $lineItem) {
-                $calculatedPrice = $lineItem->getPrice();
-                $sku = $this->generateSKU($lineItem);
-                $listPrice = $calculatedPrice && $calculatedPrice->getListPrice() ? $calculatedPrice->getListPrice()->getPrice() : 0;
-                $unitPrice = $lineItem->getUnitPrice();
-                $discountedPrice = $calculatedPrice && $calculatedPrice->getListPrice() ? $calculatedPrice->getListPrice()->getDiscount() : 0;
-                $quantity = $lineItem->getQuantity();
-                $itemDiscountTotal = ($listPrice - $discountedPrice) * $lineItem->getQuantity();
-                $itemTotal = ($unitPrice * $quantity) - $itemDiscountTotal;
-                $orderItemTotal += $itemTotal;
-                $item = [
-                    'discountedPrice' => $discountedPrice,
-                    'itemTotal' => $itemTotal,
-                    'itemDiscountTotal' => $itemDiscountTotal,
-                    'orderNumber' => $order->getOrderNumber(),
-                    'price' => $unitPrice,
-                    'quantity' => $quantity,
-                    'sku' => $sku,
-                    'status' => $orderStatus,
-                ];
-                $lineItems[] = $item;
-            }
-        }
-
-        return [$lineItems, $orderItemTotal];
-    }
-
-    public function mapOrderStatus(string $status): string
-    {
-        $sw_order_states = [
-            'open' => 'Pending',
-            'in_progress' => 'Processing',
-            'completed' => 'Completed',
-            'cancelled' => 'Canceled',
-        ];
-        if (\array_key_exists($status, $sw_order_states)) {
-            return $sw_order_states[$status];
-        }
-
-        return 'Unknown';
-    }
-
     public function mapCustomerData(CustomerEntity $customer): array
     {
         $address = $customer->getDefaultBillingAddress();
@@ -145,20 +95,20 @@ class DataMappingService
         $firstNameListrakFieldId = $this->listrakConfigService->getConfig('firstNameSegmentationFieldId') ?? '';
         $lastNameListrakFieldId = $this->listrakConfigService->getConfig('lastNameSegmentationFieldId') ?? '';
         if ($salutationListrakFieldId) {
-            $data['segmentationFieldValues'] = [
+            $data['segmentationFieldValues'][] = [
                 'segmentationFieldId' => $salutationListrakFieldId,
                 'value' => $newsletterRecipient->getSalutation() ?? '',
             ];
         }
 
         if ($firstNameListrakFieldId) {
-            $data['segmentationFieldValues'] = [
+            $data['segmentationFieldValues'][] = [
                 'segmentationFieldId' => $firstNameListrakFieldId,
                 'value' => $newsletterRecipient->getFirstName() ?? '',
             ];
         }
         if ($lastNameListrakFieldId) {
-            $data['segmentationFieldValues'] = [
+            $data['segmentationFieldValues'][] = [
                 'segmentationFieldId' => $lastNameListrakFieldId,
                 'value' => $newsletterRecipient->getLastName() ?? '',
             ];
@@ -167,7 +117,54 @@ class DataMappingService
         return $data;
     }
 
-    public function generateSKU(OrderLineItemEntity $lineItem): string
+    private function mapOrderLineItems(OrderEntity $order, string $orderStatus): array
+    {
+        $lineItems = [];
+        $orderItemTotal = 0;
+        if ($order->getLineItems()) {
+            foreach ($order->getLineItems() as $lineItem) {
+                $calculatedPrice = $lineItem->getPrice();
+                $sku = $this->generateSKU($lineItem);
+                $listPrice = $calculatedPrice && $calculatedPrice->getListPrice() ? $calculatedPrice->getListPrice()->getPrice() : 0;
+                $unitPrice = $lineItem->getUnitPrice();
+                $discountedPrice = $calculatedPrice && $calculatedPrice->getListPrice() ? $calculatedPrice->getListPrice()->getDiscount() : 0;
+                $quantity = $lineItem->getQuantity();
+                $itemDiscountTotal = ($listPrice - $discountedPrice) * $lineItem->getQuantity();
+                $itemTotal = ($unitPrice * $quantity) - $itemDiscountTotal;
+                $orderItemTotal += $itemTotal;
+                $item = [
+                    'discountedPrice' => $discountedPrice,
+                    'itemTotal' => $itemTotal,
+                    'itemDiscountTotal' => $itemDiscountTotal,
+                    'orderNumber' => $order->getOrderNumber(),
+                    'price' => $unitPrice,
+                    'quantity' => $quantity,
+                    'sku' => $sku,
+                    'status' => $orderStatus,
+                ];
+                $lineItems[] = $item;
+            }
+        }
+
+        return [$lineItems, $orderItemTotal];
+    }
+
+    private function mapOrderStatus(string $status): string
+    {
+        $sw_order_states = [
+            'open' => 'Pending',
+            'in_progress' => 'Processing',
+            'completed' => 'Completed',
+            'cancelled' => 'Canceled',
+        ];
+        if (\array_key_exists($status, $sw_order_states)) {
+            return $sw_order_states[$status];
+        }
+
+        return 'Unknown';
+    }
+
+    private function generateSKU(OrderLineItemEntity $lineItem): string
     {
         switch ($lineItem->getType()) {
             case LineItem::PRODUCT_LINE_ITEM_TYPE:

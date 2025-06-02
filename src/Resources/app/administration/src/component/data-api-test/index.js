@@ -37,22 +37,24 @@ Component.register('data-api-test', {
         check() {
             this.isLoading = true;
 
-            this.dataApiTest.check(this.pluginConfig).then((res) => {
-                if (res.success) {
+            this.dataApiTest
+                .check(this.pluginConfig)
+                .then(() => {
                     this.isSaveSuccessful = true;
                     this.createNotificationSuccess({
                         title: this.$tc('dataApiTest.title'),
                         message: this.$tc('dataApiTest.success'),
                     });
-                } else {
+                })
+                .catch(() => {
                     this.createNotificationError({
                         title: this.$tc('dataApiTest.title'),
                         message: this.$tc('dataApiTest.error'),
                     });
-                }
-
-                this.isLoading = false;
-            });
+                })
+                .finally(() => {
+                    this.isLoading = false;
+                });
         },
     },
 });

@@ -10,11 +10,19 @@
             <argument id="Shopware\Core\System\SystemConfig\SystemConfigService" type="service"/>
         </service>
 
-        <service id="Listrak\Service\ListrakApiService">
+        <service id="Listrak\Service\ListrakApiService" lazy="true">
             <argument type="service" id="Listrak\Service\ListrakConfigService"/>
-            <argument type="service" id="listrak_failed_requests.repository"/>
+            <argument type="service" id="Listrak\Service\FailedRequestService"/>
             <argument type="service" id="logger"/>
         </service>
+
+        <service id="Listrak\Service\FailedRequestService">
+            <argument type="service" id="listrak_failed_requests.repository"/>
+            <argument type="service" id="Listrak\Service\ListrakApiService"/>
+            <argument type="service" id="Listrak\Service\ListrakConfigService"/>
+            <argument type="service" id="logger"/>
+        </service>
+
 
         <service id="Listrak\Service\DataMappingService">
             <argument type="service" id="Listrak\Service\ListrakConfigService"/>
@@ -28,18 +36,14 @@
 
         <service id="Listrak\Subscriber\OrderSubscriber">
             <argument type="service" id="Listrak\Service\ListrakConfigService"/>
-            <argument type="service" id="Listrak\Service\ListrakApiService"/>
-            <argument type="service" id="Listrak\Service\DataMappingService"/>
-            <argument type="service" id="order.repository"/>
+            <argument type="service" id="messenger.default_bus"/>
             <argument type="service" id="logger"/>
             <tag name="kernel.event_subscriber"/>
         </service>
 
         <service id="Listrak\Subscriber\CustomerSubscriber">
             <argument type="service" id="Listrak\Service\ListrakConfigService"/>
-            <argument type="service" id="Listrak\Service\ListrakApiService"/>
-            <argument type="service" id="Listrak\Service\DataMappingService"/>
-            <argument type="service" id="customer.repository"/>
+            <argument type="service" id="messenger.default_bus"/>
             <argument type="service" id="logger"/>
             <tag name="kernel.event_subscriber"/>
         </service>
@@ -54,7 +58,7 @@
 
         <service id="Listrak\ScheduledTask\RequestRetryTaskHandler">
             <argument type="service" id="scheduled_task.repository"/>
-            <argument type="service" id="Listrak\Service\ListrakApiService"/>
+            <argument type="service" id="Listrak\Service\FailedRequestService"/>
             <argument type="service" id="logger"/>
             <tag name="messenger.message_handler"/>
         </service>
@@ -75,6 +79,8 @@
             <argument type="service" id="customer.repository"/>
             <argument type="service" id="Listrak\Service\DataMappingService"/>
             <argument type="service" id="Listrak\Service\ListrakApiService"/>
+            <argument type="service" id="messenger.default_bus"/>
+            <argument type="service" id="Listrak\Service\FailedRequestService"/>
             <argument type="service" id="logger"/>
             <tag name="messenger.message_handler"/>
         </service>
@@ -83,12 +89,33 @@
             <argument type="service" id="order.repository"/>
             <argument type="service" id="Listrak\Service\DataMappingService"/>
             <argument type="service" id="Listrak\Service\ListrakApiService"/>
+            <argument type="service" id="messenger.default_bus"/>
+            <argument type="service" id="Listrak\Service\FailedRequestService"/>
             <argument type="service" id="logger"/>
             <tag name="messenger.message_handler"/>
         </service>
 
+        <service id="Listrak\Message\SubscribeNewsletterRecipientMessageHandler">
+            <argument type="service" id="newsletter_recipient.repository"/>
+            <argument type="service" id="Listrak\Service\DataMappingService"/>
+            <argument type="service" id="Listrak\Service\ListrakApiService"/>
+            <argument type="service" id="Listrak\Service\FailedRequestService"/>
+            <argument type="service" id="logger"/>
+            <tag name="messenger.message_handler"/>
+        </service>
+
+        <service id="Listrak\Message\UnsubscribeNewsletterRecipientMessageHandler">
+            <argument type="service" id="newsletter_recipient.repository"/>
+            <argument type="service" id="Listrak\Service\ListrakApiService"/>
+            <argument type="service" id="Listrak\Service\FailedRequestService"/>
+            <argument type="service" id="logger"/>
+            <tag name="messenger.message_handler"/>
+        </service>
+
+
         <service id="Listrak\Controller\ApiTestController" public="true">
             <argument type="service" id="Listrak\Service\ListrakApiService"/>
+            <argument type="service" id="Listrak\Service\FailedRequestService"/>
             <argument type="service" id="logger"/>
             <tag name="controller.service_arguments"/>
         </service>

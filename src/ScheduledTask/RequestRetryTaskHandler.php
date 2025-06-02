@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Listrak\ScheduledTask;
 
-use Listrak\Service\ListrakApiService;
+use Listrak\Service\FailedRequestService;
 use Psr\Log\LoggerInterface;
 use Shopware\Core\Framework\Context;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
@@ -16,23 +16,14 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 class RequestRetryTaskHandler extends ScheduledTaskHandler
 {
     /**
-     * @var LoggerInterface
-     */
-    private $logger;
-
-    private ListrakApiService $listrakApiService;
-
-    /**
      * @param EntityRepository<ScheduledTaskCollection> $scheduledTaskRepository
      */
     public function __construct(
-        EntityRepository $scheduledTaskRepository,
-        ListrakApiService $listrakApiService,
-        LoggerInterface $logger,
+        protected EntityRepository $scheduledTaskRepository,
+        private FailedRequestService $failedRequestService,
+        private LoggerInterface $logger,
     ) {
         parent::__construct($scheduledTaskRepository);
-        $this->listrakApiService = $listrakApiService;
-        $this->logger = $logger;
     }
 
     /**
@@ -48,7 +39,7 @@ class RequestRetryTaskHandler extends ScheduledTaskHandler
         $context = Context::createDefaultContext();
         try {
             $this->logger->notice('Running Listrak request retry task');
-            $this->listrakApiService->retry($context);
+            $this->failedRequestService->retry($context);
         } catch (\Exception $exception) {
             $this->logger->error($exception->getMessage() . ' ' . $exception->getTraceAsString());
         }

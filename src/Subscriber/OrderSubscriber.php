@@ -4,42 +4,22 @@ declare(strict_types=1);
 
 namespace Listrak\Subscriber;
 
-use Listrak\Service\DataMappingService;
-use Listrak\Service\ListrakApiService;
+use Listrak\Message\SyncOrdersMessage;
 use Listrak\Service\ListrakConfigService;
 use Psr\Log\LoggerInterface;
-use Shopware\Core\Checkout\Order\OrderCollection;
 use Shopware\Core\Checkout\Order\OrderEvents;
-use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityWriteResult;
 use Shopware\Core\Framework\DataAbstractionLayer\Event\EntityWrittenEvent;
-use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 class OrderSubscriber implements EventSubscriberInterface
 {
-    private ListrakConfigService $listrakConfigService;
-
-    private ListrakApiService $listrakApiService;
-
-    private DataMappingService $dataMappingService;
-
-    private LoggerInterface $logger;
-
-    /**
-     * @param EntityRepository<OrderCollection> $orderRepository
-     */
     public function __construct(
-        ListrakConfigService $listrakConfigService,
-        ListrakApiService $listrakApiService,
-        DataMappingService $dataMappingService,
-        private readonly EntityRepository $orderRepository,
-        LoggerInterface $logger
+        private readonly ListrakConfigService $listrakConfigService,
+        private readonly MessageBusInterface $messageBus,
+        private readonly LoggerInterface $logger
     ) {
-        $this->listrakConfigService = $listrakConfigService;
-        $this->listrakApiService = $listrakApiService;
-        $this->dataMappingService = $dataMappingService;
-        $this->logger = $logger;
     }
 
     public static function getSubscribedEvents(): array
@@ -52,6 +32,8 @@ class OrderSubscriber implements EventSubscriberInterface
     public function onOrderWritten(EntityWrittenEvent $event): void
     {
         if (!$this->listrakConfigService->isDataSyncEnabled('enableOrderSync')) {
+            $this->logger->debug('Order sync skipped — sync not enabled');
+
             return;
         }
         $this->logger->debug('Listrak order written event triggered');
@@ -65,25 +47,11 @@ class OrderSubscriber implements EventSubscriberInterface
             }
             $ids[] = $id;
         }
-
-        $criteria = new Criteria($ids);
-        $criteria->addAssociation('lineItems');
-        $criteria->addAssociation('deliveries');
-        $criteria->addAssociation('addresses');
-        $criteria->addAssociation('lineItems');
-        $criteria->addAssociation('stateMachineState');
-
-        /** @var OrderCollection $orders */
-        $orders = $this->orderRepository->search(
-            $criteria,
-            $event->getContext()
-        )->getEntities();
-
-        foreach ($orders as $order) {
-            $item = $this->dataMappingService->mapOrderData($order);
-            $items[] = $item;
+        try {
+            $message = new SyncOrdersMessage($event->getContext(), 0, 500, $ids);
+            $this->messageBus->dispatch($message);
+        } catch (\Exception $e) {
+            $this->logger->error($e->getMessage());
         }
-
-        $this->listrakApiService->importOrder($items, $event->getContext());
     }
 }

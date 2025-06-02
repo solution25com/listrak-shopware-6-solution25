@@ -9,12 +9,11 @@ use Shopware\Core\Framework\MessageQueue\AsyncMessageInterface;
 
 class SyncCustomersMessage implements AsyncMessageInterface
 {
-    /**
-     * @internal
-     */
     public function __construct(
         private readonly Context $context,
-        private readonly int $offset = 0
+        private readonly int $offset = 0,
+        private readonly int $limit = 500,
+        private readonly ?array $customerIds = null
     ) {
     }
 
@@ -26,5 +25,15 @@ class SyncCustomersMessage implements AsyncMessageInterface
     public function getOffset(): int
     {
         return $this->offset;
+    }
+
+    public function getLimit(): int
+    {
+        return $this->limit;
+    }
+
+    public function getCustomerIds(): ?array
+    {
+        return $this->customerIds;
     }
 }

@@ -41,11 +41,11 @@ class NewsletterStatusSubscriber implements EventSubscriberInterface
         $criteria = new Criteria();
         $criteria->addFilter(new EqualsFilter('email', $customer->getEmail()));
 
-        $recipient = $this->newsletterRecipientRepository
-            ->search($criteria, $event->getSalesChannelContext()->getContext())
-            ->first();
+        $ids = $this->newsletterRecipientRepository
+            ->searchIds($criteria, $event->getSalesChannelContext()->getContext())
+            ->getIds();
 
-        $isSubscribed = $recipient !== null;
+        $isSubscribed = empty($ids);
 
         $event->getPage()->addExtension('newsletterInfo', new ArrayStruct([
             'subscribed' => $isSubscribed,

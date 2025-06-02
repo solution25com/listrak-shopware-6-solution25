@@ -5,59 +5,76 @@ declare(strict_types=1);
 namespace Listrak\Message;
 
 use Listrak\Service\DataMappingService;
+use Listrak\Service\FailedRequestService;
 use Listrak\Service\ListrakApiService;
 use Psr\Log\LoggerInterface;
 use Shopware\Core\Checkout\Order\OrderCollection;
-use Shopware\Core\Framework\DataAbstractionLayer\Dbal\Common\RepositoryIterator;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Sorting\FieldSorting;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+use Symfony\Component\Messenger\Exception\ExceptionInterface;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 #[AsMessageHandler]
 final class SyncOrdersMessageHandler
 {
-    private ListrakApiService $listrakApiService;
-
-    private DataMappingService $dataMappingService;
-
-    private LoggerInterface $logger;
-
     /**
      * @param EntityRepository<OrderCollection> $orderRepository
      */
     public function __construct(
         private readonly EntityRepository $orderRepository,
-        DataMappingService $dataMappingService,
-        ListrakApiService $listrakApiService,
-        LoggerInterface $logger,
+        private readonly DataMappingService $dataMappingService,
+        private readonly ListrakApiService $listrakApiService,
+        private readonly MessageBusInterface $messageBus,
+        private readonly FailedRequestService $failedRequestService,
+        private readonly LoggerInterface $logger
     ) {
-        $this->dataMappingService = $dataMappingService;
-        $this->listrakApiService = $listrakApiService;
-        $this->logger = $logger;
     }
 
     public function __invoke(SyncOrdersMessage $message): void
     {
-        $this->logger->notice('Full listrak order sync started.');
+        $this->logger->debug('Order sync started.');
         $context = $message->getContext();
+        $offset = $message->getOffset();
+        $limit = $message->getLimit();
+        $orderIds = $message->getOrderIds();
         try {
             $criteria = new Criteria();
-            $criteria->setLimit(1000);
+            $criteria->setOffset($offset);
+            $criteria->setLimit($limit);
+            $criteria->addAssociation('lineItems');
+            $criteria->addAssociation('stateMachineState');
+            $criteria->addAssociation('deliveries');
+            $criteria->addAssociation('billingAddress');
+            $criteria->addAssociation('orderCustomer');
+
             $criteria->addSorting(new FieldSorting('id'));
-            $iterator = new RepositoryIterator($this->orderRepository, $context, $criteria);
-            while (($result = $iterator->fetch()) !== null) {
-                $orders = $result->getEntities();
-                $items = [];
-                foreach ($orders as $order) {
-                    $item = $this->dataMappingService->mapOrderData($order);
-                    $items[] = $item;
-                }
-                if (!empty($items)) {
-                    $this->listrakApiService->importOrder($items, $context);
-                }
+            if ($orderIds !== null) {
+                $criteria->setIds($orderIds);
             }
+            $searchResult = $this->orderRepository->search($criteria, $context);
+            $orders = $searchResult->getEntities();
+            $items = [];
+            foreach ($orders as $order) {
+                $item = $this->dataMappingService->mapOrderData($order);
+                $items[] = $item;
+            }
+            if (empty($items)) {
+                $this->logger->debug('No orders found.');
+
+                return;
+            }
+            $this->listrakApiService->importOrder($items, $context);
+
+            if ($searchResult->count() === $limit) {
+                $nextOffset = $offset + $limit;
+                $this->messageBus->dispatch(new SyncOrdersMessage($context, $nextOffset, $limit));
+            }
+            $this->failedRequestService->flushFailedRequests($context);
         } catch (\Exception $e) {
+            $this->logger->error($e->getMessage());
+        } catch (ExceptionInterface $e) {
             $this->logger->error($e->getMessage());
         }
     }

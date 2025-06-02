@@ -10,17 +10,14 @@ class ListrakCookieProvider implements CookieProviderInterface
 {
     private const singleCookie = [
         'snippet_name' => 'Listrak Cookies',
-        'snippet_description' => 'Track cart and order information',
+        'snippet_description' => 'Track cart, order and browse information',
         'cookie' => 'listrakTracking',
         'value' => true,
         'expiration' => '30',
     ];
 
-    private CookieProviderInterface $cookieProvider;
-
-    public function __construct(CookieProviderInterface $cookieProvider)
+    public function __construct(private readonly CookieProviderInterface $cookieProvider)
     {
-        $this->cookieProvider = $cookieProvider;
     }
 
     public function getCookieGroups(): array

@@ -8,11 +8,9 @@ use Shopware\Core\System\SystemConfig\SystemConfigService;
 
 class ListrakConfigService
 {
-    private SystemConfigService $systemConfigService;
-
-    public function __construct(SystemConfigService $systemConfigService)
-    {
-        $this->systemConfigService = $systemConfigService;
+    public function __construct(
+        private readonly SystemConfigService $systemConfigService
+    ) {
     }
 
     public function getConfig(string $configName): mixed
@@ -27,11 +25,20 @@ class ListrakConfigService
 
     public function isDataSyncEnabled(string $configName): bool
     {
-        return $this->getConfig($configName) && $this->getConfig('dataClientId') && $this->getConfig('dataClientSecret');
+        $enabled = trim((string) $this->getConfig($configName));
+        $clientId = trim((string) $this->getConfig('emailClientId'));
+        $clientSecret = trim((string) $this->getConfig('emailClientSecret'));
+
+        return $enabled && $clientId !== '' && $clientSecret !== '';
     }
 
     public function isEmailSyncEnabled(): bool
     {
-        return $this->getConfig('enableNewsletterRecipientSync') && $this->getConfig('emailClientId') && $this->getConfig('emailClientSecret') && $this->getConfig('listId');
+        $enabled = (bool) $this->getConfig('enableNewsletterRecipientSync');
+        $clientId = trim((string) $this->getConfig('emailClientId'));
+        $clientSecret = trim((string) $this->getConfig('emailClientSecret'));
+        $listId = trim((string) $this->getConfig('listId'));
+
+        return $enabled && $clientId !== '' && $clientSecret !== '' && $listId !== '';
     }
 }
