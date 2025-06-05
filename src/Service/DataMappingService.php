@@ -117,6 +117,26 @@ class DataMappingService
         return $data;
     }
 
+    public function mapListImportData(string $base64File): array
+    {
+        $fileMappings = $this->mapFileFields();
+        $data = [
+            'fileDelimiter' => ',',
+            'fileMappings' => $fileMappings,
+            'fileName' => 'listrak_list_import.csv',
+            'fileStream' => $base64File,
+            'hasColumnNames' => true,
+            'importType' => 'AddSubscribersAndSegmentationData',
+            'segmentationImportType' => 'Update',
+            'suppressEmailNotifications' => true,
+            'textQualifier' => '"',
+            'triggerJourney' => false,
+            'includeUnsubscribed' => false,
+        ];
+
+        return $data;
+    }
+
     private function mapOrderLineItems(OrderEntity $order, string $orderStatus): array
     {
         $lineItems = [];
@@ -212,5 +232,26 @@ class DataMappingService
         }
 
         return [];
+    }
+
+    private function mapFileFields()
+    {
+        $salutationListrakFieldId = $this->listrakConfigService->getConfig('salutationSegmentationFieldId');
+        $firstNameListrakFieldId = $this->listrakConfigService->getConfig('firstNameSegmentationFieldId');
+        $lastNameListrakFieldId = $this->listrakConfigService->getConfig('lastNameSegmentationFieldId');
+        $data = [
+            ['fileColumn' => 0, 'fileColumnType' => 'Email'],
+        ];
+        if ($salutationListrakFieldId) {
+            $data[] = ['fileColumn' => 1, 'fileColumnType' => 'SegmentationField', 'segmentationFieldId' => $salutationListrakFieldId];
+        }
+        if ($firstNameListrakFieldId) {
+            $data[] = ['fileColumn' => 2, 'fileColumnType' => 'SegmentationField', 'segmentationFieldId' => $firstNameListrakFieldId];
+        }
+        if ($lastNameListrakFieldId) {
+            $data[] = ['fileColumn' => 3, 'fileColumnType' => 'SegmentationField', 'segmentationFieldId' => $lastNameListrakFieldId];
+        }
+
+        return $data;
     }
 }

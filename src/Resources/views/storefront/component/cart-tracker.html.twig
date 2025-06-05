@@ -1,5 +1,5 @@
 {% if config('Listrak.config.merchantId') and config('Listrak.config.enableListrakTracking') and  context.customer is not empty and page.extensions.newsletterInfo is defined and page.extensions.newsletterInfo.subscribed %}
-    {% set merchantId = config('Listrak.config.merchantId') | default('') %}
+
     {% set placement = placement | default('base') %}
         {% set payloadData = {
             placement: placement,

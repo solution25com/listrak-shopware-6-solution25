@@ -90,31 +90,35 @@
             <name>fullCustomerSync</name>
         </component>
 
+        <component name="full-newsletter-recipient-sync">
+            <name>fullNewsletterRecipientSync</name>
+        </component>
+
         <input-field type="bool">
             <name>enableListrakTracking</name>
-            <label>Enable Listrak Tracking</label>
-            <label lang="de-DE">Aktivieren Sie die Listrak-Verfolgung</label>
+            <label>Enable Listrak Browser Tracking</label>
+            <label lang="de-DE">Aktivieren Sie das Listrak-Browser-Tracking</label>
             <defaultValue>false</defaultValue>
         </input-field>
 
         <input-field type="bool">
             <name>enableOrderSync</name>
-            <label>Enable Order Synchronization</label>
-            <label lang="de-DE">Aktivieren Sie die Auftragssynchronisierungg</label>
+            <label>Enable Ongoing Order Synchronization</label>
+            <label lang="de-DE">Aktivieren Sie die laufende Auftragssynchronisierung</label>
             <defaultValue>false</defaultValue>
         </input-field>
 
         <input-field type="bool">
             <name>enableCustomerSync</name>
-            <label>Enable Customer Synchronization</label>
-            <label lang="de-DE">Aktivieren Sie die Kundensynchronisierung</label>
+            <label>Enable Ongoing Customer Synchronization</label>
+            <label lang="de-DE">Aktivieren Sie die fortlaufende Kundensynchronisierung</label>
             <defaultValue>false</defaultValue>
         </input-field>
 
         <input-field type="bool">
             <name>enableNewsletterRecipientSync</name>
-            <label>Enable Newsletter Recipient Synchronization</label>
-            <label lang="de-DE">Synchronisierung der Newsletter-Empfänger aktivieren</label>
+            <label>Enable Ongoing Newsletter Recipient Synchronization</label>
+            <label lang="de-DE">Aktivieren Sie die fortlaufende Synchronisierung der Newsletter-Empfänger</label>
             <defaultValue>false</defaultValue>
         </input-field>
 

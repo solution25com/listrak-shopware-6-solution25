@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Listrak\Message;
 
 use Listrak\Service\DataMappingService;
-use Listrak\Service\FailedRequestService;
 use Listrak\Service\ListrakApiService;
 use Psr\Log\LoggerInterface;
 use Shopware\Core\Checkout\Order\OrderCollection;
@@ -27,7 +26,6 @@ final class SyncOrdersMessageHandler
         private readonly DataMappingService $dataMappingService,
         private readonly ListrakApiService $listrakApiService,
         private readonly MessageBusInterface $messageBus,
-        private readonly FailedRequestService $failedRequestService,
         private readonly LoggerInterface $logger
     ) {
     }
@@ -55,6 +53,8 @@ final class SyncOrdersMessageHandler
             }
             $searchResult = $this->orderRepository->search($criteria, $context);
             $orders = $searchResult->getEntities();
+            $this->logger->debug('Orders found: ' . \count($orders));
+
             $items = [];
             foreach ($orders as $order) {
                 $item = $this->dataMappingService->mapOrderData($order);
@@ -71,7 +71,6 @@ final class SyncOrdersMessageHandler
                 $nextOffset = $offset + $limit;
                 $this->messageBus->dispatch(new SyncOrdersMessage($context, $nextOffset, $limit));
             }
-            $this->failedRequestService->flushFailedRequests($context);
         } catch (\Exception $e) {
             $this->logger->error($e->getMessage());
         } catch (ExceptionInterface $e) {

@@ -11,6 +11,12 @@
         "success": "Order synchronization has been queued.",
         "error": "Order synchronization failed. Please try again."
     },
+    "fullNewsletterRecipientSyncButton": {
+        "buttonLabel": "Full Newsletter Recipient Synchronization",
+        "title": "Full Newsletter Recipient Synchronization",
+        "success": "Newsletter recipient synchronization has been queued.",
+        "error": "Newsletter recipient synchronization failed. Please try again."
+    },
     "dataApiTest": {
         "buttonLabel": "Test API connection",
         "title": "Data Integration API Test",

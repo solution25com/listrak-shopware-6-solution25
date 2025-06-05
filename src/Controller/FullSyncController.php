@@ -3,6 +3,7 @@
 namespace Listrak\Controller;
 
 use Listrak\Message\SyncCustomersMessage;
+use Listrak\Message\SyncNewsletterRecipientsMessage;
 use Listrak\Message\SyncOrdersMessage;
 use Listrak\Service\ListrakConfigService;
 use Shopware\Core\Framework\Context;
@@ -15,7 +16,7 @@ class FullSyncController
 {
     public function __construct(
         private readonly ListrakConfigService $listrakConfigService,
-        private readonly MessageBusInterface $messageBus,
+        private readonly MessageBusInterface $messageBus
     ) {
     }
 
@@ -46,6 +47,24 @@ class FullSyncController
         }
         try {
             $message = new SyncOrdersMessage($context);
+            $this->messageBus->dispatch($message);
+        } catch (\Exception $e) {
+            return new JsonResponse($success);
+        }
+        $success = ['success' => true];
+
+        return new JsonResponse($success);
+    }
+
+    #[Route(path: '/api/_action/listrak-newsletter-recipient-sync', name: 'api.action.listrak.newsletter-recipient-sync', methods: ['POST'])]
+    public function syncNewsletterRecipients(Context $context): JsonResponse
+    {
+        $success = ['success' => false];
+        if (!$this->listrakConfigService->getConfig('emailClientId') || !$this->listrakConfigService->getConfig('emailClientSecret')) {
+            return new JsonResponse($success);
+        }
+        try {
+            $message = new SyncNewsletterRecipientsMessage($context);
             $this->messageBus->dispatch($message);
         } catch (\Exception $e) {
             return new JsonResponse($success);

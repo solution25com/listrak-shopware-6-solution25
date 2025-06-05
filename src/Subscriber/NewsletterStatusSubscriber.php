@@ -18,7 +18,7 @@ class NewsletterStatusSubscriber implements EventSubscriberInterface
      * @param EntityRepository<NewsletterRecipientCollection> $newsletterRecipientRepository
      */
     public function __construct(
-        private readonly EntityRepository $newsletterRecipientRepository,
+        private readonly EntityRepository $newsletterRecipientRepository
     ) {
     }
 
@@ -45,10 +45,8 @@ class NewsletterStatusSubscriber implements EventSubscriberInterface
             ->searchIds($criteria, $event->getSalesChannelContext()->getContext())
             ->getIds();
 
-        $isSubscribed = empty($ids);
+        $isSubscribed = !empty($ids);
 
-        $event->getPage()->addExtension('newsletterInfo', new ArrayStruct([
-            'subscribed' => $isSubscribed,
-        ]));
+        $event->getPage()->addExtension('newsletterInfo', new ArrayStruct(['subscribed' => $isSubscribed]));
     }
 }

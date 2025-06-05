@@ -2,13 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Listrak\Library\Constants;
+namespace Listrak\Library;
 
 abstract class Endpoints
 {
     protected const CUSTOMER_IMPORT = 'CUSTOMER_IMPORT';
     protected const ORDER_IMPORT = 'ORDER_IMPORT';
     protected const CONTACT_CREATE = 'CONTACT_CREATE';
+
+    protected const START_LIST_IMPORT = 'START_LIST_IMPORT';
 
     /**
      * @var array<string,string[]>
@@ -23,6 +25,10 @@ abstract class Endpoints
             'url' => '/data/v1/Order/',
         ],
         self::CONTACT_CREATE => [
+            'method' => 'POST',
+            'url' => '/email/v1/List/',
+        ],
+        self::START_LIST_IMPORT => [
             'method' => 'POST',
             'url' => '/email/v1/List/',
         ],

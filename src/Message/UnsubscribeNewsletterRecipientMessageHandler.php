@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Listrak\Message;
 
-use Listrak\Service\FailedRequestService;
 use Listrak\Service\ListrakApiService;
 use Psr\Log\LoggerInterface;
+use Shopware\Core\Content\Newsletter\Aggregate\NewsletterRecipient\NewsletterRecipientEntity;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
@@ -18,7 +18,6 @@ final class UnsubscribeNewsletterRecipientMessageHandler
     public function __construct(
         private readonly EntityRepository $newsletterRecipientRepository,
         private readonly ListrakApiService $listrakApiService,
-        private FailedRequestService $failedRequestService,
         private readonly LoggerInterface $logger,
     ) {
     }
@@ -30,6 +29,7 @@ final class UnsubscribeNewsletterRecipientMessageHandler
         $newsletterRecipientId = $message->getNewsletterRecipientId();
         try {
             $criteria = new Criteria([$newsletterRecipientId]);
+            /** @var NewsletterRecipientEntity|null $newsletterRecipient */
             $newsletterRecipient = $this->newsletterRecipientRepository->search($criteria, $context)->first();
             $data = [
                 'emailAddress' => $newsletterRecipient->getEmail(),
@@ -37,7 +37,6 @@ final class UnsubscribeNewsletterRecipientMessageHandler
             ];
 
             $this->listrakApiService->createorUpdateContact($data, $context);
-            $this->failedRequestService->flushFailedRequests($context);
         } catch (\Exception $e) {
             $this->logger->error($e->getMessage());
         } catch (ExceptionInterface $e) {

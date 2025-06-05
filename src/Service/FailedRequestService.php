@@ -37,6 +37,12 @@ class FailedRequestService
     {
         if ($this->listrakConfigService->getConfig('enableOrderSync') || $this->listrakConfigService->getConfig('enableCustomerSync')) {
             foreach ($this->findEntries($context) as $failedRequestEntry) {
+                $this->logger->info('Retrying failed request', [
+                    'id' => $failedRequestEntry->getId(),
+                    'retryCount' => $failedRequestEntry->getRetryCount(),
+                    'endpoint' => $failedRequestEntry->getEndpoint(),
+                ]);
+
                 $this->listrakApiService->request(
                     ['url' => $failedRequestEntry->getEndpoint(), 'method' => $failedRequestEntry->getMethod()],
                     $failedRequestEntry->getOptions(),
@@ -44,6 +50,9 @@ class FailedRequestService
                     $failedRequestEntry
                 );
             }
+
+            // ✅ Persist all retry updates
+            $this->flushFailedRequests($context);
         } else {
             $this->logger->debug('Failed request retry skipped — sync not enabled');
         }
@@ -73,6 +82,14 @@ class FailedRequestService
         }
     }
 
+    public function updateFailedRequest(FailedRequestEntity $entity): void
+    {
+        $entity->setRetryCount($entity->getRetryCount() + 1);
+        $entity->setLastRetryAt(new \DateTime());
+
+        $this->failedRequests[] = $entity;
+    }
+
     public function flushFailedRequests(?Context $context): void
     {
         if ($context !== null && !empty($this->failedRequests)) {
@@ -87,6 +104,7 @@ class FailedRequestService
             ], $this->failedRequests);
 
             $this->failedRequestRepository->upsert($data, $context);
+            $this->failedRequests = [];
         }
     }
 

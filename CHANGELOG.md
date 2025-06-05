@@ -2,7 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.0.11] - 06-12-2025
+## [1.0.12] - 06-05-2025
+- Reworked newsletter recipient full synchronization and applied minor bug fixes.
+
+## [1.0.11] - 06-02-2025
 - Improved code structure.
 
 ## [1.0.10] - 05-16-2025

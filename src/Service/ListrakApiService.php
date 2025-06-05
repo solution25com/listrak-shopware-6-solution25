@@ -7,7 +7,7 @@ namespace Listrak\Service;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 use Listrak\Core\Content\FailedRequest\FailedRequestEntity;
-use Listrak\Library\Constants\Endpoints;
+use Listrak\Library\Endpoints;
 use Psr\Log\LoggerInterface;
 use Shopware\Core\Framework\Context;
 
@@ -30,7 +30,7 @@ class ListrakApiService extends Endpoints
     public function importCustomer(array $data, Context $context): void
     {
         $fullEndpointUrl = Endpoints::getUrl(Endpoints::CUSTOMER_IMPORT);
-
+        $this->logger->debug('Importing customer', ['data' => $data]);
         $options = [
             'headers' => [
                 'Authorization' => 'Bearer ' . $this->getAccessToken(self::DATA_INTEGRATION),
@@ -40,6 +40,7 @@ class ListrakApiService extends Endpoints
         ];
 
         $this->request($fullEndpointUrl, $options, $context);
+        $this->failedRequestService->flushFailedRequests($context);
     }
 
     /**
@@ -58,13 +59,14 @@ class ListrakApiService extends Endpoints
         ];
 
         $this->request($fullEndpointUrl, $options, $context);
+        $this->failedRequestService->flushFailedRequests($context);
     }
 
     public function createOrUpdateContact(array $data, Context $context): void
     {
         $listId = $this->listrakConfigService->getConfig('listId');
         if ($listId) {
-            $fullEndpointUrl = Endpoints::getUrlDynamicParam(Endpoints::CONTACT_CREATE, [$listId, 'Contact']);
+            $fullEndpointUrl = Endpoints::getUrlDynamicParam(Endpoints::CONTACT_CREATE, [$listId, 'Contact'], ['overrideUnsubscribe' => 'true']);
             $this->logger->debug('Creating contact', ['data' => $data]);
             $options = [
                 'headers' => [
@@ -75,16 +77,45 @@ class ListrakApiService extends Endpoints
             ];
 
             $this->request($fullEndpointUrl, $options, $context);
+            $this->failedRequestService->flushFailedRequests($context);
+        }
+    }
+
+    public function startListImport(array $data, Context $context): void
+    {
+        $listId = trim($this->listrakConfigService->getConfig('listId'));
+        if ($listId) {
+            $fullEndpointUrl = Endpoints::getUrlDynamicParam(Endpoints::START_LIST_IMPORT, [$listId, 'ListImport']);
+            $this->logger->debug('Creating list import', ['data' => $data]);
+            $options = [
+                'headers' => [
+                    'Authorization' => 'Bearer ' . $this->getAccessToken(self::EMAIL_INTEGRATION),
+                    'Content-Type' => 'application/json',
+                ],
+                'body' => json_encode($data),
+            ];
+
+            $this->request($fullEndpointUrl, $options, $context);
+            $this->failedRequestService->flushFailedRequests($context);
         }
     }
 
     public function handleResponse(mixed $response): void
     {
-        if (isset($response['status']) && $response['status'] === '201') {
-            $this->logger->debug(
-                'Data synced with Listrak successfully.',
-                ['resourceId' => $response['resourceId']]
-            );
+        if (isset($response['status']) && ($response['status'] === '201' || $response['status'] === '200' || $response['status'] === 200 || $response['status'] === 201)) {
+            if (\array_key_exists('resourceId', $response)) {
+                $this->logger->debug(
+                    'Data synced with Listrak successfully.',
+                    ['resourceId' => $response['resourceId'] ?? null]
+                );
+            }
+
+            if (isset($response['data'])) {
+                $this->logger->debug(
+                    'Data synced with Listrak successfully.',
+                    ['data' => $response['data']]
+                );
+            }
         }
         if (isset($response['error'])) {
             $this->logger->error(
@@ -104,27 +135,42 @@ class ListrakApiService extends Endpoints
         ?FailedRequestEntity $failedRequestEntity = null
     ): ?string {
         $responseContent = null;
+
         try {
             ['method' => $method, 'url' => $url] = $endpoint;
             $client = new Client();
             $response = $client->request($method, $url, $options);
             $responseContent = $response->getBody()->getContents();
+
             $decodedResponse = json_decode($responseContent, true);
+
             if (isset($decodedResponse['error'])) {
-                $this->failedRequestService->saveRequestToFailedRequests($url, $method, $options, $responseContent, $context);
+                if ($failedRequestEntity) {
+                    $failedRequestEntity->setResponse($responseContent);
+                    $this->failedRequestService->updateFailedRequest($failedRequestEntity);
+                } else {
+                    $this->failedRequestService->saveRequestToFailedRequests($url, $method, $options, $responseContent, $context);
+                }
             } else {
                 $this->failedRequestService->removeFromFailedRequests($context, $failedRequestEntity);
             }
+
             $this->handleResponse($decodedResponse);
         } catch (GuzzleException $e) {
-            $this->failedRequestService->saveRequestToFailedRequests($url, $method, $options, $e->getMessage(), $context);
+            if ($failedRequestEntity) {
+                $failedRequestEntity->setResponse($e->getMessage());
+                $this->failedRequestService->updateFailedRequest($failedRequestEntity);
+            } else {
+                $this->failedRequestService->saveRequestToFailedRequests($url, $method, $options, $e->getMessage(), $context);
+            }
+
             $this->handleError($e);
         }
 
         return $responseContent;
     }
 
-    private function getAccessToken(string $type): string
+    public function getAccessToken(string $type): string
     {
         if ($type === self::DATA_INTEGRATION && $this->listrakConfigService->getConfig('dataToken') && $this->listrakConfigService->getConfig('dataTokenExpiry') > time()) {
             return $this->listrakConfigService->getConfig('dataToken');

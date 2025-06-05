@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Listrak\Message;
 
 use Listrak\Service\DataMappingService;
-use Listrak\Service\FailedRequestService;
 use Listrak\Service\ListrakApiService;
 use Psr\Log\LoggerInterface;
 use Shopware\Core\Checkout\Customer\CustomerCollection;
@@ -27,7 +26,6 @@ final class SyncCustomersMessageHandler
         private readonly DataMappingService $dataMappingService,
         private readonly ListrakApiService $listrakApiService,
         private readonly MessageBusInterface $messageBus,
-        private readonly FailedRequestService $failedRequestService,
         private readonly LoggerInterface $logger,
     ) {
     }
@@ -57,6 +55,7 @@ final class SyncCustomersMessageHandler
                 $items[] = $item;
             }
             $this->logger->debug('Customers found: ' . \count($customers));
+
             if (empty($items)) {
                 $this->logger->debug('No customers found.');
 
@@ -69,7 +68,6 @@ final class SyncCustomersMessageHandler
                 $nextOffset = $offset + $limit;
                 $this->messageBus->dispatch(new SyncCustomersMessage($context, $nextOffset, $limit));
             }
-            $this->failedRequestService->flushFailedRequests($context);
         } catch (\Exception $e) {
             $this->logger->error($e->getMessage());
         } catch (ExceptionInterface $e) {
