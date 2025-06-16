@@ -2,6 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.13] - 06-16-2025
+- Fixed abandoned cart tracking feature issue.
+
 ## [1.0.12] - 06-05-2025
 - Reworked newsletter recipient full synchronization and applied minor bug fixes.
 
