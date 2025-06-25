@@ -100,6 +100,27 @@ class ListrakApiService extends Endpoints
         }
     }
 
+    public function sendTransactionalMessage($transactionalMessageId, array $data, Context $context): void
+    {
+        $listId = trim($this->listrakConfigService->getConfig('transactionalListId'));
+        if ($listId) {
+            $fullEndpointUrl = Endpoints::getUrlDynamicParam(Endpoints::START_LIST_IMPORT, [$listId, 'TransactionalMessage',$transactionalMessageId,'Message']);
+            $this->logger->debug('Sending transactional message', ['data' => $data]);
+            foreach($data as $message) {
+                $options = [
+                    'headers' => [
+                        'Authorization' => 'Bearer ' . $this->getAccessToken(self::EMAIL_INTEGRATION),
+                        'Content-Type' => 'application/json',
+                    ],
+                    'body' => json_encode($message),
+                ];
+
+                $this->request($fullEndpointUrl, $options, $context);
+            }
+            $this->failedRequestService->flushFailedRequests($context);
+        }
+    }
+
     public function handleResponse(mixed $response): void
     {
         if (isset($response['status']) && ($response['status'] === '201' || $response['status'] === '200' || $response['status'] === 200 || $response['status'] === 201)) {

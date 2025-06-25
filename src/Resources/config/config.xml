@@ -39,7 +39,13 @@
 
         <input-field>
             <name>listId</name>
-            <label>List ID</label>
+            <label>Marketing List ID</label>
+            <required>true</required>
+        </input-field>
+
+        <input-field>
+            <name>transactionalListId</name>
+            <label>Transactional List ID</label>
             <required>true</required>
         </input-field>
 

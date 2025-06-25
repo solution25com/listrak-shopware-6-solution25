@@ -119,11 +119,18 @@
             <tag name="messenger.message_handler"/>
         </service>
 
-
         <service id="Listrak\Controller\ApiTestController" public="true">
             <argument type="service" id="Listrak\Service\ListrakApiService"/>
             <argument type="service" id="logger"/>
             <tag name="controller.service_arguments"/>
+        </service>
+
+        <service id="Listrak\Core\Content\Flow\Dispatching\Action\ListrakSendMailAction" class="Listrak\Core\Content\Flow\Dispatching\Action\ListrakSendMailAction">
+            <tag name="flow.action" priority="500" key="action.listrak.mail.send"/>
+            <argument type="service" id="Listrak\Service\ListrakApiService"/>
+            <argument type="service" id="Listrak\Service\DataMappingService"/>
+            <argument type="service" id="logger"/>
+            <argument>true</argument>
         </service>
 
     </services>

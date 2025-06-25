@@ -1,0 +1,126 @@
+{% block sw_flow_listrak_mail_send_modal %}
+    <sw-modal
+            class="sw-flow-mail-send-modal"
+            :title="$tc('listrakMailSendAction.titleSendMail')"
+            :closable="false"
+            @modal-close="onClose"
+    >
+        {% block sw_flow_mail_send_modal_recipient %}
+            <sw-single-select
+                    v-model:value="mailRecipient"
+                    name="sw-field--mailRecipient"
+                    class="sw-flow-mail-send-modal__recipient"
+                    :options="recipientOptions"
+                    :label="$tc('sw-flow.modals.mail.labelRecipient')"
+                    :placeholder="$tc('sw-flow.modals.mail.placeholderRecipient')"
+                    @update:value="onChangeRecipient"
+            />
+        {% endblock %}
+        {% block sw_flow_mail_send_modal_recipient_emails_grid %}
+            <sw-data-grid
+                    v-if="showRecipientEmails"
+                    ref="recipientsGrid"
+                    class="sw-flow-mail-send-modal__recipient-grid"
+                    :class="recipientGridError ? 'has--error' : ''"
+                    :data-source="recipients"
+                    :columns="recipientColumns"
+                    :show-selection="false"
+                    :plain-appearance="true"
+                    @inline-edit-save="saveRecipient"
+                    @inline-edit-cancel="cancelSaveRecipient"
+            >
+
+                {% block sw_event_action_detail_recipients_grid_column_email %}
+                    <template #column-email="{ item, column, isInlineEdit, compact }">
+                        <sw-text-field
+                                v-if="isInlineEdit"
+                                v-model:value="item.email"
+                                name="sw-field--item-email"
+                                class="sw-flow-mail-send-modal__recipient-email"
+                                :size="compact ? 'small' : 'default'"
+                                :error="item.errorMail"
+                                :placeholder="$tc('sw-flow.modals.mail.placeholderRecipientEmailAddress')"
+                        />
+                        <template v-else>
+                            {{ item.email }}
+                        </template>
+                    </template>
+                {% endblock %}
+
+                {% block sw_event_action_detail_recipients_grid_column_name %}
+                    <template #column-name="{ item, column, isInlineEdit, compact }">
+                        <sw-text-field
+                                v-if="isInlineEdit"
+                                v-model:value="item.name"
+                                name="sw-field--item-name"
+                                class="sw-flow-mail-send-modal__recipient-name"
+                                :size="compact ? 'small' : 'default'"
+                                :error="item.errorName"
+                                :placeholder="$tc('sw-flow.modals.mail.placeholderRecipientName')"
+                        />
+                        <template v-else>
+                            {{ item.name }}
+                        </template>
+                    </template>
+                {% endblock %}
+
+                <template #actions="{ item, itemIndex }">
+                    {% block sw_event_action_detail_recipients_grid_action_edit %}
+                        <sw-context-menu-item
+                                class="sw-flow-mail-send-modal__grid-action-edit"
+                                @click="onEditRecipient(item)"
+                        >
+                            {{ $tc('global.default.edit') }}
+                        </sw-context-menu-item>
+                    {% endblock %}
+
+                    {% block sw_event_action_detail_recipients_grid_action_delete %}
+                        <sw-context-menu-item
+                                class="sw-flow-mail-send-modal__grid-action-delete"
+                                variant="danger"
+                                :disabled="!allowDeleteRecipient(itemIndex)"
+                                @click="onDeleteRecipient(itemIndex)"
+                        >
+                            {{ $tc('global.default.delete') }}
+                        </sw-context-menu-item>
+                    {% endblock %}
+                </template>
+            </sw-data-grid>
+        {% endblock %}
+
+
+        {% block sw_flow_mail_send_modal_custom_modal %}
+                <sw-text-field
+                        class="sw-flow-mail-send-modal__mail-template-select"
+                        v-model:value="transactionalMessageId"
+                        :label="$tc('listrakMailSendAction.transactionalMessageIdLabel')"
+                        :help-text="$tc('listrakMailSendAction.transactionalMessageIdHelpText')"
+                />
+        {% endblock %}
+
+        {% block sw_flow_mail_send_modal_footer %}
+            <template #modal-footer>
+                {% block sw_flow_mail_send_modal_footer_cancel_button %}
+                    <sw-button
+                            class="sw-flow-mail-send-modal__cancel-button"
+                            size="small"
+                            @click="onClose"
+                    >
+                        {{ $tc('global.default.cancel') }}
+                    </sw-button>
+                {% endblock %}
+
+                {% block sw_flow_mail_send_modal_footer_save_button %}
+                    <sw-button
+                            class="sw-flow-mail-send-modal__save-button"
+                            variant="primary"
+                            size="small"
+                            @click="onAddAction"
+                    >
+                        {{ sequence.id ? $tc('sw-flow.modals.buttonSaveAction') : $tc('sw-flow.modals.buttonAddAction') }}
+                    </sw-button>
+                {% endblock %}
+            </template>
+        {% endblock %}
+    </sw-modal>
+{% endblock %}

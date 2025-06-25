@@ -3,6 +3,8 @@ import './component/full-order-sync';
 import './component/full-newsletter-recipient-sync';
 import './component/data-api-test';
 import './component/email-api-test';
+import './extension/sw-flow-sequence-action';
+import './component/sw-flow-listrak-mail-send-modal';
 
 import FullCustomerSyncService from './service/full-customer-sync.service';
 import FullOrderSyncService from './service/full-order-sync.service';

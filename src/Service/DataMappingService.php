@@ -204,8 +204,10 @@ class DataMappingService
 
     private function mapSubscriptionStatus(?string $status): string
     {
-        $data = ['direct' => 'Subscribed',
-            'unsubscribed' => 'Unsubscribed'];
+        $data = [
+            'direct' => 'Subscribed',
+            'unsubscribed' => 'Unsubscribed'
+        ];
         if ($status !== null && \array_key_exists($status, $data)) {
             return $data[$status];
         }
@@ -243,15 +245,41 @@ class DataMappingService
             ['fileColumn' => 0, 'fileColumnType' => 'Email'],
         ];
         if ($salutationListrakFieldId) {
-            $data[] = ['fileColumn' => 1, 'fileColumnType' => 'SegmentationField', 'segmentationFieldId' => $salutationListrakFieldId];
+            $data[] = [
+                'fileColumn' => 1,
+                'fileColumnType' => 'SegmentationField',
+                'segmentationFieldId' => $salutationListrakFieldId
+            ];
         }
         if ($firstNameListrakFieldId) {
-            $data[] = ['fileColumn' => 2, 'fileColumnType' => 'SegmentationField', 'segmentationFieldId' => $firstNameListrakFieldId];
+            $data[] = [
+                'fileColumn' => 2,
+                'fileColumnType' => 'SegmentationField',
+                'segmentationFieldId' => $firstNameListrakFieldId
+            ];
         }
         if ($lastNameListrakFieldId) {
-            $data[] = ['fileColumn' => 3, 'fileColumnType' => 'SegmentationField', 'segmentationFieldId' => $lastNameListrakFieldId];
+            $data[] = [
+                'fileColumn' => 3,
+                'fileColumnType' => 'SegmentationField',
+                'segmentationFieldId' => $lastNameListrakFieldId
+            ];
         }
 
         return $data;
+    }
+
+    public function mapTransactionalMessageData($recipients, $profileFields): array
+    {
+        $data = [];
+        foreach($recipients as $recipientEmail => $recipientName) {
+            $data[] = [
+                'emailAddress' => $recipientEmail,
+                'segmentationFieldValues' => $profileFields,
+            ];
+        }
+
+        return $data;
+
     }
 }

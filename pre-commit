@@ -1,0 +1,35 @@
+#!/bin/bash
+
+# Pre-commit hook to run Shopware Extension Verifier and PHPCS check only
+
+# Stash changes to ensure we only check committed files
+git stash -q --keep-index
+
+EXTENSION_DIR=$(pwd)
+
+echo "🔍 Running Shopware Extension Verifier..."
+docker run --rm -v "$EXTENSION_DIR":/ext shopware/shopware-cli extension validate --full --check-against highest /ext
+SW_EXIT_CODE=$?
+echo "Shopware Extension Verifier Exit Code: $SW_EXIT_CODE"
+
+echo "🔍 Running PHP_CodeSniffer (PHPCS)..."
+sh ./pre-commit-checks/phpcs-check.sh
+PHPCS_EXIT_CODE=$?
+echo "PHPCS Exit Code: $PHPCS_EXIT_CODE"
+
+# Restore stashed changes
+git stash pop -q
+
+# Evaluate results
+if [ $SW_EXIT_CODE -ne 0 ]; then
+    echo "❌ Shopware Extension Verifier failed. Commit aborted."
+    exit 1
+fi
+
+if [ $PHPCS_EXIT_CODE -ne 0 ]; then
+    echo "❌ PHPCS check failed. Commit aborted."
+    exit 1
+fi
+
+echo "✅ All checks passed. Proceeding with commit."
+exit 0

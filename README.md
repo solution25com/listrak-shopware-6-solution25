@@ -16,6 +16,8 @@ The Listrak plugin integrates your Shopware 6 store with Listrak’s marketing p
     - Manage API credentials and feature toggles directly from the Shopware admin panel.
 4. **Abandoned Cart Recovery**
     - Capture cart data and sync it with Listrak for automated follow-up campaigns.
+5. **Transactional Mails**
+    - Send Transactional Mails via Listrak.
 
 
 ## Get Started
@@ -80,8 +82,10 @@ The Listrak plugin integrates your Shopware 6 store with Listrak’s marketing p
 
 2. **Email Integration Settings**
 
-- **Listrak List ID**
-    - Enter the List ID provided by Listrak.
+- **Marketing List ID**
+    - Enter the List ID which you can find at Help & Support > API ID Information in the Listrak Admin.
+- **Transactional List ID**
+    - Enter the List ID which you can find at Help & Support > API ID Information in the Listrak Admin.
 - **Listrak Email Client ID**
     - Enter the Client ID from your Listrak Email Integration.
 - **Listrak Email Client Secret**

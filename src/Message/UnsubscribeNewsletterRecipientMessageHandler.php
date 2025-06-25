@@ -36,7 +36,7 @@ final class UnsubscribeNewsletterRecipientMessageHandler
                 'subscriptionState' => 'Unsubscribed',
             ];
 
-            $this->listrakApiService->createorUpdateContact($data, $context);
+            $this->listrakApiService->createOrUpdateContact($data, $context);
         } catch (\Exception $e) {
             $this->logger->error($e->getMessage());
         } catch (ExceptionInterface $e) {

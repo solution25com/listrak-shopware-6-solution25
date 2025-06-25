@@ -35,7 +35,7 @@ final class SubscribeNewsletterRecipientMessageHandler
             $newsletterRecipient = $this->newsletterRecipientRepository->search($criteria, $context)->first();
             if ($newsletterRecipient !== null) {
                 $data = $this->dataMappingService->mapContactData($newsletterRecipient);
-                $this->listrakApiService->createorUpdateContact($data, $context);
+                $this->listrakApiService->createOrUpdateContact($data, $context);
             }
         } catch (\Exception $e) {
             $this->logger->error($e->getMessage());

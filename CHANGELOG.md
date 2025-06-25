@@ -2,6 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.14] - 06-25-2025
+- Added custom action in Flow Builder for sending transactional mails via Listrak.
+
 ## [1.0.13] - 06-16-2025
 - Fixed abandoned cart tracking feature issue.
 
