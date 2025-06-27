@@ -118,6 +118,221 @@ The Listrak plugin integrates your Shopware 6 store with Listrak’s marketing p
 
 - Click Save in the top-right corner to store your settings.
 
+# Listrak Plugin - API Documentation
+ 
+This document describes the custom Admin API endpoints provided by the Listrak Plugin for Shopware 6. These endpoints allow authorized users to trigger full data synchronization tasks between Shopware and the Listrak system.
+ 
+---
+ 
+## Full Customer Synchronization
+ 
+**Endpoint**  
+`POST /api/_action/listrak-customer-sync`
+ 
+### Description
+ 
+Triggers the synchronization of all customer data from Shopware to Listrak.
+ 
+### System Validations
+ 
+- Required plugin configuration (`dataClientId` and `dataClientSecret`) must be present.
+- If not configured properly, the synchronization will not proceed.
+ 
+### Request Headers
+ 
+```
+Authorization: Bearer <your-access-token>
+Content-Type: application/json
+```
+ 
+### Successful Response
+ 
+```json
+{
+  "success": true
+}
+```
+ 
+### Example Error Response
+ 
+```json
+{
+  "success": false
+}
+```
+ 
+---
+ 
+## Full Order Synchronization
+ 
+**Endpoint**  
+`POST /api/_action/listrak-order-sync`
+ 
+### Description
+ 
+Triggers the synchronization of all order data from Shopware to Listrak.
+ 
+### System Validations
+ 
+- Required plugin configuration (`dataClientId` and `dataClientSecret`) must be present.
+- If not configured properly, the synchronization will not proceed.
+ 
+### Request Headers
+ 
+```
+Authorization: Bearer <your-access-token>
+Content-Type: application/json
+```
+ 
+### Successful Response
+ 
+```json
+{
+  "success": true
+}
+```
+ 
+### Example Error Response
+ 
+```json
+{
+  "success": false
+}
+```
+ 
+---
+ 
+## Full Newsletter Recipient Synchronization
+ 
+**Endpoint**  
+`POST /api/_action/listrak-newsletter-recipient-sync`
+ 
+### Description
+ 
+Triggers the synchronization of all newsletter recipients from Shopware to Listrak.
+ 
+### System Validations
+ 
+- Required plugin configuration (`emailClientId` and `emailClientSecret`) must be present.
+- If not configured properly, the synchronization will not proceed.
+ 
+### Request Headers
+ 
+```
+Authorization: Bearer <your-access-token>
+Content-Type: application/json
+```
+ 
+### Successful Response
+ 
+```json
+{
+  "success": true
+}
+```
+ 
+### Example Error Response
+ 
+```json
+{
+  "success": false
+}
+```
+ 
+---
+ 
+## Data API Connection Test
+ 
+**Endpoint**  
+`POST /api/_action/listrak-data-api/test`
+ 
+### Description
+ 
+Tests the Listrak Data API connection using provided `dataClientId` and `dataClientSecret`. Returns a valid access token on success.
+ 
+### Request Headers
+ 
+```
+Authorization: Bearer <your-access-token>
+Content-Type: application/json
+```
+ 
+### Example Request Body
+ 
+```json
+{
+  "Listrak.config.dataClientId": "your-data-client-id",
+  "Listrak.config.dataClientSecret": "your-data-client-secret"
+}
+```
+ 
+### Successful Response
+ 
+```
+"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+ 
+### Example Error Response
+ 
+```json
+{
+  "errors": [
+    {
+      "status": "400",
+      "detail": "Missing client ID and/or client Secret"
+    }
+  ]
+}
+```
+ 
+---
+ 
+## Email API Connection Test
+ 
+**Endpoint**  
+`POST /api/_action/listrak-email-api/test`
+ 
+### Description
+ 
+Tests the Listrak Email API connection using provided `emailClientId` and `emailClientSecret`. Returns a valid access token on success.
+ 
+### Request Headers
+ 
+```
+Authorization: Bearer <your-access-token>
+Content-Type: application/json
+```
+ 
+### Example Request Body
+ 
+```json
+{
+  "Listrak.config.emailClientId": "your-email-client-id",
+  "Listrak.config.emailClientSecret": "your-email-client-secret"
+}
+```
+ 
+### Successful Response
+ 
+```
+"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+ 
+### Example Error Response
+ 
+```json
+{
+  "errors": [
+    {
+      "status": "401",
+      "detail": "The provided API credentials are invalid."
+    }
+  ]
+}
+```
+
+---
+
 ## How It Works
 
 1. **Shopware Events**
