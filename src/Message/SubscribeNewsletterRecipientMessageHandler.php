@@ -26,7 +26,7 @@ final class SubscribeNewsletterRecipientMessageHandler
 
     public function __invoke(SubscribeNewsletterRecipientMessage $message): void
     {
-        $this->logger->debug('Subscribe newsletter recipient message started.');
+        $this->logger->debug('Listrak subscribe newsletter recipient sync started.');
         $context = $message->getContext();
         $newsletterRecipientId = $message->getNewsletterRecipientId();
         try {

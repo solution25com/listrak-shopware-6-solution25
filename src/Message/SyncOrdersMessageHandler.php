@@ -32,7 +32,7 @@ final class SyncOrdersMessageHandler
 
     public function __invoke(SyncOrdersMessage $message): void
     {
-        $this->logger->debug('Order sync started.');
+        $this->logger->debug('Listrak order sync started.');
         $context = $message->getContext();
         $offset = $message->getOffset();
         $limit = $message->getLimit();
@@ -53,15 +53,16 @@ final class SyncOrdersMessageHandler
             }
             $searchResult = $this->orderRepository->search($criteria, $context);
             $orders = $searchResult->getEntities();
-            $this->logger->debug('Orders found: ' . \count($orders));
+            $this->logger->debug('Orders found for Listrak sync: ' . $orders->count());
 
             $items = [];
             foreach ($orders as $order) {
-                $item = $this->dataMappingService->mapOrderData($order);
+                $this->logger->debug('Gearing up for order sync: ');
+                $item = $this->dataMappingService->mapOrderData($order, $context);
                 $items[] = $item;
             }
             if (empty($items)) {
-                $this->logger->debug('No orders found.');
+                $this->logger->debug('No orders found for Listrak sync.');
 
                 return;
             }

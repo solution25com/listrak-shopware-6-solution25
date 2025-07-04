@@ -3,64 +3,59 @@
 namespace Listrak\Service;
 
 use Psr\Log\LoggerInterface;
+use Shopware\Core\Framework\Context;
+use Shopware\Core\Framework\DataAbstractionLayer\EntityCollection;
+use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
+use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
+use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
 
 class CsvService
 {
     public function __construct(
-        private ListrakConfigService $listrakConfigService,
+        private readonly ListrakConfigService $listrakConfigService,
+        private readonly EntityRepository $newsletterRecipientRepository,
         private readonly LoggerInterface $logger
     ) {
     }
 
-    public function saveToCsv(array $data): void
+    public function saveToCsv(Context $context): string
     {
-        $path = '/var/www/html/public/listrak_list_import.csv';
+        $tempDir = sys_get_temp_dir();
+        $tempFile = tempnam($tempDir, 'listrak_list_import_');
 
-        if (empty($data)) {
-            $this->logger->warning('No data provided for CSV export.');
-
-            return;
-        }
-
-        $directory = \dirname($path);
-        if (!is_dir($directory)) {
-            mkdir($directory, 0775, true);
-        }
-
-        $file = @fopen($path, 'w');
+        $file = @fopen($tempFile, 'w');
         if ($file === false) {
-            $this->logger->error("Failed to open file for writing: {$path}");
+            $this->logger->error("Failed to open file for writing: {$tempFile}");
 
-            return;
+            return '';
         }
-
         $extraFields = $this->getExportFields();
         $headers = array_merge(['email'], $extraFields);
 
         fputcsv($file, $headers);
-
-        foreach ($data as $row) {
-            $csvRow = [];
-            foreach ($headers as $header) {
-                $csvRow[] = $row[$header] ?? '';
+        $limit = 200;
+        $offset = 0;
+        do {
+            /** @var EntityCollection $recipients */
+            $recipients = $this->fetchDirectNewsletterRecipients($context, $limit, $offset);
+            foreach ($recipients as $recipient) {
+                $row = $this->transformRecipientToArray($recipient);
+                $csvRow = [];
+                foreach ($headers as $header) {
+                    $csvRow[] = $row[$header] ?? '';
+                }
+                fputcsv($file, $csvRow);
             }
-            fputcsv($file, $csvRow);
-        }
-
+            $offset += $limit;
+        } while ($recipients->count() > 0);
         fclose($file);
-
-        $this->logger->debug('CSV export successful', ['path' => $path]);
-    }
-
-    public function encodeFileToBase64(): string
-    {
-        $path = '/var/www/html/public/listrak_list_import.csv';
-        $content = file_get_contents($path);
+        $content = file_get_contents($tempFile);
+        @unlink($tempFile);
 
         return base64_encode($content);
     }
 
-    private function getExportFields(): array
+    public function getExportFields(): array
     {
         $fields = [];
         $salutation = $this->listrakConfigService->getConfig('salutationSegmentationFieldId');
@@ -77,5 +72,34 @@ class CsvService
         }
 
         return $fields;
+    }
+
+    private function fetchDirectNewsletterRecipients($context, int $limit, int $offset)
+    {
+        $criteria = new Criteria();
+        $criteria->setLimit($limit);
+        $criteria->setOffset($offset);
+        $criteria->addFilter(new EqualsFilter('status', 'direct'));
+
+        return $this->newsletterRecipientRepository->search($criteria, $context)->getEntities();
+    }
+
+    private function transformRecipientToArray($recipient): array
+    {
+        $data = [];
+
+        $email = $recipient->getEmail();
+        if (!$email) {
+            return $data;
+        }
+
+        $data = [
+            'email' => $email,
+            'salutation' => $recipient->getSalutation(),
+            'firstName' => $recipient->getFirstName(),
+            'lastName' => $recipient->getLastName(),
+        ];
+
+        return $data;
     }
 }

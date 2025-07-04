@@ -104,9 +104,9 @@ class ListrakApiService extends Endpoints
     {
         $listId = trim($this->listrakConfigService->getConfig('transactionalListId'));
         if ($listId) {
-            $fullEndpointUrl = Endpoints::getUrlDynamicParam(Endpoints::START_LIST_IMPORT, [$listId, 'TransactionalMessage',$transactionalMessageId,'Message']);
+            $fullEndpointUrl = Endpoints::getUrlDynamicParam(Endpoints::START_LIST_IMPORT, [$listId, 'TransactionalMessage', $transactionalMessageId, 'Message']);
             $this->logger->debug('Sending transactional message', ['data' => $data]);
-            foreach($data as $message) {
+            foreach ($data as $message) {
                 $options = [
                     'headers' => [
                         'Authorization' => 'Bearer ' . $this->getAccessToken(self::EMAIL_INTEGRATION),

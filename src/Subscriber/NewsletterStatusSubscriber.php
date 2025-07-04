@@ -8,6 +8,7 @@ use Shopware\Core\Content\Newsletter\Aggregate\NewsletterRecipient\NewsletterRec
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
+use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\OrFilter;
 use Shopware\Core\Framework\Struct\ArrayStruct;
 use Shopware\Storefront\Page\GenericPageLoadedEvent;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
@@ -40,13 +41,15 @@ class NewsletterStatusSubscriber implements EventSubscriberInterface
 
         $criteria = new Criteria();
         $criteria->addFilter(new EqualsFilter('email', $customer->getEmail()));
+        $criteria->addFilter(new OrFilter([new EqualsFilter('status', 'direct'), new EqualsFilter('status', 'optIn'), new EqualsFilter('status', 'notSet')]));
 
-        $ids = $this->newsletterRecipientRepository
-            ->searchIds($criteria, $event->getSalesChannelContext()->getContext())
-            ->getIds();
+        $recipient = $this->newsletterRecipientRepository
+            ->search($criteria, $event->getSalesChannelContext()->getContext())
+            ->first();
 
-        $isSubscribed = !empty($ids);
+        $isSubscribed = $recipient !== null;
+        $status = $recipient?->getStatus();
 
-        $event->getPage()->addExtension('newsletterInfo', new ArrayStruct(['subscribed' => $isSubscribed]));
+        $event->getPage()->addExtension('newsletterInfo', new ArrayStruct(['subscribed' => $isSubscribed, 'status' => $status]));
     }
 }

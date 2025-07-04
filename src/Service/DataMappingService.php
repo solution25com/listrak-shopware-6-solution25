@@ -4,20 +4,28 @@ declare(strict_types=1);
 
 namespace Listrak\Service;
 
+use Psr\Log\LoggerInterface;
 use Shopware\Core\Checkout\Cart\LineItem\LineItem;
 use Shopware\Core\Checkout\Customer\CustomerEntity;
 use Shopware\Core\Checkout\Order\Aggregate\OrderLineItem\OrderLineItemEntity;
 use Shopware\Core\Checkout\Order\OrderEntity;
 use Shopware\Core\Content\Newsletter\Aggregate\NewsletterRecipient\NewsletterRecipientEntity;
+use Shopware\Core\Framework\Context;
+use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
+use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
+use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
 
 class DataMappingService
 {
     public function __construct(
-        private readonly ListrakConfigService $listrakConfigService
+        private readonly ListrakConfigService $listrakConfigService,
+        private readonly EntityRepository $currencyRepository,
+        private readonly EntityRepository $salesChannelRepository,
+        private readonly LoggerInterface $logger,
     ) {
     }
 
-    public function mapOrderData(OrderEntity $order): array
+    public function mapOrderData(OrderEntity $order, $context): array
     {
         $orderState = $order->getStateMachineState()->getTechnicalName();
         $orderStatus = $this->mapOrderStatus($orderState);
@@ -37,7 +45,7 @@ class DataMappingService
 
         $shippingAddress = $firstDelivery ? $firstDelivery->getShippingOrderAddress() : null;
         $shippingAddressItem = $this->mapAddress($shippingAddress);
-        $items = $this->mapOrderLineItems($order, $orderStatus);
+        $items = $this->mapOrderLineItems($order, $orderStatus, $context);
 
         $data = [
             'orderNumber' => $order->getOrderNumber(),
@@ -47,14 +55,15 @@ class DataMappingService
             'billingAddress' => $billingAddressItem,
             'items' => $items[0],
             'itemTotal' => $items[1],
-            'orderTotal' => $order->getPrice()->getTotalPrice(),
+            'orderTotal' => $this->convertToUsd($order->getPrice()->getTotalPrice(), $order->getCurrencyId(), $order->getSalesChannelId(), $context),
             'shipDate' => $firstDelivery ? $firstDelivery->getShippingDateEarliest()->format('Y-m-d\TH:i:s\Z') : '',
             'shippingAddress' => $shippingAddressItem,
             'shippingMethod' => $firstDelivery && $firstDelivery->getShippingMethod() ? $firstDelivery->getShippingMethod()->getName() : '',
-            'shippingTotal' => $order->getShippingTotal(),
+            'shippingTotal' => $this->convertToUsd($order->getShippingTotal(), $order->getCurrencyId(), $order->getSalesChannelId(), $context),
             'status' => $orderStatus,
-            'taxTotal' => $order->getPrice()->getCalculatedTaxes()->getAmount(),
+            'taxTotal' => $this->convertToUsd($order->getPrice()->getCalculatedTaxes()->getAmount(), $order->getCurrencyId(), $order->getSalesChannelId(), $context),
         ];
+        $this->logger->debug('Mapping order data', ['order' => $order]);
 
         return $data;
     }
@@ -137,7 +146,73 @@ class DataMappingService
         return $data;
     }
 
-    private function mapOrderLineItems(OrderEntity $order, string $orderStatus): array
+    public function mapTransactionalMessageData($recipients, $fields): array
+    {
+        $data = [];
+
+        foreach ($recipients as $recipientEmail => $recipientName) {
+            $data[] = [
+                'emailAddress' => $recipientEmail,
+                'segmentationFieldValues' => $fields,
+            ];
+        }
+
+        return $data;
+    }
+
+    public function mapTemplateVariables($data): array
+    {
+        $profileFields = [];
+        foreach ($data as $key => $value) {
+            $profileFields[] = ['segmentationFieldId' => $key, 'value' => $value];
+        }
+
+        return $profileFields;
+    }
+
+    public function convertToUsd(
+        float $amount,
+        string $fromCurrencyId,
+        string $salesChannelId,
+        Context $context
+    ): float {
+        // Short-circuit if already USD
+        $fromCurrency = $this->currencyRepository->search(
+            (new Criteria())->addFilter(new EqualsFilter('id', $fromCurrencyId)),
+            $context
+        )->first();
+
+        if (strtoupper($fromCurrency->getIsoCode()) === 'USD') {
+            return $amount;
+        }
+
+        $criteria = new Criteria([$salesChannelId]);
+        $criteria->addAssociation('currency');
+        $salesChannel = $this->salesChannelRepository
+            ->search($criteria, $context)
+            ->get($salesChannelId);
+
+        $channelCurrency = $salesChannel?->getCurrency();
+
+        $usdCurrency = $this->currencyRepository->search(
+            (new Criteria())->addFilter(new EqualsFilter('isoCode', 'USD')),
+            $context
+        )->first();
+
+        if (!$channelCurrency || !$usdCurrency) {
+            throw new \RuntimeException('Default or USD currency not found');
+        }
+
+        $amountInDefault = $fromCurrency->getId() === $channelCurrency->getId()
+            ? $amount
+            : $amount / $fromCurrency->getFactor();
+
+        $amountInUsd = $amountInDefault * $usdCurrency->getFactor();
+
+        return round($amountInUsd, 2);
+    }
+
+    private function mapOrderLineItems(OrderEntity $order, string $orderStatus, $context): array
     {
         $lineItems = [];
         $orderItemTotal = 0;
@@ -153,11 +228,11 @@ class DataMappingService
                 $itemTotal = ($unitPrice * $quantity) - $itemDiscountTotal;
                 $orderItemTotal += $itemTotal;
                 $item = [
-                    'discountedPrice' => $discountedPrice,
-                    'itemTotal' => $itemTotal,
-                    'itemDiscountTotal' => $itemDiscountTotal,
+                    'discountedPrice' => $this->convertToUsd($discountedPrice, $order->getCurrencyId(), $order->getSalesChannelId(), $context),
+                    'itemTotal' => $this->convertToUsd($itemTotal, $order->getCurrencyId(), $order->getSalesChannelId(), $context),
+                    'itemDiscountTotal' => $this->convertToUsd($itemDiscountTotal, $order->getCurrencyId(), $order->getSalesChannelId(), $context),
                     'orderNumber' => $order->getOrderNumber(),
-                    'price' => $unitPrice,
+                    'price' => $this->convertToUsd($unitPrice, $order->getCurrencyId(), $order->getSalesChannelId(), $context),
                     'quantity' => $quantity,
                     'sku' => $sku,
                     'status' => $orderStatus,
@@ -206,7 +281,7 @@ class DataMappingService
     {
         $data = [
             'direct' => 'Subscribed',
-            'unsubscribed' => 'Unsubscribed'
+            'unsubscribed' => 'Unsubscribed',
         ];
         if ($status !== null && \array_key_exists($status, $data)) {
             return $data[$status];
@@ -248,38 +323,24 @@ class DataMappingService
             $data[] = [
                 'fileColumn' => 1,
                 'fileColumnType' => 'SegmentationField',
-                'segmentationFieldId' => $salutationListrakFieldId
+                'segmentationFieldId' => $salutationListrakFieldId,
             ];
         }
         if ($firstNameListrakFieldId) {
             $data[] = [
                 'fileColumn' => 2,
                 'fileColumnType' => 'SegmentationField',
-                'segmentationFieldId' => $firstNameListrakFieldId
+                'segmentationFieldId' => $firstNameListrakFieldId,
             ];
         }
         if ($lastNameListrakFieldId) {
             $data[] = [
                 'fileColumn' => 3,
                 'fileColumnType' => 'SegmentationField',
-                'segmentationFieldId' => $lastNameListrakFieldId
+                'segmentationFieldId' => $lastNameListrakFieldId,
             ];
         }
 
         return $data;
-    }
-
-    public function mapTransactionalMessageData($recipients, $profileFields): array
-    {
-        $data = [];
-        foreach($recipients as $recipientEmail => $recipientName) {
-            $data[] = [
-                'emailAddress' => $recipientEmail,
-                'segmentationFieldValues' => $profileFields,
-            ];
-        }
-
-        return $data;
-
     }
 }

@@ -2,7 +2,7 @@
   "name": "solution25/listrak",
   "description": "Listrak - Shopware 6 Plugin",
   "type": "shopware-platform-plugin",
-  "version": "1.0.14",
+  "version": "1.0.15",
   "license": "MIT",
   "authors": [
     {

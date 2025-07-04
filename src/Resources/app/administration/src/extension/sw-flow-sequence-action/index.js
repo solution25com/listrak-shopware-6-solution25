@@ -1,10 +1,12 @@
-import {ACTION, GROUP} from '../../constant/listrak-mail-send-action.constant';
+import {
+    ACTION,
+    GROUP,
+} from '../../constant/listrak-mail-send-action.constant';
 
-const {Component} = Shopware;
+const { Component } = Shopware;
 
 Component.override('sw-flow-sequence-action', {
     computed: {
-
         modalName() {
             if (this.selectedAction === ACTION.LISTRAK_MAIL_SEND) {
                 return 'sw-flow-listrak-mail-send-modal';
@@ -17,16 +19,18 @@ Component.override('sw-flow-sequence-action', {
 
             return {
                 ...actionDescriptionList,
-                [ACTION.LISTRAK_MAIL_SEND]: (config) => this.getListrakMailSendActionDescription(config),
+                [ACTION.LISTRAK_MAIL_SEND]: (config) =>
+                    this.getListrakMailSendActionDescription(config),
             };
         },
     },
 
     methods: {
-
         getListrakMailSendActionDescription(config) {
             const recipient = config.recipient.type;
-            return this.$tc(`Recipient: ${recipient.charAt(0).toUpperCase() + recipient.slice(1)}`);
+            return this.$tc(
+                `Recipient: ${recipient.charAt(0).toUpperCase() + recipient.slice(1)}`
+            );
         },
 
         getActionTitle(actionName) {
@@ -36,7 +40,7 @@ Component.override('sw-flow-sequence-action', {
                     icon: 'regular-envelope',
                     label: this.$tc('listrakMailSendAction.titleSendMail'),
                     group: GROUP,
-                }
+                };
             }
 
             return this.$super('getActionTitle', actionName);

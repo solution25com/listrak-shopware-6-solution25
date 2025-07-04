@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.15] - 06-30-2025
+- Added mail template data mapping for transactional mails in custom flow action.
+- Fixed newsletter recipient sync issue.
+- Fixed order sync issue.
+- Added newsletter subscription checkbox in checkout.
+
 ## [1.0.14] - 06-25-2025
 - Added custom action in Flow Builder for sending transactional mails via Listrak.
 

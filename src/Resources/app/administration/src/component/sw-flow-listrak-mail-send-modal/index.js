@@ -1,25 +1,21 @@
-import {email as emailValidation} from '../../service/validation.service';
+import { email as emailValidation } from '../../service/validation.service';
 import template from './sw-flow-listrak-mail-send-modal.html.twig';
+import './sw-flow-listrak-mail-send-modal.scss';
 
 const {
     Component,
     Utils,
-    Classes: {ShopwareError},
+    Classes: { ShopwareError },
 } = Shopware;
-const {Criteria} = Shopware.Data;
-const {mapState} = Component.getComponentHelper();
+const { Criteria } = Shopware.Data;
+const { mapState } = Component.getComponentHelper();
 
 Component.register('sw-flow-listrak-mail-send-modal', {
     template,
 
-    inject: [
-        'repositoryFactory',
-    ],
+    inject: ['repositoryFactory'],
 
-    emits: [
-        'modal-close',
-        'process-finish',
-    ],
+    emits: ['modal-close', 'process-finish'],
 
     props: {
         sequence: {
@@ -34,9 +30,12 @@ Component.register('sw-flow-listrak-mail-send-modal', {
             mailRecipient: null,
             recipients: [],
             selectedRecipient: null,
+            selectedProfileField: null,
             recipientGridError: null,
             transactionalMessageId: null,
-            transactionalMessageIdError: null
+            profileFields: [],
+            profileFieldsGridError: null,
+            transactionalMessageIdError: null,
         };
     },
 
@@ -85,7 +84,9 @@ Component.register('sw-flow-listrak-mail-send-modal', {
             return [
                 {
                     value: 'contactFormMail',
-                    label: this.$tc('listrakMailSendAction.labelContactFormMail'),
+                    label: this.$tc(
+                        'listrakMailSendAction.labelContactFormMail'
+                    ),
                 },
             ];
         },
@@ -96,6 +97,7 @@ Component.register('sw-flow-listrak-mail-send-modal', {
                 'UserAware',
                 'OrderAware',
                 'CustomerGroupAware',
+                'CartAware',
             ];
         },
 
@@ -104,7 +106,8 @@ Component.register('sw-flow-listrak-mail-send-modal', {
             const allowAwareConverted = [];
             allowedAwareOrigin.forEach((aware) => {
                 aware = aware.slice(aware.lastIndexOf('\\') + 1);
-                const awareUpperCase = aware.charAt(0).toUpperCase() + aware.slice(1);
+                const awareUpperCase =
+                    aware.charAt(0).toUpperCase() + aware.slice(1);
                 if (!allowAwareConverted.includes(awareUpperCase)) {
                     allowAwareConverted.push(awareUpperCase);
                 }
@@ -136,7 +139,9 @@ Component.register('sw-flow-listrak-mail-send-modal', {
                 ];
             }
 
-            const hasEntityAware = allowAwareConverted.some((allowedAware) => this.entityAware.includes(allowedAware));
+            const hasEntityAware = allowAwareConverted.some((allowedAware) =>
+                this.entityAware.includes(allowedAware)
+            );
 
             if (hasEntityAware) {
                 return [
@@ -146,10 +151,7 @@ Component.register('sw-flow-listrak-mail-send-modal', {
                 ];
             }
 
-            return [
-                ...this.recipientAdmin,
-                ...this.recipientCustom,
-            ];
+            return [...this.recipientAdmin, ...this.recipientCustom];
         },
 
         recipientColumns() {
@@ -167,6 +169,21 @@ Component.register('sw-flow-listrak-mail-send-modal', {
             ];
         },
 
+        profileFieldsColumns() {
+            return [
+                {
+                    property: 'field-id',
+                    label: 'listrakMailSendAction.columnProfileFieldId',
+                    inlineEdit: 'number',
+                },
+                {
+                    property: 'field-value',
+                    label: 'listrakMailSendAction.columnProfileFieldValue',
+                    inlineEdit: 'string',
+                },
+            ];
+        },
+
         replyToOptions() {
             if (this.triggerEvent.name === 'contact_form.send') {
                 return [
@@ -176,10 +193,7 @@ Component.register('sw-flow-listrak-mail-send-modal', {
                 ];
             }
 
-            return [
-                ...this.recipientDefault,
-                ...this.recipientCustom,
-            ];
+            return [...this.recipientDefault, ...this.recipientCustom];
         },
 
         ...mapState('swFlowState', [
@@ -195,20 +209,18 @@ Component.register('sw-flow-listrak-mail-send-modal', {
 
     methods: {
         createdComponent() {
-            this.transactionalMessageId = this.sequence?.config?.transactionalMessageId || null;
+            this.transactionalMessageId =
+                this.sequence?.config?.transactionalMessageId || null;
             this.mailRecipient = this.recipientOptions[0].value;
 
             if (!this.isNewMail) {
-                const {config} = this.sequence;
+                const { config } = this.sequence;
 
                 this.mailRecipient = config.recipient?.type;
 
                 if (config.recipient?.type === 'custom') {
                     Object.entries(config.recipient.data).forEach(
-                        ([
-                             key,
-                             value,
-                         ]) => {
+                        ([key, value]) => {
                             const newId = Utils.createId();
                             this.recipients.push({
                                 id: newId,
@@ -216,13 +228,27 @@ Component.register('sw-flow-listrak-mail-send-modal', {
                                 name: value,
                                 isNew: false,
                             });
-                        },
+                        }
                     );
 
                     this.addRecipient();
                     this.showRecipientEmails = true;
                 }
+                if (config?.profileFields) {
+                    Object.entries(config.profileFields).forEach(
+                        ([id, value]) => {
+                            const newId = Utils.createId();
+                            this.profileFields.push({
+                                id: newId,
+                                fieldId: id,
+                                fieldValue: value,
+                                isNew: false,
+                            });
+                        }
+                    );
+                }
             }
+            this.addProfileField();
         },
 
         onClose() {
@@ -247,9 +273,40 @@ Component.register('sw-flow-listrak-mail-send-modal', {
             return recipientData;
         },
 
+        getProfileFieldsData() {
+            const profileFieldsData = {};
+
+            this.profileFields.forEach((profileField) => {
+                if (!profileField.fieldId && !profileField.fieldValue) {
+                    return;
+                }
+
+                Object.assign(profileFieldsData, {
+                    [profileField.fieldId]: profileField.fieldValue,
+                });
+            });
+            return profileFieldsData;
+        },
+
         isTransactionalMessageIdError() {
-            let trimmedValue = this.transactionalMessageId.trim();
-            return trimmedValue === '';
+            if (!this.transactionalMessageId) {
+                this.transactionalMessageIdError = new ShopwareError({
+                    code: 'c1051bb4-d103-4f74-8988-acbcafc7fdc3',
+                });
+                return true;
+            }
+            console.log(this.transactionalMessageId);
+            const isNumeric = /^\d+$/.test(this.transactionalMessageId);
+            if (!isNumeric) {
+                this.transactionalMessageIdError = new ShopwareError({
+                    code: 'INVALID_TRANSACTIONAL_MESSAGE_ID',
+                    detail: this.$tc(
+                        'listrakMailSendAction.transactionalMessageIdValueInvalid'
+                    ),
+                });
+                return true;
+            }
+            return false;
         },
 
         isRecipientGridError() {
@@ -257,17 +314,55 @@ Component.register('sw-flow-listrak-mail-send-modal', {
                 return false;
             }
 
-            if (this.recipients.length === 1 && !this.recipients[0].email && !this.recipients[0].name) {
+            if (
+                this.recipients.length === 1 &&
+                !this.recipients[0].email &&
+                !this.recipients[0].name
+            ) {
                 this.validateRecipient(this.recipients[0], 0);
                 return true;
             }
 
             const invalidItemIndex = this.recipients
                 .filter((item) => !item.isNew)
-                .findIndex((recipient) => !recipient.name || !recipient.email || !emailValidation(recipient.email));
+                .findIndex(
+                    (recipient) =>
+                        !recipient.name ||
+                        !recipient.email ||
+                        !emailValidation(recipient.email)
+                );
 
             if (invalidItemIndex >= 0) {
-                this.validateRecipient(this.recipients[invalidItemIndex], invalidItemIndex);
+                this.validateRecipient(
+                    this.recipients[invalidItemIndex],
+                    invalidItemIndex
+                );
+            }
+
+            return invalidItemIndex >= 0;
+        },
+        isProfileFieldsGridError() {
+            if (
+                this.profileFields.length === 1 &&
+                !this.profileFields[0].fieldId &&
+                !this.profileFields[0].fieldValue
+            ) {
+                this.profileFields = [];
+                return false;
+            }
+
+            const invalidItemIndex = this.profileFields
+                .filter((item) => !item.isNew)
+                .findIndex(
+                    (profileField) =>
+                        !profileField.fieldId || !profileField.fieldValue
+                );
+
+            if (invalidItemIndex >= 0) {
+                this.validateProfileField(
+                    this.profileFields[invalidItemIndex],
+                    invalidItemIndex
+                );
             }
 
             return invalidItemIndex >= 0;
@@ -275,9 +370,14 @@ Component.register('sw-flow-listrak-mail-send-modal', {
 
         onAddAction() {
             this.recipientGridError = this.isRecipientGridError();
-            this.transactionalMessageIdError = this.isTransactionalMessageIdError();
-
-            if (this.recipientGridError || this.transactionalMessageIdError) {
+            this.profileFieldsGridError = this.isProfileFieldsGridError();
+            const transactionalMessageError =
+                this.isTransactionalMessageIdError();
+            if (
+                this.profileFieldsGridError ||
+                this.recipientGridError ||
+                transactionalMessageError
+            ) {
                 return;
             }
 
@@ -291,6 +391,7 @@ Component.register('sw-flow-listrak-mail-send-modal', {
                         type: this.mailRecipient,
                         data: this.getRecipientData(),
                     },
+                    profileFields: this.getProfileFieldsData(),
                 },
             };
 
@@ -319,8 +420,31 @@ Component.register('sw-flow-listrak-mail-send-modal', {
             });
 
             this.$nextTick().then(() => {
-                this.$refs.recipientsGrid.currentInlineEditId = newId;
-                this.$refs.recipientsGrid.enableInlineEdit();
+                setTimeout(() => {
+                    const grid = this.$refs.recipientsGrid;
+                    if (grid) {
+                        grid.currentInlineEditId = newId;
+                        grid.enableInlineEdit();
+                    }
+                }, 100);
+            });
+        },
+        addProfileField() {
+            const newId = Utils.createId();
+            this.profileFields.push({
+                id: newId,
+                fieldId: '',
+                fieldValue: '',
+                isNew: true,
+            });
+            this.$nextTick().then(() => {
+                setTimeout(() => {
+                    const grid = this.$refs.profileFieldsGrid;
+                    if (grid) {
+                        grid.startInlineEdit = newId;
+                        grid.enableInlineEdit();
+                    }
+                }, 100);
             });
         },
 
@@ -331,7 +455,8 @@ Component.register('sw-flow-listrak-mail-send-modal', {
 
             if (this.validateRecipient(recipient, index)) {
                 this.$nextTick(() => {
-                    this.$refs.recipientsGrid.currentInlineEditId = recipient.id;
+                    this.$refs.recipientsGrid.currentInlineEditId =
+                        recipient.id;
                     this.$refs.recipientsGrid.enableInlineEdit();
                 });
                 return;
@@ -345,6 +470,28 @@ Component.register('sw-flow-listrak-mail-send-modal', {
             this.resetError();
         },
 
+        saveProfileField(profileField) {
+            const index = this.profileFields.findIndex((item) => {
+                return item.id === profileField.id;
+            });
+            if (this.validateProfileField(profileField, index)) {
+                this.$nextTick().then(() => {
+                    const grid = this.$refs.profileFieldsGrid;
+                    if (grid) {
+                        grid.currentInlineEditId = profileField.id;
+                        grid.enableInlineEdit();
+                    }
+                });
+                return;
+            }
+
+            if (profileField.isNew) {
+                this.addProfileField();
+                this.profileFields[index].isNew = false;
+            }
+
+            this.resetError();
+        },
         cancelSaveRecipient(recipient) {
             if (!recipient.isNew) {
                 const index = this.recipients.findIndex((item) => {
@@ -356,6 +503,21 @@ Component.register('sw-flow-listrak-mail-send-modal', {
             } else {
                 recipient.name = '';
                 recipient.email = '';
+            }
+
+            this.resetError();
+        },
+        cancelSaveProfileField(profileField) {
+            if (!profileField.isNew) {
+                const index = this.profileFields.findIndex((item) => {
+                    return item.id === this.selectedProfileField.id;
+                });
+
+                // Reset data when saving is cancelled
+                this.profileFields[index] = this.selectedProfileField;
+            } else {
+                profileField.fieldId = '';
+                profileField.fieldValue = '';
             }
 
             this.resetError();
@@ -378,8 +540,8 @@ Component.register('sw-flow-listrak-mail-send-modal', {
                         errorMail: null,
                     });
                 } else {
-                    this.recipients[index] = {...item, errorName: null};
-                    this.recipients[index] = {...item, errorMail: null};
+                    this.recipients[index] = { ...item, errorName: null };
+                    this.recipients[index] = { ...item, errorMail: null };
                 }
             } else {
                 this.validateRecipient(item, index);
@@ -387,19 +549,52 @@ Component.register('sw-flow-listrak-mail-send-modal', {
 
             this.$refs.recipientsGrid.currentInlineEditId = item.id;
             this.$refs.recipientsGrid.enableInlineEdit();
-            this.selectedRecipient = {...item};
+            this.selectedRecipient = { ...item };
         },
 
         onDeleteRecipient(itemIndex) {
             this.recipients.splice(itemIndex, 1);
         },
 
+        onEditProfileField(item) {
+            const index = this.profileFields.findIndex((profileField) => {
+                return item.id === profileField.id;
+            });
+
+            // Recheck error in current item
+            if (!item.fieldId && !item.fieldValue) {
+                if (this.isCompatEnabled('INSTANCE_SET')) {
+                    this.$set(this.profileFields, index, {
+                        ...item,
+                        errorId: null,
+                    });
+
+                    this.$set(this.profileFields, index, {
+                        ...item,
+                        errorValue: null,
+                    });
+                } else {
+                    this.profileFields[index] = { ...item, errorId: null };
+                    this.profileFields[index] = { ...item, errorValue: null };
+                }
+            } else {
+                this.validateProfileField(item, index);
+            }
+
+            this.$refs.profileFieldsGrid.currentInlineEditId = item.id;
+            this.$refs.profileFieldsGrid.enableInlineEdit();
+            this.selectedProfileField = { ...item };
+        },
+
+        onDeleteProfileField(itemIndex) {
+            this.profileFields.splice(itemIndex, 1);
+        },
 
         setNameError(name) {
             const error = !name
                 ? new ShopwareError({
-                    code: 'c1051bb4-d103-4f74-8988-acbcafc7fdc3',
-                })
+                      code: 'c1051bb4-d103-4f74-8988-acbcafc7fdc3',
+                  })
                 : null;
 
             return error;
@@ -422,7 +617,37 @@ Component.register('sw-flow-listrak-mail-send-modal', {
 
             return error;
         },
+        setIdError(id) {
+            let error = null;
 
+            if (!id) {
+                error = new ShopwareError({
+                    code: 'c1051bb4-d103-4f74-8988-acbcafc7fdc3',
+                });
+            }
+            const isNumeric = /^\d+$/.test(id);
+            if (!isNumeric) {
+                error = new ShopwareError({
+                    code: 'INVALID_PROFILE_FIELD_ID',
+                    detail: this.$tc(
+                        'listrakMailSendAction.profileFieldIdValueInvalid'
+                    ),
+                });
+            }
+
+            return error;
+        },
+        setValueError(value) {
+            let error = null;
+
+            if (!value) {
+                error = new ShopwareError({
+                    code: 'c1051bb4-d103-4f74-8988-acbcafc7fdc3',
+                });
+            }
+
+            return error;
+        },
         validateRecipient(item, itemIndex) {
             const errorName = this.setNameError(item.name);
             const errorMail = this.setMailError(item.email);
@@ -444,11 +669,36 @@ Component.register('sw-flow-listrak-mail-send-modal', {
             return errorName || errorMail;
         },
 
+        validateProfileField(item, itemIndex) {
+            const errorId = this.setIdError(item.fieldId);
+            const errorValue = this.setValueError(item.fieldValue);
+
+            if (this.isCompatEnabled('INSTANCE_SET')) {
+                this.$set(this.profileFields, itemIndex, {
+                    ...item,
+                    errorId,
+                    errorValue,
+                });
+            } else {
+                this.profileFields[itemIndex] = {
+                    ...item,
+                    errorId,
+                    errorValue,
+                };
+            }
+            return errorId || errorValue;
+        },
+
         resetError() {
             this.recipientGridError = null;
             this.recipients.forEach((item) => {
                 item.errorName = null;
                 item.errorMail = null;
+            });
+            this.profileFieldsGridError = null;
+            this.profileFields.forEach((item) => {
+                item.errorId = null;
+                item.errorValue = null;
             });
             this.transactionalMessageIdError = null;
         },
@@ -456,6 +706,8 @@ Component.register('sw-flow-listrak-mail-send-modal', {
         allowDeleteRecipient(itemIndex) {
             return itemIndex !== this.recipients.length - 1;
         },
-
-    }
+        allowDeleteProfileField(itemIndex) {
+            return itemIndex !== this.profileFields.length - 1;
+        },
+    },
 });

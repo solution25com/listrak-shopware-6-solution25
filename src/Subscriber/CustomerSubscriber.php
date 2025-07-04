@@ -10,6 +10,7 @@ use Listrak\Message\UnsubscribeNewsletterRecipientMessage;
 use Listrak\Service\ListrakConfigService;
 use Psr\Log\LoggerInterface;
 use Shopware\Core\Checkout\Customer\CustomerEvents;
+use Shopware\Core\Checkout\Customer\Event\CustomerRegisterEvent;
 use Shopware\Core\Content\Newsletter\Event\NewsletterConfirmEvent;
 use Shopware\Core\Content\Newsletter\Event\NewsletterUnsubscribeEvent;
 use Shopware\Core\Content\Newsletter\NewsletterEvents;
@@ -99,6 +100,15 @@ class CustomerSubscriber implements EventSubscriberInterface
             $this->messageBus->dispatch($message);
         } catch (\Exception $e) {
             $this->logger->error($e->getMessage());
+        }
+    }
+
+    public function onCustomerRegisterEvent(CustomerRegisterEvent $event): void
+    {
+        if (!$this->listrakConfigService->isEmailSyncEnabled()) {
+            $this->logger->debug('Newsletter recipient sync skipped — sync not enabled for SalesChannel', [
+                'salesChannelId' => $event->getSalesChannelId(),
+            ]);
         }
     }
 }

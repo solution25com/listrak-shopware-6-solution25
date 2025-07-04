@@ -1,0 +1,48 @@
+{% sw_extends '@Storefront/storefront/page/checkout/confirm/index.html.twig' %}
+
+    {% block page_checkout_confirm_tos_control %}
+        {{ parent() }}
+        {% if context.customer is not empty and context.customer.guest is same as(true) %}
+            <form class="listrak-newsletter-form"
+                  action="{{ path('frontend.form.newsletter.register.handle') }}"
+                  method="post"
+                  data-listrak-auto-submit="true"
+                  data-listrak-newsletter-checkbox>
+
+                {% set subscribe = constant('Shopware\\Core\\Content\\Newsletter\\SalesChannel\\NewsletterSubscribeRoute::OPTION_SUBSCRIBE') %}
+                {% set unsubscribe = constant('Shopware\\Core\\Content\\Newsletter\\SalesChannel\\NewsletterSubscribeRoute::OPTION_UNSUBSCRIBE') %}
+
+                {% set statusDirect = constant('Shopware\\Core\\Content\\Newsletter\\SalesChannel\\NewsletterSubscribeRoute::STATUS_DIRECT') %}
+                {% set statusOptIn = constant('Shopware\\Core\\Content\\Newsletter\\SalesChannel\\NewsletterSubscribeRoute::STATUS_OPT_IN') %}
+                {% set statusNotSet = constant('Shopware\\Core\\Content\\Newsletter\\SalesChannel\\NewsletterSubscribeRoute::STATUS_NOT_SET') %}
+                {% set isSubscribed = newsletterAccountPagelet.newsletterStatus in [statusDirect, statusOptIn, statusNotSet] %}
+                <input type="hidden" name="email" value="{{ context.customer.email }}">
+                <input type="hidden" name="firstName" value="{{ context.customer.firstName }}">
+                <input type="hidden" name="lastName" value="{{ context.customer.lastName }}">
+                <input type="hidden" name="salutationId" value="{{ context.customer.salutationId }}">
+                <input type="hidden" name="zipCode" value="{{ context.customer.zipCode }}">
+                <input type="hidden" name="city" value="{{ context.customer.city }}">
+                <input type="hidden" name="street" value="{{ context.customer.street }}">
+                <div class="form-check">
+                    <input type="checkbox"
+                           class="form-check-input"
+                           id="listrakNewsletterRegister"
+                           name="option"
+                           value="{{ page.extensions.newsletterInfo.subscribed ? unsubscribe : subscribe }}"
+                           {% if page.extensions.newsletterInfo.subscribed %}checked{% endif %}>
+
+                    <label class="form-check-label" for="listrakNewsletterRegister">
+                        {{ 'account.newsletterSettings'|trans({'%shopname%': config('core.basicInformation.shopName')})|sw_sanitize }}
+                    </label>
+                </div>
+            </form>
+            <div class="js-listrak-newsletter-wrapper" style="margin-top:0.5em">
+            </div>
+        {% endif %}
+
+        {% if context.customer is not empty and context.customer.guest is same as(false) and page.extensions.newsletterAccountPagelet is defined %}
+            <div class="js-newsletter-wrapper" style="margin-top: 0.5rem">
+                {% sw_include '@Storefront/storefront/page/account/newsletter.html.twig' with { newsletterAccountPagelet: page.extensions.newsletterAccountPagelet } %}
+            </div>
+        {% endif %}
+    {% endblock %}

@@ -54,10 +54,10 @@ final class SyncCustomersMessageHandler
                 $item = $this->dataMappingService->mapCustomerData($customer);
                 $items[] = $item;
             }
-            $this->logger->debug('Customers found: ' . \count($customers));
+            $this->logger->debug('Customers found for Listrak sync: ' . \count($customers));
 
             if (empty($items)) {
-                $this->logger->debug('No customers found.');
+                $this->logger->debug('No customers found for Listrak sync.');
 
                 return;
             }

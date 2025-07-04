@@ -24,7 +24,7 @@ final class UnsubscribeNewsletterRecipientMessageHandler
 
     public function __invoke(UnsubscribeNewsletterRecipientMessage $message): void
     {
-        $this->logger->debug('Unsubscribe newsletter recipient message started.');
+        $this->logger->debug('Listrak unsubscribe newsletter recipient started.');
         $context = $message->getContext();
         $newsletterRecipientId = $message->getNewsletterRecipientId();
         try {

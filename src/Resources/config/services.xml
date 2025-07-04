@@ -17,6 +17,7 @@
         </service>
         <service id="Listrak\Service\CsvService">
             <argument type="service" id="Listrak\Service\ListrakConfigService"/>
+            <argument type="service" id="newsletter_recipient.repository"/>
             <argument type="service" id="logger"/>
         </service>
         <service id="Listrak\Service\FailedRequestService">
@@ -29,6 +30,9 @@
 
         <service id="Listrak\Service\DataMappingService">
             <argument type="service" id="Listrak\Service\ListrakConfigService"/>
+            <argument type="service" id="currency.repository"/>
+            <argument type="service" id="sales_channel.repository"/>
+            <argument type="service" id="logger"/>
         </service>
 
         <service id="Listrak\Subscriber\NewsletterStatusSubscriber">
@@ -47,6 +51,11 @@
             <argument type="service" id="Listrak\Service\ListrakConfigService"/>
             <argument type="service" id="messenger.default_bus"/>
             <argument type="service" id="logger"/>
+            <tag name="kernel.event_subscriber"/>
+        </service>
+
+        <service id="Listrak\Subscriber\CheckoutConfirmPageLoadedSubscriber">
+            <argument type="service" id="Shopware\Storefront\Pagelet\Newsletter\Account\NewsletterAccountPageletLoader"/>
             <tag name="kernel.event_subscriber"/>
         </service>
 
@@ -96,7 +105,6 @@
         </service>
 
         <service id="Listrak\Message\SyncNewsletterRecipientsMessageHandler">
-            <argument type="service" id="newsletter_recipient.repository"/>
             <argument type="service" id="Listrak\Service\CsvService"/>
             <argument type="service" id="Listrak\Service\DataMappingService"/>
             <argument type="service" id="Listrak\Service\ListrakApiService"/>
@@ -129,9 +137,10 @@
             <tag name="flow.action" priority="500" key="action.listrak.mail.send"/>
             <argument type="service" id="Listrak\Service\ListrakApiService"/>
             <argument type="service" id="Listrak\Service\DataMappingService"/>
+            <argument type="service" id="Shopware\Core\Framework\Adapter\Twig\StringTemplateRenderer"/>
+            <argument type="service" id="event_dispatcher"/>
             <argument type="service" id="logger"/>
             <argument>true</argument>
         </service>
-
     </services>
 </container>
