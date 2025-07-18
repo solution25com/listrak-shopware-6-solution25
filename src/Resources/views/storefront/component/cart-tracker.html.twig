@@ -1,4 +1,4 @@
-{% if config('Listrak.config.merchantId') and config('Listrak.config.enableListrakTracking') and  context.customer is not empty and page.extensions.newsletterInfo is defined and page.extensions.newsletterInfo.status === 'direct' %}
+{% if config('Listrak.config.merchantId') and config('Listrak.config.enableListrakTracking') and  context.customer is not empty %}
     {% set merchantId = config('Listrak.config.merchantId') %}
     {% set placement = placement | default('base') %}
         {% set payloadData = {
@@ -76,6 +76,7 @@
 
         {% set listrakTrackingOptions = {
             merchantId: merchantId,
+            requiresCookieConsent: requiresCookieConsent,
             data: payloadData | default('')
         } %}
 

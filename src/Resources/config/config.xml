@@ -108,6 +108,13 @@
         </input-field>
 
         <input-field type="bool">
+            <name>enableListrakTrackingUponCookieAcceptance</name>
+            <label>Enable Listrak Browser Tracking Upon Cookie Acceptance</label>
+            <label lang="de-DE">Aktivieren Sie Listrak Browser Tracking nach der Cookie-Akzeptanz</label>
+            <defaultValue>false</defaultValue>
+        </input-field>
+
+        <input-field type="bool">
             <name>enableOrderSync</name>
             <label>Enable Ongoing Order Synchronization</label>
             <label lang="de-DE">Aktivieren Sie die laufende Auftragssynchronisierung</label>

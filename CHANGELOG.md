@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+
+## [1.0.16] - 07-18-2025
+- Added new translation snippet.
+- Added new plugin configuration item regarding cookie consent.
+
 ## [1.0.15] - 06-30-2025
 - Added mail template data mapping for transactional mails in custom flow action.
 - Fixed newsletter recipient sync issue.
