@@ -1,19 +1,20 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 namespace Listrak\Message;
 
-use Shopware\Core\Framework\Context;
 use Shopware\Core\Framework\MessageQueue\AsyncMessageInterface;
 
 class SyncNewsletterRecipientsMessage implements AsyncMessageInterface
 {
     public function __construct(
-        private readonly Context $context
+        private readonly ?string $salesChannelId = null
     ) {
     }
 
-    public function getContext(): Context
+    public function getSalesChannelId(): ?string
     {
-        return $this->context;
+        return $this->salesChannelId;
     }
 }

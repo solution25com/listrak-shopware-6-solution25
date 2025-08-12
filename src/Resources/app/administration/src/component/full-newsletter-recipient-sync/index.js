@@ -25,7 +25,13 @@ Component.register('full-newsletter-recipient-sync', {
                 $parent = $parent.$parent;
             }
 
-            return $parent.actualConfigData.null;
+            const salesChannelId = $parent.currentSalesChannelId;
+
+            // Fallback: if no sales channel selected, use global.
+            return (
+                $parent.actualConfigData[salesChannelId] ||
+                $parent.actualConfigData.null
+            );
         },
     },
 

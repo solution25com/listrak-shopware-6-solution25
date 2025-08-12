@@ -9,23 +9,32 @@ use Shopware\Core\Checkout\Cart\LineItem\LineItem;
 use Shopware\Core\Checkout\Customer\CustomerEntity;
 use Shopware\Core\Checkout\Order\Aggregate\OrderLineItem\OrderLineItemEntity;
 use Shopware\Core\Checkout\Order\OrderEntity;
+use Shopware\Core\Content\Category\CategoryEntity;
 use Shopware\Core\Content\Newsletter\Aggregate\NewsletterRecipient\NewsletterRecipientEntity;
+use Shopware\Core\Content\Product\ProductEntity;
+use Shopware\Core\Content\Seo\SeoUrl\SeoUrlEntity;
 use Shopware\Core\Framework\Context;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
+use Shopware\Core\Framework\DataAbstractionLayer\Search\Sorting\FieldSorting;
+use Shopware\Core\System\Currency\CurrencyEntity;
+use Shopware\Core\System\SalesChannel\SalesChannelContext;
+use Shopware\Core\System\SalesChannel\SalesChannelEntity;
 
 class DataMappingService
 {
     public function __construct(
-        private readonly ListrakConfigService $listrakConfigService,
+        private readonly EntityRepository $productRepository,
+        private readonly EntityRepository $categoryRepository,
         private readonly EntityRepository $currencyRepository,
         private readonly EntityRepository $salesChannelRepository,
+        private readonly ListrakConfigService $listrakConfigService,
         private readonly LoggerInterface $logger,
     ) {
     }
 
-    public function mapOrderData(OrderEntity $order, $context): array
+    public function mapOrderData(OrderEntity $order, $salesChannelContext): array
     {
         $orderState = $order->getStateMachineState()->getTechnicalName();
         $orderStatus = $this->mapOrderStatus($orderState);
@@ -45,9 +54,9 @@ class DataMappingService
 
         $shippingAddress = $firstDelivery ? $firstDelivery->getShippingOrderAddress() : null;
         $shippingAddressItem = $this->mapAddress($shippingAddress);
-        $items = $this->mapOrderLineItems($order, $orderStatus, $context);
+        $items = $this->mapOrderLineItems($order, $salesChannelContext);
 
-        $data = [
+        return [
             'orderNumber' => $order->getOrderNumber(),
             'dateEntered' => $order->getOrderDateTime()->format('Y-m-d\TH:i:s\Z'),
             'email' => $email,
@@ -55,54 +64,46 @@ class DataMappingService
             'billingAddress' => $billingAddressItem,
             'items' => $items[0],
             'itemTotal' => $items[1],
-            'orderTotal' => $this->convertToUsd($order->getPrice()->getTotalPrice(), $order->getCurrencyId(), $order->getSalesChannelId(), $context),
-            'shipDate' => $firstDelivery ? $firstDelivery->getShippingDateEarliest()->format('Y-m-d\TH:i:s\Z') : '',
+            'orderTotal' => $this->convertToUsd($order->getPrice()->getTotalPrice(), $salesChannelContext),
             'shippingAddress' => $shippingAddressItem,
-            'shippingMethod' => $firstDelivery && $firstDelivery->getShippingMethod() ? $firstDelivery->getShippingMethod()->getName() : '',
-            'shippingTotal' => $this->convertToUsd($order->getShippingTotal(), $order->getCurrencyId(), $order->getSalesChannelId(), $context),
+            'shippingTotal' => $this->convertToUsd($order->getShippingTotal(), $salesChannelContext),
             'status' => $orderStatus,
-            'taxTotal' => $this->convertToUsd($order->getPrice()->getCalculatedTaxes()->getAmount(), $order->getCurrencyId(), $order->getSalesChannelId(), $context),
+            'taxTotal' => $this->convertToUsd($order->getPrice()->getCalculatedTaxes()->getAmount(), $salesChannelContext),
         ];
-        $this->logger->debug('Mapping order data', ['order' => $order]);
-
-        return $data;
     }
 
     public function mapCustomerData(CustomerEntity $customer): array
     {
-        $address = $customer->getDefaultBillingAddress();
-        $addressItem = [];
-        if ($address) {
-            $addressItem = [
-                'street' => $address->getStreet(),
-                'city' => $address->getCity(),
-                'state' => $address->getCountryState() ? $address->getCountryState()->getName() : '',
-                'postalCode' => $address->getZipcode() ?? '',
-                'country' => $address->getCountry() ? $address->getCountry()->getName() : '',
-            ];
-        }
+        $address = $customer->getActiveBillingAddress() ?? $customer->getDefaultBillingAddress();
 
         $data = [
             'customerNumber' => $customer->getCustomerNumber(),
             'firstName' => $customer->getFirstName(),
             'lastName' => $customer->getLastName(),
             'email' => $customer->getEmail(),
+            'birthday' => $customer->getBirthday()?->format('Y-m-d'),
+            'registered' => !$customer->getGuest(),
+            'customerGroup' => $customer->getGroup()->getName(),
+            'zipCode' => $address?->getZipCode(),
         ];
-        $data['address'] = $addressItem;
+
+        if ($address) {
+            $data['address'] = $this->mapAddress($address);
+        }
 
         return $data;
     }
 
-    public function mapContactData(NewsletterRecipientEntity $newsletterRecipient): array
+    public function mapContactData(NewsletterRecipientEntity $newsletterRecipient, ?string $salesChannelId = null): array
     {
         $data = [
             'emailAddress' => $newsletterRecipient->getEmail(),
             'subscriptionState' => $this->mapSubscriptionStatus($newsletterRecipient->getStatus()),
         ];
 
-        $salutationListrakFieldId = $this->listrakConfigService->getConfig('salutationSegmentationFieldId') ?? '';
-        $firstNameListrakFieldId = $this->listrakConfigService->getConfig('firstNameSegmentationFieldId') ?? '';
-        $lastNameListrakFieldId = $this->listrakConfigService->getConfig('lastNameSegmentationFieldId') ?? '';
+        $salutationListrakFieldId = $this->listrakConfigService->getConfig('salutationSegmentationFieldId', $salesChannelId) ?? '';
+        $firstNameListrakFieldId = $this->listrakConfigService->getConfig('firstNameSegmentationFieldId', $salesChannelId) ?? '';
+        $lastNameListrakFieldId = $this->listrakConfigService->getConfig('lastNameSegmentationFieldId', $salesChannelId) ?? '';
         if ($salutationListrakFieldId) {
             $data['segmentationFieldValues'][] = [
                 'segmentationFieldId' => $salutationListrakFieldId,
@@ -126,10 +127,11 @@ class DataMappingService
         return $data;
     }
 
-    public function mapListImportData(string $base64File): array
+    public function mapListImportData(string $base64File, ?string $salesChannelId = null): array
     {
-        $fileMappings = $this->mapFileFields();
-        $data = [
+        $fileMappings = $this->mapFileFields($salesChannelId);
+
+        return [
             'fileDelimiter' => ',',
             'fileMappings' => $fileMappings,
             'fileName' => 'listrak_list_import.csv',
@@ -142,8 +144,128 @@ class DataMappingService
             'triggerJourney' => false,
             'includeUnsubscribed' => false,
         ];
+    }
 
-        return $data;
+    public function mapProductData($offset, $limit, SalesChannelContext $salesChannelContext): bool|string
+    {
+        $tmp = tempnam(sys_get_temp_dir(), 'prod_export_' . $salesChannelContext->getSalesChannelId()) . '.txt';
+        $fh = fopen($tmp, 'w');
+
+        $headers = [
+            'Sku',
+            'Variant',
+            'Title',
+            'ImageUrl',
+            'LinkUrl',
+            'Description',
+            'Price',
+            'SalesPrice',
+            'Brand',
+            'Category',
+            'SubCategory',
+            'SubCategory2',
+            'SubCategory3',
+            'CategoryTree',
+            'QOH',
+            'InStock',
+            'SystemInStock',
+            'MasterSku',
+            'ReviewProductID',
+            'Related_Sku_1',
+            'Related_Type_1',
+            'Related_Rank_1',
+            'Related_Sku_2',
+            'Related_Type_2',
+            'Related_Rank_2',
+            'Related_Sku_3',
+            'Related_Type_3',
+            'Related_Rank_3',
+            'Related_Sku_4',
+            'Related_Type_4',
+            'Related_Rank_4',
+            'Related_Sku_5',
+            'Related_Type_5',
+            'Related_Rank_5',
+        ];
+        fputcsv($fh, $headers, '|');
+        $productCount = 0;
+        do {
+            $criteria = new Criteria();
+            $criteria->setOffset($offset);
+            $criteria->setLimit($limit);
+            $criteria->addFilter(new EqualsFilter('visibilities.salesChannelId', $salesChannelContext->getSalesChannelId()));
+            $criteria->addSorting(new FieldSorting('id'));
+            $criteria->addAssociation('seoUrls');
+            $criteria->addAssociation('cover.media');
+            $criteria->addAssociation('manufacturer');
+            $criteria->addAssociation('mainCategories.category');
+            $criteria->addAssociation('visibilities');
+
+            $searchResult = $this->productRepository->search($criteria, $salesChannelContext->getContext());
+            $products = $searchResult->getEntities();
+            $this->logger->debug('Products found for Listrak sync in sales channel: ', ['productCount' => \count($products), 'salesChannelId' => $salesChannelContext->getSalesChannelId()]);
+            /** @var ProductEntity $product */
+            foreach ($products as $product) {
+                ++$productCount;
+                $url = $this->getFullProductUrl($product, $salesChannelContext);
+                $names = $this->getCategoryNamesFromTree($product, $salesChannelContext->getContext());
+                [$parent, $sub1, $sub2, $sub3] = array_pad($names, 4, null);
+                $priceCollection = $product->getPrice();
+                $gross = 0;
+
+                if ($priceCollection !== null) {
+                    $price = $priceCollection->first();
+                    if ($price !== null) {
+                        $gross = $price->getGross();
+                    }
+                }
+
+                fputcsv($fh, [
+                    $product->getProductNumber(),
+                    $product->getParentId() ? 'V' : 'M',
+                    $product->getTranslation('name'),
+                    $product->getCover()?->getMedia()?->getUrl() ?? '',
+                    $url,
+                    $product->getTranslation('description'),
+                    $this->convertToUsd($gross, $salesChannelContext),
+                    $this->convertToUsd($gross, $salesChannelContext),
+                    $product->getManufacturer()->getName() ?? '',
+                    $parent,
+                    $sub1,
+                    $sub2,
+                    $sub3,
+                    implode(' > ', $names),
+                    $product->getAvailableStock(),
+                    $product->getAvailableStock() > 0,
+                    $product->getAvailableStock() > 0,
+                    '',
+                    $product->getProductNumber(),
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                ], '|');
+            }
+            $offset += $limit;
+        } while ($products->count() > 0);
+
+        if ($productCount === 0) {
+            return false;
+        }
+
+        fclose($fh);
+
+        return $tmp;
     }
 
     public function mapTransactionalMessageData($recipients, $fields): array
@@ -172,31 +294,33 @@ class DataMappingService
 
     public function convertToUsd(
         float $amount,
-        string $fromCurrencyId,
-        string $salesChannelId,
-        Context $context
+        SalesChannelContext $salesChannelContext
     ): float {
-        // Short-circuit if already USD
+        // Short-circuit if already USD.
+        /** @var CurrencyEntity $fromCurrency */
         $fromCurrency = $this->currencyRepository->search(
-            (new Criteria())->addFilter(new EqualsFilter('id', $fromCurrencyId)),
-            $context
+            new Criteria([$salesChannelContext->getCurrencyId()]),
+            $salesChannelContext->getContext()
         )->first();
 
         if (strtoupper($fromCurrency->getIsoCode()) === 'USD') {
+            $this->logger->debug('no need to convert');
+
             return $amount;
         }
-
-        $criteria = new Criteria([$salesChannelId]);
+        $criteria = new Criteria([$salesChannelContext->getSalesChannelId()]);
         $criteria->addAssociation('currency');
-        $salesChannel = $this->salesChannelRepository
-            ->search($criteria, $context)
-            ->get($salesChannelId);
 
-        $channelCurrency = $salesChannel?->getCurrency();
+        /** @var SalesChannelEntity $salesChannel */
+        $salesChannel = $this->salesChannelRepository
+            ->search($criteria, $salesChannelContext->getContext())
+            ->get($salesChannelContext->getSalesChannelId());
+
+        $channelCurrency = $salesChannel->getCurrency();
 
         $usdCurrency = $this->currencyRepository->search(
             (new Criteria())->addFilter(new EqualsFilter('isoCode', 'USD')),
-            $context
+            $salesChannelContext->getContext()
         )->first();
 
         if (!$channelCurrency || !$usdCurrency) {
@@ -205,37 +329,65 @@ class DataMappingService
 
         $amountInDefault = $fromCurrency->getId() === $channelCurrency->getId()
             ? $amount
-            : $amount / $fromCurrency->getFactor();
+            : $amount /
+            $fromCurrency->getFactor();
 
+        /** @var CurrencyEntity $usdCurrency */
         $amountInUsd = $amountInDefault * $usdCurrency->getFactor();
 
         return round($amountInUsd, 2);
     }
 
-    private function mapOrderLineItems(OrderEntity $order, string $orderStatus, $context): array
+    public function getFullProductUrl(
+        ProductEntity $product,
+        SalesChannelContext $context,
+    ): ?string {
+        $seo = $product->getSeoUrls()?->filter(
+            fn (SeoUrlEntity $u) => $u->getIsCanonical() && $u->getSalesChannelId() === $context->getSalesChannelId()
+        )->first();
+
+        if (!$seo && $product->getParent()) {
+            $seo = $product->getParent()->getSeoUrls()?->filter(
+                fn (SeoUrlEntity $u) => $u->getIsCanonical() && $u->getSalesChannelId() === $context->getSalesChannelId()
+            )->first();
+        }
+        if (!$seo) {
+            return null;
+        }
+
+        $domains = $context->getSalesChannel()->getDomains();
+        $domain = $domains->filter(fn ($d) => $d->getLanguageId() === $seo->getLanguageId())->first()
+            ?? $domains->filter(fn ($d) => $d->getLanguageId() === $context->getLanguageId())->first()
+            ?? $domains->first();
+
+        if (!$domain) {
+            return null;
+        }
+
+        $base = rtrim($domain->getUrl(), '/');
+        $path = ltrim($seo->getSeoPathInfo(), '/');
+
+        return $path ? $base . '/' . $path : $base;
+    }
+
+    private function mapOrderLineItems(OrderEntity $order, $salesChannelContext): array
     {
         $lineItems = [];
         $orderItemTotal = 0;
         if ($order->getLineItems()) {
             foreach ($order->getLineItems() as $lineItem) {
-                $calculatedPrice = $lineItem->getPrice();
+                $this->logger->info('Order LineItem', ['lineItem' => $lineItem]);
                 $sku = $this->generateSKU($lineItem);
-                $listPrice = $calculatedPrice && $calculatedPrice->getListPrice() ? $calculatedPrice->getListPrice()->getPrice() : 0;
                 $unitPrice = $lineItem->getUnitPrice();
-                $discountedPrice = $calculatedPrice && $calculatedPrice->getListPrice() ? $calculatedPrice->getListPrice()->getDiscount() : 0;
                 $quantity = $lineItem->getQuantity();
-                $itemDiscountTotal = ($listPrice - $discountedPrice) * $lineItem->getQuantity();
-                $itemTotal = ($unitPrice * $quantity) - $itemDiscountTotal;
+                $itemTotal = $lineItem->getTotalPrice();
                 $orderItemTotal += $itemTotal;
                 $item = [
-                    'discountedPrice' => $this->convertToUsd($discountedPrice, $order->getCurrencyId(), $order->getSalesChannelId(), $context),
-                    'itemTotal' => $this->convertToUsd($itemTotal, $order->getCurrencyId(), $order->getSalesChannelId(), $context),
-                    'itemDiscountTotal' => $this->convertToUsd($itemDiscountTotal, $order->getCurrencyId(), $order->getSalesChannelId(), $context),
+                    'itemTotal' => $this->convertToUsd($itemTotal, $salesChannelContext),
                     'orderNumber' => $order->getOrderNumber(),
-                    'price' => $this->convertToUsd($unitPrice, $order->getCurrencyId(), $order->getSalesChannelId(), $context),
+                    'price' => $this->convertToUsd($unitPrice, $salesChannelContext),
                     'quantity' => $quantity,
                     'sku' => $sku,
-                    'status' => $orderStatus,
                 ];
                 $lineItems[] = $item;
             }
@@ -300,8 +452,8 @@ class DataMappingService
                 'phone' => $address->getPhoneNumber() ?? '',
                 'zipCode' => $address->getZipCode() ?? '',
                 'city' => $address->getCity(),
-                'country' => $address->getCountry() ? $address->getCountry()->getName() : '',
-                'state' => $address->getCountryState() ? $address->getCountryState()->getName() : '',
+                'country' => $address->getCountry() ? $address->getCountry()->getTranslation('name') : '',
+                'state' => $address->getCountryState() ? $address->getCountryState()->getTranslation('name') : '',
                 'address1' => $address->getStreet(),
                 'address2' => $address->getAdditionalAddressLine1() ?? '',
                 'address3' => $address->getAdditionalAddressLine2() ?? '',
@@ -311,11 +463,11 @@ class DataMappingService
         return [];
     }
 
-    private function mapFileFields()
+    private function mapFileFields(?string $salesChannelId = null)
     {
-        $salutationListrakFieldId = $this->listrakConfigService->getConfig('salutationSegmentationFieldId');
-        $firstNameListrakFieldId = $this->listrakConfigService->getConfig('firstNameSegmentationFieldId');
-        $lastNameListrakFieldId = $this->listrakConfigService->getConfig('lastNameSegmentationFieldId');
+        $salutationListrakFieldId = $this->listrakConfigService->getConfig('salutationSegmentationFieldId', $salesChannelId);
+        $firstNameListrakFieldId = $this->listrakConfigService->getConfig('firstNameSegmentationFieldId', $salesChannelId);
+        $lastNameListrakFieldId = $this->listrakConfigService->getConfig('lastNameSegmentationFieldId', $salesChannelId);
         $data = [
             ['fileColumn' => 0, 'fileColumnType' => 'Email'],
         ];
@@ -342,5 +494,34 @@ class DataMappingService
         }
 
         return $data;
+    }
+
+    private function getCategoryNamesFromTree(
+        ProductEntity $product,
+        Context $context
+    ): array {
+        $ids = array_values(array_unique(array_filter($product->getCategoryTree() ?? [])));
+        if (!$ids) {
+            return [];
+        }
+
+        $criteria = new Criteria($ids);
+        $result = $this->categoryRepository->search($criteria, $context)->getEntities();
+
+        $nameById = [];
+        /** @var CategoryEntity $c */
+        foreach ($result as $c) {
+            $nameById[$c->getId()] = (string) ($c->getTranslation('name') ?? $c->getName() ?? '');
+        }
+
+        // Preserve original order from categoryTree.
+        $names = [];
+        foreach ($ids as $id) {
+            if (isset($nameById[$id]) && $nameById[$id] !== '') {
+                $names[] = $nameById[$id];
+            }
+        }
+
+        return $names;
     }
 }

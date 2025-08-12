@@ -6,14 +6,19 @@ namespace Listrak\Message;
 
 use Shopware\Core\Framework\MessageQueue\AsyncMessageInterface;
 
-class SyncCustomersMessage implements AsyncMessageInterface
+class SyncProductsMessage implements AsyncMessageInterface
 {
     public function __construct(
+        private readonly bool $local = false,
         private readonly int $offset = 0,
         private readonly int $limit = 200,
-        private readonly ?array $customerIds = null,
         private readonly ?string $salesChannelId = null
     ) {
+    }
+
+    public function getLocal(): bool
+    {
+        return $this->local;
     }
 
     public function getOffset(): int
@@ -24,11 +29,6 @@ class SyncCustomersMessage implements AsyncMessageInterface
     public function getLimit(): int
     {
         return $this->limit;
-    }
-
-    public function getCustomerIds(): ?array
-    {
-        return $this->customerIds;
     }
 
     public function getSalesChannelId(): ?string

@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.17] - 08-12-2025
+- Added multi-channel plugin configuration capabilities.
+- Improved Listrak JS tracking feature.
+- Added Product Data Sync via FTP functionality.
+- Switched Full Synchronization buttons to CLI commands.
 
 ## [1.0.16] - 07-18-2025
 - Added new translation snippet.

@@ -28,8 +28,8 @@
                            class="form-check-input"
                            id="listrakNewsletterRegister"
                            name="option"
-                           value="{{ page.extensions.newsletterInfo.subscribed ? unsubscribe : subscribe }}"
-                           {% if page.extensions.newsletterInfo.subscribed %}checked{% endif %}>
+                           value="{{ page.extensions.listrakInfo.subscribed ? unsubscribe : subscribe }}"
+                           {% if page.extensions.listrakInfo.subscribed %}checked{% endif %}>
 
                     <label class="form-check-label" for="listrakNewsletterRegister">
                         {{ 'account.newsletterSettings'|trans({'%shopname%': config('core.basicInformation.shopName')})|sw_sanitize }}

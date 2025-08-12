@@ -7,7 +7,6 @@ const {
     Utils,
     Classes: { ShopwareError },
 } = Shopware;
-const { Criteria } = Shopware.Data;
 const { mapState } = Component.getComponentHelper();
 
 Component.register('sw-flow-listrak-mail-send-modal', {
@@ -295,7 +294,6 @@ Component.register('sw-flow-listrak-mail-send-modal', {
                 });
                 return true;
             }
-            console.log(this.transactionalMessageId);
             const isNumeric = /^\d+$/.test(this.transactionalMessageId);
             if (!isNumeric) {
                 this.transactionalMessageIdError = new ShopwareError({

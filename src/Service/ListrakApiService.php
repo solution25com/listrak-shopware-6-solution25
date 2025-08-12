@@ -10,6 +10,7 @@ use Listrak\Core\Content\FailedRequest\FailedRequestEntity;
 use Listrak\Library\Endpoints;
 use Psr\Log\LoggerInterface;
 use Shopware\Core\Framework\Context;
+use Shopware\Core\System\SalesChannel\SalesChannelContext;
 
 class ListrakApiService extends Endpoints
 {
@@ -27,13 +28,13 @@ class ListrakApiService extends Endpoints
     /**
      * @param list<array> $data
      */
-    public function importCustomer(array $data, Context $context): void
+    public function importCustomer(array $data, Context $context, ?string $salesChannelId = null): void
     {
         $fullEndpointUrl = Endpoints::getUrl(Endpoints::CUSTOMER_IMPORT);
         $this->logger->debug('Importing customer', ['data' => $data]);
         $options = [
             'headers' => [
-                'Authorization' => 'Bearer ' . $this->getAccessToken(self::DATA_INTEGRATION),
+                'Authorization' => 'Bearer ' . $this->getAccessToken(self::DATA_INTEGRATION, $salesChannelId),
                 'Content-Type' => 'application/json',
             ],
             'body' => json_encode($data),
@@ -46,50 +47,54 @@ class ListrakApiService extends Endpoints
     /**
      * @param list<array> $data
      */
-    public function importOrder(array $data, Context $context): void
+    public function importOrder(array $data, SalesChannelContext $salesChannelContext): void
     {
         $fullEndpointUrl = Endpoints::getUrl(Endpoints::ORDER_IMPORT);
         $this->logger->debug('Importing order', ['data' => $data]);
         $options = [
             'headers' => [
-                'Authorization' => 'Bearer ' . $this->getAccessToken(self::DATA_INTEGRATION),
+                'Authorization' => 'Bearer ' . $this->getAccessToken(self::DATA_INTEGRATION, $salesChannelContext->getSalesChannelId()),
                 'Content-Type' => 'application/json',
             ],
             'body' => json_encode($data),
         ];
 
-        $this->request($fullEndpointUrl, $options, $context);
-        $this->failedRequestService->flushFailedRequests($context);
+        $this->request($fullEndpointUrl, $options, $salesChannelContext->getContext());
+        $this->failedRequestService->flushFailedRequests($salesChannelContext->getContext());
     }
 
-    public function createOrUpdateContact(array $data, Context $context): void
+    public function createOrUpdateContact(array $data, SalesChannelContext $salesChannelContext): void
     {
-        $listId = $this->listrakConfigService->getConfig('listId');
+        $listId = $this->listrakConfigService->getConfig('listId', $salesChannelContext->getSalesChannelId());
         if ($listId) {
-            $fullEndpointUrl = Endpoints::getUrlDynamicParam(Endpoints::CONTACT_CREATE, [$listId, 'Contact'], ['overrideUnsubscribe' => 'true']);
+            $fullEndpointUrl = Endpoints::getUrlDynamicParam(
+                Endpoints::CONTACT_CREATE,
+                [$listId, 'Contact'],
+                ['overrideUnsubscribe' => 'true']
+            );
             $this->logger->debug('Creating contact', ['data' => $data]);
             $options = [
                 'headers' => [
-                    'Authorization' => 'Bearer ' . $this->getAccessToken(self::EMAIL_INTEGRATION),
+                    'Authorization' => 'Bearer ' . $this->getAccessToken(self::EMAIL_INTEGRATION, $salesChannelContext->getSalesChannelId()),
                     'Content-Type' => 'application/json',
                 ],
                 'body' => json_encode($data),
             ];
 
-            $this->request($fullEndpointUrl, $options, $context);
-            $this->failedRequestService->flushFailedRequests($context);
+            $this->request($fullEndpointUrl, $options, $salesChannelContext->getContext());
+            $this->failedRequestService->flushFailedRequests($salesChannelContext->getContext());
         }
     }
 
-    public function startListImport(array $data, Context $context): void
+    public function startListImport(array $data, Context $context, ?string $salesChannelId = null): void
     {
-        $listId = trim($this->listrakConfigService->getConfig('listId'));
+        $listId = trim($this->listrakConfigService->getConfig('listId', $salesChannelId));
         if ($listId) {
             $fullEndpointUrl = Endpoints::getUrlDynamicParam(Endpoints::START_LIST_IMPORT, [$listId, 'ListImport']);
             $this->logger->debug('Creating list import', ['data' => $data]);
             $options = [
                 'headers' => [
-                    'Authorization' => 'Bearer ' . $this->getAccessToken(self::EMAIL_INTEGRATION),
+                    'Authorization' => 'Bearer ' . $this->getAccessToken(self::EMAIL_INTEGRATION, $salesChannelId),
                     'Content-Type' => 'application/json',
                 ],
                 'body' => json_encode($data),
@@ -100,16 +105,23 @@ class ListrakApiService extends Endpoints
         }
     }
 
-    public function sendTransactionalMessage($transactionalMessageId, array $data, Context $context): void
-    {
+    public function sendTransactionalMessage(
+        $transactionalMessageId,
+        array $data,
+        Context $context,
+        ?string $salesChannelId = null
+    ): void {
         $listId = trim($this->listrakConfigService->getConfig('transactionalListId'));
         if ($listId) {
-            $fullEndpointUrl = Endpoints::getUrlDynamicParam(Endpoints::START_LIST_IMPORT, [$listId, 'TransactionalMessage', $transactionalMessageId, 'Message']);
+            $fullEndpointUrl = Endpoints::getUrlDynamicParam(
+                Endpoints::START_LIST_IMPORT,
+                [$listId, 'TransactionalMessage', $transactionalMessageId, 'Message']
+            );
             $this->logger->debug('Sending transactional message', ['data' => $data]);
             foreach ($data as $message) {
                 $options = [
                     'headers' => [
-                        'Authorization' => 'Bearer ' . $this->getAccessToken(self::EMAIL_INTEGRATION),
+                        'Authorization' => 'Bearer ' . $this->getAccessToken(self::EMAIL_INTEGRATION, $salesChannelId),
                         'Content-Type' => 'application/json',
                     ],
                     'body' => json_encode($message),
@@ -170,7 +182,13 @@ class ListrakApiService extends Endpoints
                     $failedRequestEntity->setResponse($responseContent);
                     $this->failedRequestService->updateFailedRequest($failedRequestEntity);
                 } else {
-                    $this->failedRequestService->saveRequestToFailedRequests($url, $method, $options, $responseContent, $context);
+                    $this->failedRequestService->saveRequestToFailedRequests(
+                        $url,
+                        $method,
+                        $options,
+                        $responseContent,
+                        $context
+                    );
                 }
             } else {
                 $this->failedRequestService->removeFromFailedRequests($context, $failedRequestEntity);
@@ -182,7 +200,13 @@ class ListrakApiService extends Endpoints
                 $failedRequestEntity->setResponse($e->getMessage());
                 $this->failedRequestService->updateFailedRequest($failedRequestEntity);
             } else {
-                $this->failedRequestService->saveRequestToFailedRequests($url, $method, $options, $e->getMessage(), $context);
+                $this->failedRequestService->saveRequestToFailedRequests(
+                    $url,
+                    $method,
+                    $options,
+                    $e->getMessage(),
+                    $context
+                );
             }
 
             $this->handleError($e);
@@ -191,20 +215,31 @@ class ListrakApiService extends Endpoints
         return $responseContent;
     }
 
-    public function getAccessToken(string $type): string
+    public function getAccessToken(string $type, ?string $salesChannelId = null): string
     {
-        if ($type === self::DATA_INTEGRATION && $this->listrakConfigService->getConfig('dataToken') && $this->listrakConfigService->getConfig('dataTokenExpiry') > time()) {
-            return $this->listrakConfigService->getConfig('dataToken');
+        if ($type === self::DATA_INTEGRATION) {
+            $token = $this->listrakConfigService->getConfig('dataToken', $salesChannelId);
+
+            $tokenExpiry = $this->listrakConfigService->getConfig('dataTokenExpiry', $salesChannelId);
+            if ($token !== null && $tokenExpiry !== null && $tokenExpiry > time()) {
+                return $token;
+            }
         }
-        if ($type === self::EMAIL_INTEGRATION && $this->listrakConfigService->getConfig('emailToken') && $this->listrakConfigService->getConfig('emailTokenExpiry') > time()) {
-            return $this->listrakConfigService->getConfig('emailToken');
+        if ($type === self::EMAIL_INTEGRATION) {
+            $token = $this->listrakConfigService->getConfig('emailToken', $salesChannelId);
+
+            $tokenExpiry = $this->listrakConfigService->getConfig('emailTokenExpiry', $salesChannelId);
+            if ($token !== null && $tokenExpiry !== null && $tokenExpiry > time()) {
+                return $token;
+            }
         }
 
-        $body = $this->buildAuthRequestBody($type);
+        $body = $this->buildAuthRequestBody($type, $salesChannelId);
         $options = [
             'form_params' => $body,
             'headers' => ['Content-Type' => 'application/x-www-form-urlencoded'],
         ];
+        $this->logger->debug('Request body', ['type' => $type, 'body' => $body]);
 
         $responseContent = $this->request(['method' => 'POST', 'url' => self::TOKEN_URL], $options);
         if ($responseContent) {
@@ -213,15 +248,15 @@ class ListrakApiService extends Endpoints
                 return 'Error: ' . ($data['message'] ?? 'Unknown error');
             }
             if ($type === self::DATA_INTEGRATION) {
-                $this->listrakConfigService->setConfig('dataToken', $data['access_token'] ?? '');
-                $this->listrakConfigService->setConfig('dataTokenExpiry', time() + 3599);
+                $this->listrakConfigService->setConfig('dataToken', $data['access_token'] ?? '', $salesChannelId);
+                $this->listrakConfigService->setConfig('dataTokenExpiry', time() + 3599, $salesChannelId);
 
-                return $this->listrakConfigService->getConfig('dataToken');
+                return $this->listrakConfigService->getConfig('dataToken', $salesChannelId);
             }
-            $this->listrakConfigService->setConfig('emailToken', $data['access_token'] ?? '');
-            $this->listrakConfigService->setConfig('emailTokenExpiry', time() + 3599);
+            $this->listrakConfigService->setConfig('emailToken', $data['access_token'] ?? '', $salesChannelId);
+            $this->listrakConfigService->setConfig('emailTokenExpiry', time() + 3599, $salesChannelId);
 
-            return $this->listrakConfigService->getConfig('emailToken');
+            return $this->listrakConfigService->getConfig('emailToken', $salesChannelId);
         }
         $this->logger->error('Unable to retrieve access token');
 
@@ -231,12 +266,17 @@ class ListrakApiService extends Endpoints
     /**
      * @return array<string,string>
      */
-    private function buildAuthRequestBody(string $type): array
+    private function buildAuthRequestBody(string $type, ?string $salesChannelId = null): array
     {
+        $dataClientId = $this->listrakConfigService->getConfig('dataClientId', $salesChannelId);
+        $dataClientSecret = $this->listrakConfigService->getConfig('dataClientSecret', $salesChannelId);
+        $emailClientId = $this->listrakConfigService->getConfig('emailClientId', $salesChannelId);
+        $emailClientSecret = $this->listrakConfigService->getConfig('emailClientSecret', $salesChannelId);
+
         return [
             'grant_type' => 'client_credentials',
-            'client_id' => $type === self::DATA_INTEGRATION ? $this->listrakConfigService->getConfig('dataClientId') : $this->listrakConfigService->getConfig('emailClientId'),
-            'client_secret' => $type === self::DATA_INTEGRATION ? $this->listrakConfigService->getConfig('dataClientSecret') : $this->listrakConfigService->getConfig('emailClientSecret'),
+            'client_id' => $type === self::DATA_INTEGRATION ? $dataClientId : $emailClientId,
+            'client_secret' => $type === self::DATA_INTEGRATION ? $dataClientSecret : $emailClientSecret,
         ];
     }
 

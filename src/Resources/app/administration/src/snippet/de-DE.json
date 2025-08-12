@@ -20,13 +20,13 @@
     "dataApiTest": {
         "buttonLabel": "API-Verbindung testen",
         "title": "Datenintegrations-API-Test",
-        "success": "Verbindung wurde erfolgreich getestet.",
+        "success": "Die API-Verbindung war erfolgreich.",
         "error": "Verbindung konnte nicht hergestellt werden. Bitte prüfen Sie Ihre Zugangsdaten."
     },
     "emailApiTest": {
         "buttonLabel": "API-Verbindung testen",
         "title": "E-Mail-Integrations-API-Test",
-        "success": "Verbindung wurde erfolgreich getestet.",
+        "success": "Die API-Verbindung war erfolgreich.",
         "error": "Verbindung konnte nicht hergestellt werden. Bitte prüfen Sie Ihre Zugangsdaten."
     },
     "listrakMailSendAction": {
@@ -72,6 +72,7 @@
         "transactionalMessageIdLabel": "Transaktionsnachrichten-ID",
         "transactionalMessageIdHelpText": "Gehen Sie in Listrak Admin zu Hilfe und Support > API-ID-Informationen, um die Transaktionsnachrichten-ID zu finden.",
         "profileFieldsLabel": "Zuordnung von Listrak-Profilfeldern",
+        "profileFieldsFormatInvalid": "Bitte geben Sie ein gültiges Format für die Profilfelder ein.",
         "transactionalMessageIdValueInvalid": "Bitte geben Sie einen gültigen Wert für die Transaktionsnachrichten-ID ein.",
         "profileFieldIdValueInvalid": "Bitte geben Sie einen gültigen Wert für die Profilfeld-ID ein.",
         "columnProfileFieldId": "Feld-ID",

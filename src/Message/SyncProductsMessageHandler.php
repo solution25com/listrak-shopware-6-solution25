@@ -4,9 +4,8 @@ declare(strict_types=1);
 
 namespace Listrak\Message;
 
-use Listrak\Service\CsvService;
 use Listrak\Service\DataMappingService;
-use Listrak\Service\ListrakApiService;
+use Listrak\Service\ListrakFTPService;
 use Psr\Log\LoggerInterface;
 use Shopware\Core\Framework\Context;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
@@ -17,25 +16,22 @@ use Shopware\Core\System\SalesChannel\SalesChannelEntity;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 #[AsMessageHandler]
-final class SyncNewsletterRecipientsMessageHandler
+final class SyncProductsMessageHandler
 {
     public function __construct(
         private readonly EntityRepository $salesChannelRepository,
-        private readonly ListrakApiService $listrakApiService,
+        private readonly ListrakFTPService $listrakFtpService,
         private readonly DataMappingService $dataMappingService,
-        private readonly CsvService $csvService,
         private readonly AbstractSalesChannelContextFactory $salesChannelContextFactory,
         private readonly LoggerInterface $logger
     ) {
     }
 
-    public function __invoke(SyncNewsletterRecipientsMessage $message): void
+    public function __invoke(SyncProductsMessage $message): void
     {
-        $salesChannelId = $message->getSalesChannelId();
-        $this->logger->debug(
-            'Listrak newsletter recipient sync started for sales channel:',
-            ['salesChannelId' => $salesChannelId]
-        );
+        $this->logger->debug('Listrak product sync started for sales channel: ', [
+            'salesChannelId' => $message->getSalesChannelId(),
+        ]);
         $context = Context::createDefaultContext();
         $criteria = new Criteria([$message->getSalesChannelId()]);
         /** @var SalesChannelEntity $salesChannel */
@@ -45,17 +41,17 @@ final class SyncNewsletterRecipientsMessageHandler
             Uuid::randomHex(),
             $salesChannel->getId(),
         );
-        try {
-            $base64File = $this->csvService->saveToCsv($salesChannelContext->getContext());
-            if ($base64File === '') {
-                $this->logger->error('Saving data for Listrak newsletter recipient sync failed.');
 
-                return;
-            }
-            $listImport = $this->dataMappingService->mapListImportData($base64File, $salesChannelId);
-            $this->listrakApiService->startListImport($listImport, $salesChannelContext->getContext(), $salesChannelId);
-        } catch (\Throwable $e) {
-            $this->logger->error('Listrak newsletter sync failed: ' . $e->getMessage(), ['exception' => $e]);
+        $offset = $message->getOffset();
+        $limit = $message->getLimit();
+        $local = $message->getLocal();
+
+        $tmp = $this->dataMappingService->mapProductData($offset, $limit, $salesChannelContext);
+        if ($tmp === false) {
+            $this->logger->debug('Listrak product sync skipped for sales channel: ', ['salesChannelId' => $message->getSalesChannelId()]);
+
+            return;
         }
+        $this->listrakFtpService->exportToFTP($local, $tmp, $salesChannelContext);
     }
 }

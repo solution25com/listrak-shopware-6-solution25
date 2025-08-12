@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Listrak\Service;
@@ -25,7 +26,6 @@ class FailedRequestService
     public function __construct(
         private readonly EntityRepository $failedRequestRepository,
         private ListrakApiService $listrakApiService,
-        private readonly ListrakConfigService $listrakConfigService,
         private readonly LoggerInterface $logger
     ) {
     }
@@ -35,27 +35,22 @@ class FailedRequestService
      */
     public function retry(Context $context): void
     {
-        if ($this->listrakConfigService->getConfig('enableOrderSync') || $this->listrakConfigService->getConfig('enableCustomerSync')) {
-            foreach ($this->findEntries($context) as $failedRequestEntry) {
-                $this->logger->info('Retrying failed request', [
-                    'id' => $failedRequestEntry->getId(),
-                    'retryCount' => $failedRequestEntry->getRetryCount(),
-                    'endpoint' => $failedRequestEntry->getEndpoint(),
-                ]);
+        foreach ($this->findEntries($context) as $failedRequestEntry) {
+            $this->logger->info('Retrying failed request', [
+                'id' => $failedRequestEntry->getId(),
+                'retryCount' => $failedRequestEntry->getRetryCount(),
+                'endpoint' => $failedRequestEntry->getEndpoint(),
+            ]);
 
-                $this->listrakApiService->request(
-                    ['url' => $failedRequestEntry->getEndpoint(), 'method' => $failedRequestEntry->getMethod()],
-                    $failedRequestEntry->getOptions(),
-                    $context,
-                    $failedRequestEntry
-                );
-            }
-
-            // ✅ Persist all retry updates
-            $this->flushFailedRequests($context);
-        } else {
-            $this->logger->debug('Failed request retry skipped — sync not enabled');
+            $this->listrakApiService->request(
+                ['url' => $failedRequestEntry->getEndpoint(), 'method' => $failedRequestEntry->getMethod()],
+                $failedRequestEntry->getOptions(),
+                $context,
+                $failedRequestEntry
+            );
         }
+
+        $this->flushFailedRequests($context);
     }
 
     /**

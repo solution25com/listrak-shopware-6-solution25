@@ -1,85 +1,93 @@
-{% if config('Listrak.config.merchantId') and config('Listrak.config.enableListrakTracking') and  context.customer is not empty %}
+{% if config('Listrak.config.merchantId') and config('Listrak.config.enableListrakTracking') %}
     {% set merchantId = config('Listrak.config.merchantId') %}
     {% set placement = placement | default('base') %}
-        {% set payloadData = {
-            placement: placement,
-            email: context.customer.email | default(''),
-            firstName: context.customer.firstName | default(''),
-            lastName: context.customer.lastName | default(''),
-            currency: context.currency.isoCode | default(''),
-        } %}
+    {% set cartLink = path('frontend.checkout.cart.page') %}
+    {% set payloadData = {
+        placement: placement,
+        email: context.customer.email | default(''),
+        firstName: context.customer.firstName | default(''),
+        lastName: context.customer.lastName | default(''),
+        currencyIsoCode: context.currency.isoCode | default(''),
+        usdCurrency: page.extensions.listrakInfo.usdCurrency
+    } %}
+    {% if placement == 'order' %}
 
-        {% if placement == 'order' %}
+        {% set cartObject = page.order %}
 
-            {% set cartObject = page.order %}
+        {% set discountTotal = 0 %}
+        {% set processedLineItems = [] %}
 
-            {% set discountTotal = 0 %}
-            {% set processedLineItems = [] %}
+        {% for lineItem in cartObject.lineItems %}
+            {% if lineItem.type == "promotion" %}
+                {% set discountTotal = discountTotal + lineItem.price.totalPrice %}
+                {% set sku = 'PROMOTION_ITEM_'  ~ lineItem.id %}
+            {% elseif lineItem.type == 'container' %}
+                {% set sku = 'CONTAINER_ITEM_'  ~ lineItem.id %}
+            {% elseif lineItem.type == 'custom' %}
+                {% set sku = 'CUSTOM_ITEM_'  ~ lineItem.id %}
+            {% elseif lineItem.type == 'custom' %}
+                {% set sku = 'CREDIT_ITEM_'  ~ lineItem.id %}
+            {% elseif lineItem.type == 'custom' %}
+                {% set sku = 'DISCOUNT_ITEM_'  ~ lineItem.id %}
+            {% elseif lineItem.type == 'product' %}
+                {% set sku = lineItem.payload.productNumber | default('PRODUCT_ITEM_' ~ lineItem.id ) %}
+            {% else %}
+                {% set sku = 'CUSTOM_ITEM_'  ~ lineItem.id %}
+            {% endif %}
 
-            {% for lineItem in cartObject.lineItems %}
-                {% if lineItem.type == "promotion" %}
-                    {% set discountTotal = discountTotal + lineItem.price.totalPrice %}
-                    {% set sku = 'PROMOTION_ITEM_'  ~ lineItem.id %}
-                {% elseif lineItem.type == 'container' %}
-                    {% set sku = 'CONTAINER_ITEM_'  ~ lineItem.id %}
-                {% elseif lineItem.type == 'custom' %}
-                    {% set sku = 'CUSTOM_ITEM_'  ~ lineItem.id %}
-                {% elseif lineItem.type == 'custom' %}
-                    {% set sku = 'CREDIT_ITEM_'  ~ lineItem.id %}
-                {% elseif lineItem.type == 'custom' %}
-                    {% set sku = 'DISCOUNT_ITEM_'  ~ lineItem.id %}
-                {% elseif lineItem.type == 'product' %}
-                    {% set sku = lineItem.payload.productNumber | default('PRODUCT_ITEM_' ~ lineItem.id ) %}
-                {% else %}
-                    {% set sku = 'CUSTOM_ITEM_'  ~ lineItem.id %}
-                {% endif %}
+            {% set unitPrice = lineItem.price.listPrice and lineItem.price.listPrice.price > lineItem.price.unitPrice ?
+                lineItem.price.listPrice.price :
+                lineItem.price.unitPrice %}
 
-                {% set unitPrice = lineItem.price.listPrice and lineItem.price.listPrice.price > lineItem.price.unitPrice ?
-                    lineItem.price.listPrice.price :
-                    lineItem.price.unitPrice %}
+            {% set imageUrl = lineItem.cover.url | default('') %}
+            {% set productUrl = seoUrl('frontend.detail.page', {'productId': lineItem.id}) %}
+            {% set productData = {
+                sku: sku,
+                name: lineItem.label,
+                quantity: lineItem.quantity,
+                price: unitPrice,
+                totalPrice: lineItem.price.totalPrice,
+                imageUrl: imageUrl,
+                productUrl: productUrl | default('')
+            } %}
 
-                {% set imageUrl = lineItem.cover.url | default('') %}
+            {% set processedLineItems = processedLineItems|merge([productData]) %}
 
-                {% set productData = {
-                    sku: sku,
-                    name: lineItem.label,
-                    quantity: lineItem.quantity,
-                    price: unitPrice,
-                    imageUrl: imageUrl,
-                    productUrl: productUrl | default('')
-                } %}
+        {% endfor %}
 
-                {% set processedLineItems = processedLineItems|merge([productData]) %}
+        {% set taxTotal = 0 %}
+        {% for item in cartObject.price.calculatedTaxes %}
+            {% set taxTotal = taxTotal + item.tax %}
+        {% endfor %}
 
-            {% endfor %}
 
-            {% set taxTotal = 0 %}
-            {% for item in cartObject.price.calculatedTaxes %}
-                {% set taxTotal = taxTotal + item.tax %}
-            {% endfor %}
+        {% set shippingTotal = 0 %}
+        {% for item in cartObject.deliveries %}
+            {% set shippingTotal = shippingTotal + item.shippingCosts.totalPrice %}
+        {% endfor %}
 
-            {% set shippingTotal = 0 %}
-            {% for item in cartObject.deliveries %}
-                {% set shippingTotal = shippingTotal + item.shippingCosts.totalPrice %}
-            {% endfor %}
+        {% set itemTotal = 0 %}
+        {% for item in cartObject.lineItems %}
+            {% set itemTotal = itemTotal + item.price.totalPrice %}
+        {% endfor %}
 
-            {% set payloadData = payloadData|merge({
-                orderNumber: page.order.orderNumber,
-                shippingTotal: shippingTotal,
-                discountTotal: discountTotal,
-                taxTotal: taxTotal,
-                orderTotal: cartObject.price.totalPrice | default(0),
-                lineItems: processedLineItems
-            }) %}
+        {% set payloadData = payloadData|merge({
+            orderNumber: page.order.orderNumber,
+            shippingTotal: shippingTotal,
+            taxTotal: taxTotal,
+            itemTotal: itemTotal,
+            orderTotal: cartObject.price.totalPrice | default(0),
+            lineItems: processedLineItems
+        }) %}
 
-        {% endif %}
-
-        {% set listrakTrackingOptions = {
-            merchantId: merchantId,
-            requiresCookieConsent: requiresCookieConsent,
-            data: payloadData | default('')
-        } %}
-
-        <template data-listrak-tracking
-                  data-listrak-tracking-options='{{ listrakTrackingOptions|json_encode }}'></template>
     {% endif %}
+
+    {% set listrakTrackingOptions = {
+        merchantId: merchantId,
+        requiresCookieConsent: requiresCookieConsent,
+        data: payloadData | default('')
+    } %}
+
+    <template data-listrak-tracking
+              data-listrak-tracking-options='{{ listrakTrackingOptions|json_encode }}'></template>
+{% endif %}

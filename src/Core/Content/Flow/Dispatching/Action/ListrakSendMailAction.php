@@ -1,13 +1,15 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 namespace Listrak\Core\Content\Flow\Dispatching\Action;
 
+use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception;
-use Dotdigital\Flow\Core\Framework\Event\ListrakMailAware;
+use Listrak\Core\Content\Framework\ListrakMailAware;
 use Listrak\Event\ListrakTemplateCustomizationEvent;
 use Listrak\Service\DataMappingService;
 use Listrak\Service\ListrakApiService;
-use Psr\Log\LoggerInterface;
 use Shopware\Core\Content\Flow\Dispatching\Action\FlowAction;
 use Shopware\Core\Content\Flow\Dispatching\Action\FlowMailVariables;
 use Shopware\Core\Content\Flow\Dispatching\DelayableAction;
@@ -18,7 +20,6 @@ use Shopware\Core\Framework\Adapter\Twig\StringTemplateRenderer;
 use Shopware\Core\Framework\DataAbstractionLayer\Exception\InconsistentCriteriaIdsException;
 use Shopware\Core\Framework\Event\EventData\MailRecipientStruct;
 use Shopware\Core\Framework\Event\MailAware;
-use Shopware\Core\System\SalesChannel\SalesChannelContext;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 class ListrakSendMailAction extends FlowAction implements DelayableAction
@@ -32,11 +33,11 @@ class ListrakSendMailAction extends FlowAction implements DelayableAction
      * @internal
      */
     public function __construct(
+        private readonly Connection $connection,
         private readonly ListrakApiService $listrakApiService,
         private readonly DataMappingService $dataMappingService,
         private readonly StringTemplateRenderer $templateRenderer,
         private readonly EventDispatcherInterface $eventDispatcher,
-        private LoggerInterface $logger
     ) {
     }
 
@@ -56,13 +57,15 @@ class ListrakSendMailAction extends FlowAction implements DelayableAction
     /**
      * @throws MailEventConfigurationException
      * @throws SalesChannelNotFoundException
-     * @throws InconsistentCriteriaIdsException
+     * @throws InconsistentCriteriaIdsException|Exception
      */
     public function handleFlow(StorableFlow $flow): void
     {
         if (!$flow->hasData(MailAware::MAIL_STRUCT) || !$flow->hasData(MailAware::SALES_CHANNEL_ID)) {
             throw new MailEventConfigurationException('Not have data from MailAware', $flow::class);
         }
+        $salesChannelId = $flow->getStore('salesChannelId')
+            ?: $flow->getData('salesChannelId');
 
         $eventConfig = $flow->getConfig();
         if (empty($eventConfig['recipient'])) {
@@ -99,17 +102,17 @@ class ListrakSendMailAction extends FlowAction implements DelayableAction
         ];
 
         $context = $flow->getContext();
-        /** @var SalesChannelContext $channelContext */
+
         foreach ($profileFields as $key => $value) {
             $profileFields[$key] = $this->templateRenderer->render($value, $templateData, $context);
         }
 
-        $fields = $this->dataMappingService->mapTemplateVariables($profileFields) ?? [];
+        $fields = $this->dataMappingService->mapTemplateVariables($profileFields);
         $event = new ListrakTemplateCustomizationEvent($fields, $flow);
         $this->eventDispatcher->dispatch($event, ListrakTemplateCustomizationEvent::NAME);
         $modifiedPayload = $event->getPayload();
         $data = $this->dataMappingService->mapTransactionalMessageData($recipients, $modifiedPayload);
-        $this->listrakApiService->sendTransactionalMessage($transactionalMessageId, $data, $context);
+        $this->listrakApiService->sendTransactionalMessage($transactionalMessageId, $data, $context, $salesChannelId);
     }
 
     /**

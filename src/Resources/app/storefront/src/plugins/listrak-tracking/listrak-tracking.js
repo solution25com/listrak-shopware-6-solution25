@@ -1,7 +1,8 @@
 import CookieStorage from 'src/helper/storage/cookie-storage.helper';
 import OrderData from '../../order-data';
 import CartData from '../../cart-data';
-const { PluginBaseClass } = window;
+
+const {PluginBaseClass} = window;
 
 export default class ListrakTracking extends PluginBaseClass {
     static options = {
@@ -59,19 +60,32 @@ export default class ListrakTracking extends PluginBaseClass {
                     _ltk.SCA.Update('email', email);
                 }
                 _ltk.Activity.AddPageBrowse();
+                _ltk.Activity.Submit();
             });
 
             if (this.options.data) {
                 const placement = this.options.data.placement;
                 if (placement === 'order') {
                     this._orderData = new OrderData();
-                    this._orderData.init(this.options.data);
+                    let payload = this.handleOrder();
+
+                    this._orderData.init(payload);
                 } else if (placement === 'cart') {
                     this._cartData = new CartData();
                     this.getCart();
                 }
             }
         }
+    }
+
+    handleOrder() {
+        const payload = this.options.data;
+        payload.taxTotal = this.convertToUsd(payload.taxTotal);
+        payload.orderTotal = this.convertToUsd(payload.orderTotal);
+        payload.shippingTotal = this.convertToUsd(payload.shippingTotal);
+        payload.itemTotal = this.convertToUsd(payload.itemTotal);
+        payload.lineItems = this.mapLineItems(payload.lineItems);
+        return payload;
     }
 
     getCart() {
@@ -89,9 +103,42 @@ export default class ListrakTracking extends PluginBaseClass {
             });
     }
 
-    handleCartItems(cart) {
+    convertToUsd(amount) {
+        let fromCurrencyIso = this.options.data.currencyIsoCode;
+        let usdCurrencyFactor = this.options.data.usdCurrency.factor;
+        if (fromCurrencyIso.toUpperCase() === 'USD') {
+            return amount;
+        }
+        const amountInUsd = amount * usdCurrencyFactor;
+
+        return Math.round(amountInUsd * 100) / 100;
+    }
+
+    async handleCartItems(cart) {
         const payload = this.options.data;
-        payload.totalPrice = cart.price.totalPrice;
+        payload.totalPrice = this.convertToUsd(cart.price.totalPrice);
+
+        const productIds = (cart?.lineItems || [])
+            .filter((i) => i.type === 'product' && i.referencedId)
+            .map((i) => i.referencedId);
+
+        const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
+        const csrfToken = csrfTokenMeta
+            ? {'X-CSRF-Token': csrfTokenMeta.getAttribute('content')}
+            : {};
+        const urlsRes = await fetch('/listrak/product-urls', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', csrfToken},
+            body: JSON.stringify({ids: [...new Set(productIds)]}),
+        });
+        const {urls} = await urlsRes.json();
+
+        const urlById = urls || {};
+        cart.lineItems.forEach((i) => {
+            if (i.type === 'product' && i.referencedId) {
+                i.productUrl = urlById[i.referencedId];
+            }
+        });
         payload.lineItems = this.mapLineItems(cart.lineItems);
         this._cartData.init(payload);
     }
@@ -101,26 +148,30 @@ export default class ListrakTracking extends PluginBaseClass {
         items
             .filter((el) => el.type !== 'promotion')
             .forEach((el) => {
-                const unitPrice =
+                let unitPrice =
                     el.price.listPrice &&
                     el.price.listPrice.price > el.price.unitPrice
                         ? el.price.listPrice.price
                         : el.price.unitPrice;
+                if (!unitPrice) {
+                    unitPrice = el.price;
+                }
+                let totalPrice = el.price?.totalPrice ?? el.totalPrice ?? 0;
 
                 const productData = {
-                    sku: el.payload.productNumber || '',
+                    sku: el.payload?.productNumber ?? el.sku ?? '',
                     quantity: el.quantity,
-                    price: unitPrice,
-                    title: el.label,
-                    totalPrice: el.price.totalPrice,
-                    imageUrl: el.cover ? el.cover.url : '',
-                    productUrl: this.getProductUrl(el),
+                    price: this.convertToUsd(unitPrice),
+                    title: el.label ?? el.name,
+                    totalPrice: this.convertToUsd(totalPrice),
+                    imageUrl: el.cover?.url ?? el.imageUrl ?? '',
+                    productUrl: el.productUrl,
                 };
                 processedLineItems.push(productData);
             });
-
         return processedLineItems;
     }
+
     getProductUrl(product) {
         return (
             location.protocol + '//' + location.host + '/detail/' + product.id

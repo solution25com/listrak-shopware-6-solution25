@@ -1,6 +1,8 @@
-<?php declare(strict_types=1);
+<?php
 
-namespace Dotdigital\Flow\Core\Framework\Event;
+declare(strict_types=1);
+
+namespace Listrak\Core\Content\Framework;
 
 use Shopware\Core\Framework\Event\FlowEventAware;
 use Shopware\Core\Framework\Event\MailAware;

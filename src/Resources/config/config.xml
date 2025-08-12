@@ -32,6 +32,24 @@
 
     </card>
 
+    <card>
+
+        <title>FTP Integration Settings</title>
+        <title lang="de-DE">FTP-Integrationseinstellungen</title>
+        <input-field>
+            <name>ftpUsername</name>
+            <label>FTP Username</label>
+            <helpText>Listrak FTP Username</helpText>
+            <required>true</required>
+        </input-field>
+
+        <input-field>
+            <name>ftpPassword</name>
+            <label>FTP Password</label>
+            <helpText>Listrak FTP Password</helpText>
+            <required>true</required>
+        </input-field>
+    </card>
 
     <card>
         <title>Email Integration Settings</title>
@@ -88,17 +106,6 @@
         <title lang="de-DE">
             Synchronisierungseinstellungen
         </title>
-        <component name="full-order-sync">
-            <name>fullOrderSync</name>
-        </component>
-
-        <component name="full-customer-sync">
-            <name>fullCustomerSync</name>
-        </component>
-
-        <component name="full-newsletter-recipient-sync">
-            <name>fullNewsletterRecipientSync</name>
-        </component>
 
         <input-field type="bool">
             <name>enableListrakTracking</name>

@@ -8,7 +8,7 @@ use Shopware\Storefront\Framework\Cookie\CookieProviderInterface;
 
 class ListrakCookieProvider implements CookieProviderInterface
 {
-    private const singleCookie = [
+    private const SINGLECOOKIE = [
         'snippet_name' => 'Listrak Cookies',
         'snippet_description' => 'Track cart, order and browse information',
         'cookie' => 'listrakTracking',
@@ -25,7 +25,7 @@ class ListrakCookieProvider implements CookieProviderInterface
         return array_merge(
             $this->cookieProvider->getCookieGroups(),
             [
-                self::singleCookie,
+                self::SINGLECOOKIE,
             ]
         );
     }

@@ -20,13 +20,13 @@
     "dataApiTest": {
         "buttonLabel": "Test API connection",
         "title": "Data Integration API Test",
-        "success": "Connection was successfully tested",
+        "success": "The API connection was successful.",
         "error": "Could not connect. Please check your credentials."
     },
     "emailApiTest": {
         "buttonLabel": "Test API connection",
         "title": "Email Integration API Test",
-        "success": "Connection was successfully tested.",
+        "success": "The API connection was successful.",
         "error": "Could not connect. Please check your credentials."
     },
     "listrakMailSendAction": {

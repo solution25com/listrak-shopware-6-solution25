@@ -19,7 +19,8 @@ class NewsletterStatusSubscriber implements EventSubscriberInterface
      * @param EntityRepository<NewsletterRecipientCollection> $newsletterRecipientRepository
      */
     public function __construct(
-        private readonly EntityRepository $newsletterRecipientRepository
+        private readonly EntityRepository $newsletterRecipientRepository,
+        private readonly EntityRepository $currencyRepository,
     ) {
     }
 
@@ -34,8 +35,14 @@ class NewsletterStatusSubscriber implements EventSubscriberInterface
     {
         $salesChannelContext = $event->getSalesChannelContext();
         $customer = $salesChannelContext->getCustomer();
+        $usdCurrency = $this->currencyRepository->search(
+            (new Criteria())->addFilter(new EqualsFilter('isoCode', 'USD')),
+            $event->getSalesChannelContext()->getContext()
+        )->first();
 
         if (!$customer) {
+            $event->getPage()->addExtension('listrakInfo', new ArrayStruct(['subscribed' => null, 'status' => null, 'usdCurrency' => $usdCurrency]));
+
             return;
         }
 
@@ -50,6 +57,6 @@ class NewsletterStatusSubscriber implements EventSubscriberInterface
         $isSubscribed = $recipient !== null;
         $status = $recipient?->getStatus();
 
-        $event->getPage()->addExtension('newsletterInfo', new ArrayStruct(['subscribed' => $isSubscribed, 'status' => $status]));
+        $event->getPage()->addExtension('listrakInfo', new ArrayStruct(['subscribed' => $isSubscribed, 'status' => $status, 'usdCurrency' => $usdCurrency]));
     }
 }

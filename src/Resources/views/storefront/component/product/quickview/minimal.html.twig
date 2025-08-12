@@ -1,0 +1,29 @@
+{% sw_extends '@Storefront/storefront/component/content/product/quickview/minimal.html.twig' %}
+
+{% block component_product_quickview_minimal %}
+    {{ parent() }}
+    {% if config('Listrak.config.merchantId') and config('Listrak.config.enableListrakTracking') %}
+        <script>
+            (function (d) {
+                if (typeof _ltk == "undefined") {
+                    if (document.addEventListener) document.addEventListener("ltkAsyncListener", function () {
+                        _ltk_util.ready(d)
+                    }); else {
+                        e = document.documentElement;
+                        e.ltkAsyncProperty = 0;
+                        e.attachEvent("onpropertychange", function (e) {
+                            if (e.propertyName == "ltkAsyncProperty") {
+                                _ltk_util.ready(d)
+                            }
+                        })
+                    }
+                } else {
+                    _ltk_util.ready(d)
+                }
+            })(function () {
+                _ltk.Activity.AddProductBrowse("{{ page.product.productNumber }}");
+                _ltk.Activity.Submit();
+            });
+        </script>
+    {% endif %}
+{% endblock %}

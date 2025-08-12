@@ -25,7 +25,13 @@ Component.register('data-api-test', {
                 $parent = $parent.$parent;
             }
 
-            return $parent.actualConfigData.null;
+            const salesChannelId = $parent.currentSalesChannelId;
+
+            // Fallback: if no sales channel selected, use global.
+            return (
+                $parent.actualConfigData[salesChannelId] ||
+                $parent.actualConfigData.null
+            );
         },
     },
 
@@ -36,7 +42,6 @@ Component.register('data-api-test', {
 
         check() {
             this.isLoading = true;
-
             this.dataApiTest
                 .check(this.pluginConfig)
                 .then(() => {
