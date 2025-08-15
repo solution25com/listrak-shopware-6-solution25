@@ -49,8 +49,8 @@ class SyncProductsCommand extends Command
         $context = Context::createDefaultContext();
         $criteria = new Criteria();
         $salesChannelId = $input->getArgument('sales-channel-id');
-        $offset = $input->getOption('offset') ?? 0;
-        $limit = $input->getOption('limit') ?? 500;
+        $offset = (int) $input->getOption('offset') ?? 0;
+        $limit = (int) $input->getOption('limit') ?? 500;
         $local = $input->getOption('local');
         $criteria->addFilter(new EqualsFilter('salesChannelId', $salesChannelId));
         $criteria->setLimit(1);
