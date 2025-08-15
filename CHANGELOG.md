@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.18] - 08-15-2025
+- Improved Listrak JS tracking feature.
+- Improved syncing functionality.
+- Updated CLI commands.
+
+
 ## [1.0.17] - 08-12-2025
 - Added multi-channel plugin configuration capabilities.
 - Improved Listrak JS tracking feature.

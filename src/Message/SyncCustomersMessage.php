@@ -10,8 +10,9 @@ class SyncCustomersMessage implements AsyncMessageInterface
 {
     public function __construct(
         private readonly int $offset = 0,
-        private readonly int $limit = 200,
+        private readonly int $limit = 500,
         private readonly ?array $customerIds = null,
+        private readonly ?string $restorerId = null,
         private readonly ?string $salesChannelId = null
     ) {
     }
@@ -34,5 +35,10 @@ class SyncCustomersMessage implements AsyncMessageInterface
     public function getSalesChannelId(): ?string
     {
         return $this->salesChannelId;
+    }
+
+    public function getRestorerId(): ?string
+    {
+        return $this->restorerId;
     }
 }

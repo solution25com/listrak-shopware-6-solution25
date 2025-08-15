@@ -13,9 +13,7 @@ use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Sorting\FieldSorting;
-use Shopware\Core\Framework\Uuid\Uuid;
-use Shopware\Core\System\SalesChannel\Context\AbstractSalesChannelContextFactory;
-use Shopware\Core\System\SalesChannel\SalesChannelEntity;
+use Shopware\Core\System\SalesChannel\Context\SalesChannelContextRestorer;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Messenger\Exception\ExceptionInterface;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -28,10 +26,9 @@ final class SyncOrdersMessageHandler
      */
     public function __construct(
         private readonly EntityRepository $orderRepository,
-        private readonly EntityRepository $salesChannelRepository,
         private readonly ListrakApiService $listrakApiService,
         private readonly DataMappingService $dataMappingService,
-        private readonly AbstractSalesChannelContextFactory $salesChannelContextFactory,
+        private readonly SalesChannelContextRestorer $salesChannelContextRestorer,
         private readonly MessageBusInterface $messageBus,
         private readonly LoggerInterface $logger
     ) {
@@ -40,19 +37,13 @@ final class SyncOrdersMessageHandler
     public function __invoke(SyncOrdersMessage $message): void
     {
         $salesChannelId = $message->getSalesChannelId();
+        $restorerId = $message->getRestorerId();
         $this->logger->debug(
-            'Listrak order sync started for saleschannel:',
-            ['salesChannelId' => $message->getSalesChannelId()]
+            'Listrak order sync started for sales channel:',
+            ['salesChannelId' => $salesChannelId]
         );
         $context = Context::createDefaultContext();
-        $criteria = new Criteria([$salesChannelId]);
-        /** @var SalesChannelEntity $salesChannel */
-        $salesChannel = $this->salesChannelRepository->search($criteria, $context)->first();
-
-        $salesChannelContext = $this->salesChannelContextFactory->create(
-            Uuid::randomHex(),
-            $salesChannel->getId(),
-        );
+        $salesChannelContext = $this->salesChannelContextRestorer->restoreByOrder($restorerId, $context);
         $offset = $message->getOffset();
         $limit = $message->getLimit();
         $orderIds = $message->getOrderIds();
@@ -60,21 +51,41 @@ final class SyncOrdersMessageHandler
             $criteria = new Criteria();
             $criteria->setOffset($offset);
             $criteria->setLimit($limit);
+            $criteria->addSorting(new FieldSorting('id'));
             $criteria->addAssociation('lineItems');
             $criteria->addAssociation('stateMachineState');
-            $criteria->addAssociation('deliveries');
             $criteria->addAssociation('billingAddress');
             $criteria->addAssociation('orderCustomer');
             $criteria->addFilter(new EqualsFilter('salesChannelId', $salesChannelId));
-
-            $criteria->addSorting(new FieldSorting('id'));
+            $criteria->addFields(['id', 'orderNumber', 'shippingTotal', 'totalPrice', 'orderDateTime', 'lineItems',
+                'billingAddress.id',
+                'billingAddress.versionId',
+                'billingAddress.firstName',
+                'billingAddress.lastName',
+                'billingAddress.street',
+                'billingAddress.zipcode',
+                'billingAddress.city',
+                'billingAddress.additionalAddressLine1',
+                'billingAddress.additionalAddressLine2',
+                'billingAddress.country.id',
+                'billingAddress.country.name',
+                'billingAddress.countryState.id',
+                'billingAddress.countryState.name',
+                'stateMachineState.id',
+                'stateMachineState.technicalName',
+                'orderCustomer.id',
+                'orderCustomer.versionId',
+                'orderCustomer.orderId',
+                'orderCustomer.orderVersionId',
+                'orderCustomer.email',
+                'orderCustomer.customerNumber',
+                'price']);
             if ($orderIds !== null) {
                 $criteria->setIds($orderIds);
             }
             $searchResult = $this->orderRepository->search($criteria, $salesChannelContext->getContext());
             $orders = $searchResult->getEntities();
             $this->logger->debug('Orders found for Listrak sync: ' . $orders->count());
-
             $items = [];
             foreach ($orders as $order) {
                 $item = $this->dataMappingService->mapOrderData($order, $salesChannelContext);

@@ -22,7 +22,6 @@
         </service>
         <service id="Listrak\Service\CsvService">
             <argument type="service" id="Listrak\Service\ListrakConfigService"/>
-            <argument type="service" id="newsletter_recipient.repository"/>
             <argument type="service" id="logger"/>
         </service>
         <service id="Listrak\Service\FailedRequestService">
@@ -36,7 +35,6 @@
             <argument type="service" id="product.repository"/>
             <argument type="service" id="category.repository"/>
             <argument type="service" id="currency.repository"/>
-            <argument type="service" id="sales_channel.repository"/>
             <argument type="service" id="Listrak\Service\ListrakConfigService"/>
             <argument type="service" id="logger"/>
         </service>
@@ -90,20 +88,11 @@
                       id="Listrak\Service\ListrakCookieProvider.inner"/>
         </service>
 
-        <service id="Listrak\Controller\FullSyncController" public="true">
-            <argument type="service" id="Listrak\Service\ListrakConfigService"/>
-            <argument type="service" id="messenger.default_bus"/>
-            <argument type="service" id="sales_channel.repository"/>
-            <argument type="service" id="Shopware\Core\System\SalesChannel\Context\SalesChannelContextFactory"/>
-            <tag name="controller.service_arguments"/>
-        </service>
-
         <service id="Listrak\Message\SyncCustomersMessageHandler">
             <argument type="service" id="customer.repository"/>
-            <argument type="service" id="sales_channel.repository"/>
             <argument type="service" id="Listrak\Service\ListrakApiService"/>
             <argument type="service" id="Listrak\Service\DataMappingService"/>
-            <argument type="service" id="Shopware\Core\System\SalesChannel\Context\SalesChannelContextFactory"/>
+            <argument type="service" id="Shopware\Core\System\SalesChannel\Context\SalesChannelContextRestorer"/>
             <argument type="service" id="messenger.default_bus"/>
             <argument type="service" id="logger"/>
             <tag name="messenger.message_handler"/>
@@ -111,48 +100,47 @@
 
         <service id="Listrak\Message\SyncOrdersMessageHandler">
             <argument type="service" id="order.repository"/>
-            <argument type="service" id="sales_channel.repository"/>
             <argument type="service" id="Listrak\Service\ListrakApiService"/>
             <argument type="service" id="Listrak\Service\DataMappingService"/>
-            <argument type="service" id="Shopware\Core\System\SalesChannel\Context\SalesChannelContextFactory"/>
+            <argument type="service" id="Shopware\Core\System\SalesChannel\Context\SalesChannelContextRestorer"/>
             <argument type="service" id="messenger.default_bus"/>
             <argument type="service" id="logger"/>
             <tag name="messenger.message_handler"/>
         </service>
         <service id="Listrak\Message\SyncProductsMessageHandler">
-            <argument type="service" id="sales_channel.repository"/>
             <argument type="service" id="Listrak\Service\ListrakFTPService"/>
             <argument type="service" id="Listrak\Service\DataMappingService"/>
-            <argument type="service" id="Shopware\Core\System\SalesChannel\Context\SalesChannelContextFactory"/>
+            <argument type="service" id="Shopware\Core\System\SalesChannel\Context\SalesChannelContextRestorer"/>
             <argument type="service" id="logger"/>
             <tag name="messenger.message_handler"/>
         </service>
 
         <service id="Listrak\Message\SyncNewsletterRecipientsMessageHandler">
-            <argument type="service" id="sales_channel.repository"/>
+            <argument type="service" id="newsletter_recipient.repository"/>
             <argument type="service" id="Listrak\Service\ListrakApiService"/>
             <argument type="service" id="Listrak\Service\DataMappingService"/>
             <argument type="service" id="Listrak\Service\CsvService"/>
-            <argument type="service" id="Shopware\Core\System\SalesChannel\Context\SalesChannelContextFactory"/>
+            <argument type="service" id="Shopware\Core\System\SalesChannel\Context\SalesChannelContextRestorer"/>
+            <argument type="service" id="messenger.default_bus"/>
             <argument type="service" id="logger"/>
             <tag name="messenger.message_handler"/>
         </service>
 
         <service id="Listrak\Message\SubscribeNewsletterRecipientMessageHandler">
+            <argument type="service" id="customer.repository"/>
             <argument type="service" id="newsletter_recipient.repository"/>
-            <argument type="service" id="sales_channel.repository"/>
             <argument type="service" id="Listrak\Service\ListrakApiService"/>
             <argument type="service" id="Listrak\Service\DataMappingService"/>
-            <argument type="service" id="Shopware\Core\System\SalesChannel\Context\SalesChannelContextFactory"/>
+            <argument type="service" id="Shopware\Core\System\SalesChannel\Context\SalesChannelContextRestorer"/>
             <argument type="service" id="logger"/>
             <tag name="messenger.message_handler"/>
         </service>
 
         <service id="Listrak\Message\UnsubscribeNewsletterRecipientMessageHandler">
+            <argument type="service" id="customer.repository"/>
             <argument type="service" id="newsletter_recipient.repository"/>
-            <argument type="service" id="sales_channel.repository"/>
             <argument type="service" id="Listrak\Service\ListrakApiService"/>
-            <argument type="service" id="Shopware\Core\System\SalesChannel\Context\SalesChannelContextFactory"/>
+            <argument type="service" id="Shopware\Core\System\SalesChannel\Context\SalesChannelContextRestorer"/>
             <argument type="service" id="logger"/>
             <tag name="messenger.message_handler"/>
         </service>
@@ -175,33 +163,33 @@
         </service>
 
         <service id="Listrak\Command\SyncOrdersCommand">
-            <argument type="service" id="sales_channel.repository"/>
+            <argument type="service" id="order.repository"/>
             <argument type="service" id="Listrak\Service\ListrakConfigService"/>
-            <argument type="service" id="Shopware\Core\System\SalesChannel\Context\SalesChannelContextFactory"/>
+            <argument type="service" id="Shopware\Core\System\SalesChannel\Context\SalesChannelContextRestorer"/>
             <argument type="service" id="messenger.default_bus"/>
             <tag name="console.command"/>
         </service>
 
         <service id="Listrak\Command\SyncProductsCommand">
-            <argument type="service" id="sales_channel.repository"/>
+            <argument type="service" id="customer.repository"/>
             <argument type="service" id="Listrak\Service\ListrakConfigService"/>
-            <argument type="service" id="Shopware\Core\System\SalesChannel\Context\SalesChannelContextFactory"/>
+            <argument type="service" id="Shopware\Core\System\SalesChannel\Context\SalesChannelContextRestorer"/>
             <argument type="service" id="messenger.default_bus"/>
             <tag name="console.command"/>
         </service>
 
         <service id="Listrak\Command\SyncCustomersCommand">
-            <argument type="service" id="sales_channel.repository"/>
+            <argument type="service" id="customer.repository"/>
             <argument type="service" id="Listrak\Service\ListrakConfigService"/>
-            <argument type="service" id="Shopware\Core\System\SalesChannel\Context\SalesChannelContextFactory"/>
+            <argument type="service" id="Shopware\Core\System\SalesChannel\Context\SalesChannelContextRestorer"/>
             <argument type="service" id="messenger.default_bus"/>
             <tag name="console.command"/>
         </service>
 
         <service id="Listrak\Command\SyncNewsletterRecipientsCommand">
-            <argument type="service" id="sales_channel.repository"/>
+            <argument type="service" id="customer.repository"/>
             <argument type="service" id="Listrak\Service\ListrakConfigService"/>
-            <argument type="service" id="Shopware\Core\System\SalesChannel\Context\SalesChannelContextFactory"/>
+            <argument type="service" id="Shopware\Core\System\SalesChannel\Context\SalesChannelContextRestorer"/>
             <argument type="service" id="messenger.default_bus"/>
             <tag name="console.command"/>
         </service>

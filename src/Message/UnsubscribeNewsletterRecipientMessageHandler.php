@@ -6,57 +6,59 @@ namespace Listrak\Message;
 
 use Listrak\Service\ListrakApiService;
 use Psr\Log\LoggerInterface;
-use Shopware\Core\Content\Newsletter\Aggregate\NewsletterRecipient\NewsletterRecipientEntity;
 use Shopware\Core\Framework\Context;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
+use Shopware\Core\Framework\DataAbstractionLayer\PartialEntity;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
-use Shopware\Core\Framework\Uuid\Uuid;
-use Shopware\Core\System\SalesChannel\Context\AbstractSalesChannelContextFactory;
-use Shopware\Core\System\SalesChannel\SalesChannelEntity;
+use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
+use Shopware\Core\System\SalesChannel\Context\SalesChannelContextRestorer;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
-use Symfony\Component\Messenger\Exception\ExceptionInterface;
 
 #[AsMessageHandler]
 final class UnsubscribeNewsletterRecipientMessageHandler
 {
     public function __construct(
+        private readonly EntityRepository $customerRepository,
         private readonly EntityRepository $newsletterRecipientRepository,
-        private readonly EntityRepository $salesChannelRepository,
         private readonly ListrakApiService $listrakApiService,
-        private readonly AbstractSalesChannelContextFactory $salesChannelContextFactory,
+        private readonly SalesChannelContextRestorer $salesChannelContextRestorer,
         private readonly LoggerInterface $logger,
     ) {
     }
 
     public function __invoke(UnsubscribeNewsletterRecipientMessage $message): void
     {
-        $salesChannelId = $message->getSalesChannelId();
-        $this->logger->debug('Listrak unsubscribe newsletter recipient sync started for sales channel: ', [
-            'salesChannelId' => $message->getSalesChannelId(),
-        ]);
         $context = Context::createDefaultContext();
-        $criteria = new Criteria([$message->getSalesChannelId()]);
-        /** @var SalesChannelEntity $salesChannel */
-        $salesChannel = $this->salesChannelRepository->search($criteria, $context)->first();
-
-        $salesChannelContext = $this->salesChannelContextFactory->create(
-            Uuid::randomHex(),
-            $salesChannel->getId(),
-        );
+        $salesChannelId = $message->getSalesChannelId();
         $newsletterRecipientId = $message->getNewsletterRecipientId();
+        $customerCriteria = new Criteria();
+        $customerCriteria->addFilter(new EqualsFilter('salesChannelId', $salesChannelId));
+        $customerIds = $this->customerRepository->searchIds($customerCriteria, $context)->getIds();
+        if (empty($customerIds)) {
+            $this->logger->debug(
+                'Listrak unsubscribe newsletter recipient sync skipped for sales channel:',
+                ['newsletterRecipientId' => $newsletterRecipientId, 'salesChannelId' => $salesChannelId]
+            );
+        }
+        $customerId = $customerIds[0];
+        $this->logger->debug(
+            'Listrak unsubscribe newsletter recipient sync started for sales channel:',
+            ['newsletterRecipientId' => $newsletterRecipientId, 'salesChannelId' => $salesChannelId]
+        );
+        $salesChannelContext = $this->salesChannelContextRestorer->restoreByCustomer($customerId, $context);
         try {
             $criteria = new Criteria([$newsletterRecipientId]);
-            /** @var NewsletterRecipientEntity|null $newsletterRecipient */
+            $criteria->addFilter(new EqualsFilter('salesChannelId', $salesChannelId));
+            $criteria->addFields(['id', 'email', 'firstName']);
+            /** @var PartialEntity $newsletterRecipient */
             $newsletterRecipient = $this->newsletterRecipientRepository->search($criteria, $salesChannelContext->getContext())->first();
             $data = [
-                'emailAddress' => $newsletterRecipient->getEmail(),
+                'emailAddress' => $newsletterRecipient['email'],
                 'subscriptionState' => 'Unsubscribed',
             ];
 
             $this->listrakApiService->createOrUpdateContact($data, $salesChannelContext);
         } catch (\Exception $e) {
-            $this->logger->error($e->getMessage());
-        } catch (ExceptionInterface $e) {
             $this->logger->error($e->getMessage());
         }
     }

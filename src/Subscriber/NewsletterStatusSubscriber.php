@@ -35,8 +35,11 @@ class NewsletterStatusSubscriber implements EventSubscriberInterface
     {
         $salesChannelContext = $event->getSalesChannelContext();
         $customer = $salesChannelContext->getCustomer();
+        $usdCriteria = new Criteria();
+        $usdCriteria->addFilter(new EqualsFilter('isoCode', 'USD'));
+        $usdCriteria->addFields(['id', 'isoCode', 'factor']);
         $usdCurrency = $this->currencyRepository->search(
-            (new Criteria())->addFilter(new EqualsFilter('isoCode', 'USD')),
+            $usdCriteria,
             $event->getSalesChannelContext()->getContext()
         )->first();
 
@@ -49,13 +52,14 @@ class NewsletterStatusSubscriber implements EventSubscriberInterface
         $criteria = new Criteria();
         $criteria->addFilter(new EqualsFilter('email', $customer->getEmail()));
         $criteria->addFilter(new OrFilter([new EqualsFilter('status', 'direct'), new EqualsFilter('status', 'optIn'), new EqualsFilter('status', 'notSet')]));
-
+        $criteria->addFields(['id', 'status']);
+        $criteria->setLimit(1);
         $recipient = $this->newsletterRecipientRepository
             ->search($criteria, $event->getSalesChannelContext()->getContext())
             ->first();
 
         $isSubscribed = $recipient !== null;
-        $status = $recipient?->getStatus();
+        $status = $recipient['status'] ?? null;
 
         $event->getPage()->addExtension('listrakInfo', new ArrayStruct(['subscribed' => $isSubscribed, 'status' => $status, 'usdCurrency' => $usdCurrency]));
     }

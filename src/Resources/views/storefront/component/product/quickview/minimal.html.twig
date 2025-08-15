@@ -1,5 +1,4 @@
-{% sw_extends '@Storefront/storefront/component/content/product/quickview/minimal.html.twig' %}
-
+{% sw_extends '@Storefront/storefront/component/product/quickview/minimal.html.twig' %}
 {% block component_product_quickview_minimal %}
     {{ parent() }}
     {% if config('Listrak.config.merchantId') and config('Listrak.config.enableListrakTracking') %}

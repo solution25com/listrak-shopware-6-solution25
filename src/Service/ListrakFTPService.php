@@ -28,8 +28,8 @@ class ListrakFTPService
         $user = $this->listrakConfigService->getConfig('ftpUsername', $salesChannelContext->getSalesChannelId());
 
         $pass = $this->listrakConfigService->getConfig('ftpPassword', $salesChannelContext->getSalesChannelId());
-        $formattedDate = $this->formatDate();
-        $remote = 'Listrak_Product_Feed_' . $formattedDate . '_' . $salesChannelContext->getSalesChannelId() . '.txt';
+        $formattedDate = (new \DateTimeImmutable())->format('YmdHis');
+        $remote = 'Listrak_Product_Feed_' . $salesChannelContext->getSalesChannelId() . '_' . $formattedDate . '.txt';
 
         if ($local) {
             $this->generateLocalFile($remote, $tmp);
@@ -79,16 +79,6 @@ class ListrakFTPService
         } catch (FilesystemException $e) {
             $this->logger->error($e->getMessage());
         }
-    }
-
-    private function formatDate(): string
-    {
-        $originDate = (new \DateTimeImmutable())->format('Ymd');
-        $sequence = 1;                                                    // run number
-        $version = 1;                                                    // could be same as $sequence
-        $generatedAt = (new \DateTimeImmutable())->format('YmdHis');
-
-        return \sprintf('%s%d_%d_%s', $originDate, $sequence, $version, $generatedAt);
     }
 
     private function ftpMkdirRecursive(FtpClient $ftp, string $path): void

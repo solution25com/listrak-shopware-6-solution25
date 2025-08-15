@@ -2,7 +2,7 @@ import CookieStorage from 'src/helper/storage/cookie-storage.helper';
 import OrderData from '../../order-data';
 import CartData from '../../cart-data';
 
-const {PluginBaseClass} = window;
+const { PluginBaseClass } = window;
 
 export default class ListrakTracking extends PluginBaseClass {
     static options = {
@@ -59,6 +59,7 @@ export default class ListrakTracking extends PluginBaseClass {
                 if (email) {
                     _ltk.SCA.Update('email', email);
                 }
+
                 _ltk.Activity.AddPageBrowse();
                 _ltk.Activity.Submit();
             });
@@ -124,14 +125,14 @@ export default class ListrakTracking extends PluginBaseClass {
 
         const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
         const csrfToken = csrfTokenMeta
-            ? {'X-CSRF-Token': csrfTokenMeta.getAttribute('content')}
+            ? { 'X-CSRF-Token': csrfTokenMeta.getAttribute('content') }
             : {};
         const urlsRes = await fetch('/listrak/product-urls', {
             method: 'POST',
-            headers: {'Content-Type': 'application/json', csrfToken},
-            body: JSON.stringify({ids: [...new Set(productIds)]}),
+            headers: { 'Content-Type': 'application/json', csrfToken },
+            body: JSON.stringify({ ids: [...new Set(productIds)] }),
         });
-        const {urls} = await urlsRes.json();
+        const { urls } = await urlsRes.json();
 
         const urlById = urls || {};
         cart.lineItems.forEach((i) => {

@@ -8,40 +8,30 @@ use Listrak\Service\DataMappingService;
 use Listrak\Service\ListrakFTPService;
 use Psr\Log\LoggerInterface;
 use Shopware\Core\Framework\Context;
-use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
-use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
-use Shopware\Core\Framework\Uuid\Uuid;
-use Shopware\Core\System\SalesChannel\Context\AbstractSalesChannelContextFactory;
-use Shopware\Core\System\SalesChannel\SalesChannelEntity;
+use Shopware\Core\System\SalesChannel\Context\SalesChannelContextRestorer;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 #[AsMessageHandler]
 final class SyncProductsMessageHandler
 {
     public function __construct(
-        private readonly EntityRepository $salesChannelRepository,
         private readonly ListrakFTPService $listrakFtpService,
         private readonly DataMappingService $dataMappingService,
-        private readonly AbstractSalesChannelContextFactory $salesChannelContextFactory,
+        private readonly SalesChannelContextRestorer $salesChannelContextRestorer,
         private readonly LoggerInterface $logger
     ) {
     }
 
     public function __invoke(SyncProductsMessage $message): void
     {
-        $this->logger->debug('Listrak product sync started for sales channel: ', [
-            'salesChannelId' => $message->getSalesChannelId(),
-        ]);
-        $context = Context::createDefaultContext();
-        $criteria = new Criteria([$message->getSalesChannelId()]);
-        /** @var SalesChannelEntity $salesChannel */
-        $salesChannel = $this->salesChannelRepository->search($criteria, $context)->first();
-
-        $salesChannelContext = $this->salesChannelContextFactory->create(
-            Uuid::randomHex(),
-            $salesChannel->getId(),
+        $salesChannelId = $message->getSalesChannelId();
+        $restorerId = $message->getRestorerId();
+        $this->logger->debug(
+            'Listrak customer sync started for sales channel:',
+            ['salesChannelId' => $salesChannelId]
         );
-
+        $context = Context::createDefaultContext();
+        $salesChannelContext = $this->salesChannelContextRestorer->restoreByCustomer($restorerId, $context);
         $offset = $message->getOffset();
         $limit = $message->getLimit();
         $local = $message->getLocal();

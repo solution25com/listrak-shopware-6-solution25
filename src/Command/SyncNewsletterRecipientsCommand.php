@@ -9,13 +9,13 @@ use Listrak\Service\ListrakConfigService;
 use Shopware\Core\Framework\Context;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
-use Shopware\Core\Framework\Uuid\Uuid;
-use Shopware\Core\System\SalesChannel\Context\AbstractSalesChannelContextFactory;
-use Shopware\Core\System\SalesChannel\SalesChannelContext;
-use Shopware\Core\System\SalesChannel\SalesChannelEntity;
+use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
+use Shopware\Core\System\SalesChannel\Context\SalesChannelContextRestorer;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Messenger\MessageBusInterface;
 
@@ -23,9 +23,9 @@ use Symfony\Component\Messenger\MessageBusInterface;
 class SyncNewsletterRecipientsCommand extends Command
 {
     public function __construct(
-        private readonly EntityRepository $salesChannelRepository,
+        private readonly EntityRepository $customerRepository,
         private readonly ListrakConfigService $listrakConfigService,
-        private readonly AbstractSalesChannelContextFactory $salesChannelContextFactory,
+        private readonly SalesChannelContextRestorer $salesChannelContextRestorer,
         private readonly MessageBusInterface $messageBus,
     ) {
         parent::__construct();
@@ -33,35 +33,47 @@ class SyncNewsletterRecipientsCommand extends Command
 
     protected function configure(): void
     {
-        $this->setDescription('Syncs newsletter recipients to Listrak for all sales channels.');
+        $this->setDescription('Syncs newsletter recipients to Listrak for the specified sales channel');
+        $this->addArgument(
+            'sales-channel-id',
+            InputArgument::REQUIRED,
+            'Sales channel ID of the corresponding sales channel to sync newsletter recipients for'
+        );
+        $this->addOption('limit', null, InputOption::VALUE_OPTIONAL, 'The limit of newsletter recipient entities to query');
+        $this->addOption('offset', null, InputOption::VALUE_OPTIONAL, 'The offset to start from');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $context = Context::createDefaultContext();
         $criteria = new Criteria();
-        $salesChannels = $this->salesChannelRepository->search($criteria, $context);
-        $salesChannelContexts = [];
-        /** @var SalesChannelEntity $salesChannel */
-        foreach ($salesChannels as $salesChannel) {
-            $salesChannelContexts[] = $this->salesChannelContextFactory->create(
-                Uuid::randomHex(),
-                $salesChannel->getId(),
-            );
+        $salesChannelId = $input->getArgument('sales-channel-id');
+        $offset = $input->getOption('offset') ?? 0;
+        $limit = $input->getOption('limit') ?? 3000;
+        $criteria->addFilter(new EqualsFilter('salesChannelId', $salesChannelId));
+        $criteria->setLimit(1);
+        $customerIds = $this->customerRepository->searchIds($criteria, $context)->getIds();
+        if (empty($customerIds)) {
+            $output->writeln('<error>Listrak newsletter recipient sync has been skipped. No sales channel context restorer found.</error>');
+
+            return Command::FAILURE;
         }
-        /** @var SalesChannelContext $salesChannelContext */
-        foreach ($salesChannelContexts as $salesChannelContext) {
-            $clientId = $this->listrakConfigService->getConfig('emailClientId', $salesChannelContext->getSalesChannel()->getId());
-            $clientSecret = $this->listrakConfigService->getConfig('emailClientSecret', $salesChannelContext->getSalesChannel()->getId());
-            if (!$clientId || !$clientSecret) {
-                $output->writeln('<info>Listrak newsletter recipient sync has been skipped. The API keys are missing.</info>');
-                return Command::FAILURE;
-            }
-            $this->messageBus->dispatch(
-                new SyncNewsletterRecipientsMessage($salesChannelContext->getSalesChannelId())
-            );
+        $restorerId = $customerIds[0];
+
+        $salesChannelContext = $this->salesChannelContextRestorer->restoreByCustomer($restorerId, $context);
+
+        $clientId = $this->listrakConfigService->getConfig('emailClientId', $salesChannelContext->getSalesChannel()->getId());
+        $clientSecret = $this->listrakConfigService->getConfig('emailClientSecret', $salesChannelContext->getSalesChannel()->getId());
+        if (!$clientId || !$clientSecret) {
+            $output->writeln('<info>Listrak newsletter recipient sync has been skipped. The API keys are missing.</info>');
+
+            return Command::FAILURE;
         }
-        $output->writeln('<info>Listrak newsletter recipient sync has been dispatched to the queue.</info>');
+        $this->messageBus->dispatch(
+            new SyncNewsletterRecipientsMessage($offset, $limit, $restorerId, $salesChannelContext->getSalesChannelId())
+        );
+
+        $output->writeln('<info>Listrak newsletter recipient sync has been dispatched to the queue for the specified sales channel</info>');
 
         return Command::SUCCESS;
     }

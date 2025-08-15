@@ -11,7 +11,8 @@ class SyncProductsMessage implements AsyncMessageInterface
     public function __construct(
         private readonly bool $local = false,
         private readonly int $offset = 0,
-        private readonly int $limit = 200,
+        private readonly int $limit = 500,
+        private readonly ?string $restorerId = null,
         private readonly ?string $salesChannelId = null
     ) {
     }
@@ -29,6 +30,11 @@ class SyncProductsMessage implements AsyncMessageInterface
     public function getLimit(): int
     {
         return $this->limit;
+    }
+
+    public function getRestorerId(): ?string
+    {
+        return $this->restorerId;
     }
 
     public function getSalesChannelId(): ?string
