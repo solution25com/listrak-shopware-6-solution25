@@ -1,22 +1,4 @@
 {
-    "fullCustomerSyncButton": {
-        "buttonLabel": "Vollständige Kundensynchronisierung",
-        "title": "Vollständige Kundensynchronisierung",
-        "success": "Die Kundensynchronisierung wurde in die Warteschlange gestellt.",
-        "error": "Die Kundensynchronisierung ist fehlgeschlagen. Bitte versuchen Sie es erneut."
-    },
-    "fullOrderSyncButton": {
-        "buttonLabel": "Vollständige Auftragssynchronisierung",
-        "title": "Vollständige Auftragssynchronisierung",
-        "success": "Die Auftragssynchronisierung wurde in die Warteschlange gestellt.",
-        "error": "Die Auftragssynchronisierung ist fehlgeschlagen. Bitte versuchen Sie es erneut."
-    },
-    "fullNewsletterRecipientSyncButton": {
-        "buttonLabel": "Vollständige Synchronisierung der Newsletter-Empfänger",
-        "title": "åVollständige Synchronisierung der Newsletter-Empfänger",
-        "success": "Die Synchronisierung der Newsletter-Empfänger wurde in die Warteschlange gestellt.",
-        "error": "Die Synchronisierung der Newsletter-Empfänger ist fehlgeschlagen. Bitte versuchen Sie es erneut."
-    },
     "dataApiTest": {
         "buttonLabel": "API-Verbindung testen",
         "title": "Datenintegrations-API-Test",

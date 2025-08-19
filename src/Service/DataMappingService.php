@@ -8,6 +8,7 @@ use Psr\Log\LoggerInterface;
 use Shopware\Core\Checkout\Cart\LineItem\LineItem;
 use Shopware\Core\Checkout\Order\Aggregate\OrderLineItem\OrderLineItemEntity;
 use Shopware\Core\Framework\Context;
+use Shopware\Core\Framework\DataAbstractionLayer\Entity;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\PartialEntity;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
@@ -76,7 +77,7 @@ class DataMappingService
     }
 
     public function mapContactData(
-        PartialEntity $newsletterRecipient,
+        Entity $newsletterRecipient,
         ?string $salesChannelId = null
     ): array {
         $data = [
@@ -142,7 +143,7 @@ class DataMappingService
 
     public function mapProductData($offset, $limit, SalesChannelContext $salesChannelContext): bool|string
     {
-        $tmp = tempnam(sys_get_temp_dir(), 'prod_export_' . $salesChannelContext->getSalesChannelId()) . '.txt';
+        $tmp = tempnam(sys_get_temp_dir(), 'listrak_product_export_' . $salesChannelContext->getSalesChannelId());
         $fh = fopen($tmp, 'w');
 
         $headers = [

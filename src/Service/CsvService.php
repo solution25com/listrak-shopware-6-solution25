@@ -46,13 +46,13 @@ class CsvService
         }
 
         try {
-            $extraFields = $this->getExportFields($salesChannelContext->getSalesChannel()->getId()) ?? [];
+            $extraFields = $this->getExportFields($salesChannelContext->getSalesChannel()->getId());
 
             $headers = array_merge(['email'], $extraFields);
             $this->logger->info('Listrak newsletter recipient file: headers prepared', ['headers' => $headers]);
 
-            // Write header row (use ; if you need semicolon CSV)
-            $delimiter = ','; // change to ';' if needed
+
+            $delimiter = ',';
             $enclosure = '"';
 
             if (fputcsv($file, $headers, $delimiter, $enclosure) === false) {
@@ -63,11 +63,9 @@ class CsvService
 
             $rowIndex = 0;
             foreach ($recipients as $recipient) {
-                // Normalize each recipient to an array (if it might be an entity/ArrayAccess)
                 if ($recipient instanceof \JsonSerializable) {
                     $row = (array) $recipient->jsonSerialize();
                 } elseif (\is_object($recipient)) {
-                    // Best effort: convert public props; adjust if you have getters
                     $row = get_object_vars($recipient);
                 } elseif (\is_array($recipient)) {
                     $row = $recipient;
@@ -76,11 +74,9 @@ class CsvService
                     $row = [];
                 }
 
-                // Build CSV row in header order, logging missing keys once in a while
                 $csvRow = [];
                 foreach ($headers as $h) {
                     if (!\array_key_exists($h, $row)) {
-                        // Log sparse to avoid huge logs
                         if ($rowIndex < 5) {
                             $this->logger->debug('Listrak newsletter recipient file: missing key in row', ['key' => $h, 'index' => $rowIndex, 'availableKeys' => array_keys($row)]);
                         }
@@ -102,7 +98,6 @@ class CsvService
 
             $this->logger->info('Listrak newsletter recipient file: finished writing rows', ['rows' => $rowIndex]);
 
-            // Read & encode
             fflush($file);
             fclose($file);
             $file = null;
@@ -115,7 +110,7 @@ class CsvService
             }
 
             $encoded = base64_encode($content);
-            if ($encoded === false) {
+            if (!$encoded) {
                 $this->logger->error('Listrak newsletter recipient file: base64_encode failed', ['bytes' => \strlen($content)]);
 
                 return '';

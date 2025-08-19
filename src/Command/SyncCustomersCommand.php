@@ -41,8 +41,8 @@ class SyncCustomersCommand extends Command
             InputArgument::REQUIRED,
             'Sales channel ID of the corresponding sales channel to sync customers for'
         );
-        $this->addOption('limit', null, InputOption::VALUE_OPTIONAL, 'The limit of customer entities to query');
-        $this->addOption('offset', null, InputOption::VALUE_OPTIONAL, 'The offset to start from');
+        $this->addOption('limit', null, InputOption::VALUE_OPTIONAL, 'The limit of customer entities to query', 500);
+        $this->addOption('offset', null, InputOption::VALUE_OPTIONAL, 'The offset to start from', 0);
     }
 
     /**
@@ -54,8 +54,16 @@ class SyncCustomersCommand extends Command
         $context = Context::createDefaultContext();
         $criteria = new Criteria();
         $salesChannelId = $input->getArgument('sales-channel-id');
-        $offset = (int) $input->getOption('offset') ?? 0;
-        $limit = (int) $input->getOption('limit') ?? 500;
+        $offset = filter_var(
+            $input->getOption('offset'),
+            \FILTER_VALIDATE_INT,
+            ['options' => ['default' => 0, 'min_range' => 0]]
+        );
+        $limit = filter_var(
+            $input->getOption('limit'),
+            \FILTER_VALIDATE_INT,
+            ['options' => ['default' => 500, 'min_range' => 1]]
+        );
         $criteria->addFilter(new EqualsFilter('salesChannelId', $salesChannelId));
         $criteria->setLimit(1);
         $customerIds = $this->customerRepository->searchIds($criteria, $context)->getIds();

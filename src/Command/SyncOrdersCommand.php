@@ -39,8 +39,8 @@ class SyncOrdersCommand extends Command
             InputArgument::REQUIRED,
             'Sales channel ID of the corresponding sales channel to sync orders for'
         );
-        $this->addOption('limit', null, InputOption::VALUE_OPTIONAL, 'The limit of order entities to query');
-        $this->addOption('offset', null, InputOption::VALUE_OPTIONAL, 'The offset to start from');
+        $this->addOption('limit', null, InputOption::VALUE_OPTIONAL, 'The limit of order entities to query', 500);
+        $this->addOption('offset', null, InputOption::VALUE_OPTIONAL, 'The offset to start from', 0);
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -48,8 +48,16 @@ class SyncOrdersCommand extends Command
         $context = Context::createDefaultContext();
         $criteria = new Criteria();
         $salesChannelId = $input->getArgument('sales-channel-id');
-        $offset = (int) $input->getOption('offset') ?? 0;
-        $limit = (int) $input->getOption('limit') ?? 300;
+        $offset = filter_var(
+            $input->getOption('offset'),
+            \FILTER_VALIDATE_INT,
+            ['options' => ['default' => 0, 'min_range' => 0]]
+        );
+        $limit = filter_var(
+            $input->getOption('limit'),
+            \FILTER_VALIDATE_INT,
+            ['options' => ['default' => 500, 'min_range' => 1]]
+        );
         $criteria->addFilter(new EqualsFilter('salesChannelId', $salesChannelId));
         $criteria->setLimit(1);
         $orderIds = $this->orderRepository->searchIds($criteria, $context)->getIds();

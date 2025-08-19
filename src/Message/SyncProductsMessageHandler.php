@@ -27,7 +27,7 @@ final class SyncProductsMessageHandler
         $salesChannelId = $message->getSalesChannelId();
         $restorerId = $message->getRestorerId();
         $this->logger->debug(
-            'Listrak customer sync started for sales channel:',
+            'Listrak product sync started for sales channel:',
             ['salesChannelId' => $salesChannelId]
         );
         $context = Context::createDefaultContext();

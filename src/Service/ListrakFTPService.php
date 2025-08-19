@@ -26,7 +26,6 @@ class ListrakFTPService
     public function exportToFTP($local, $tmp, $salesChannelContext): void
     {
         $user = $this->listrakConfigService->getConfig('ftpUsername', $salesChannelContext->getSalesChannelId());
-
         $pass = $this->listrakConfigService->getConfig('ftpPassword', $salesChannelContext->getSalesChannelId());
         $formattedDate = (new \DateTimeImmutable())->format('YmdHis');
         $remote = 'Listrak_Product_Feed_' . $salesChannelContext->getSalesChannelId() . '_' . $formattedDate . '.txt';
@@ -46,7 +45,7 @@ class ListrakFTPService
                 $ftp->pasv(true);
                 $this->logger->debug(
                     'Connected to Listrak FTP Server',
-                    ['host' => self::HOST, 'port' => self::PORT, 'user' => $user, 'pass' => $pass]
+                    ['host' => self::HOST, 'port' => self::PORT]
                 );
 
                 $remoteDir = rtrim(\dirname($remote), '/');
@@ -66,18 +65,47 @@ class ListrakFTPService
         }
     }
 
-    public function generateLocalFile($fileName, $tmp): void
+    public function generateLocalFile(string $fileKey, string $tmpPath): bool
     {
-        try {
-            $tmpContent = file_get_contents($tmp);
+        $in = @fopen($tmpPath, 'rb');
+        if ($in === false) {
+            $this->logger->error('Cannot open temp file', ['tmp' => $tmpPath]);
 
-            if ($this->fileSystem->fileExists($fileName)) {
-                $this->fileSystem->delete($fileName);
+            return false;
+        }
+
+        $tmpKey = $fileKey . '.part';
+
+        try {
+            if ($this->fileSystem->fileExists($tmpKey)) {
+                $this->fileSystem->delete($tmpKey);
+            }
+            $this->fileSystem->writeStream($tmpKey, $in);
+            fclose($in);
+
+            if ($this->fileSystem->fileExists($fileKey)) {
+                $this->fileSystem->delete($fileKey);
+            }
+            $this->fileSystem->move($tmpKey, $fileKey);
+
+            return true;
+        } catch (FilesystemException $e) {
+            $this->logger->error('Write/move failed', ['error' => $e->getMessage(), 'key' => $fileKey]);
+            try {
+                if ($this->fileSystem->fileExists($tmpKey)) {
+                    $this->fileSystem->delete($tmpKey);
+                }
+            } catch (\Throwable) {
             }
 
-            $this->fileSystem->write($fileName, $tmpContent);
-        } catch (FilesystemException $e) {
-            $this->logger->error($e->getMessage());
+            return false;
+        } finally {
+            if (\is_resource($in)) {
+                fclose($in);
+            }
+            if (is_file($tmpPath) && !@unlink($tmpPath)) {
+                $this->logger->warning('Failed to delete temp file', ['tmp' => $tmpPath]);
+            }
         }
     }
 

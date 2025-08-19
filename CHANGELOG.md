@@ -2,6 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.20] - 08-19-2025
+- Improved CLI sync commands.
+
 ## [1.0.19] - 08-15-2025
 - Fixed command option data type issue.
 

@@ -39,8 +39,8 @@ class SyncNewsletterRecipientsCommand extends Command
             InputArgument::REQUIRED,
             'Sales channel ID of the corresponding sales channel to sync newsletter recipients for'
         );
-        $this->addOption('limit', null, InputOption::VALUE_OPTIONAL, 'The limit of newsletter recipient entities to query');
-        $this->addOption('offset', null, InputOption::VALUE_OPTIONAL, 'The offset to start from');
+        $this->addOption('limit', null, InputOption::VALUE_OPTIONAL, 'The limit of newsletter recipient entities to query', 500);
+        $this->addOption('offset', null, InputOption::VALUE_OPTIONAL, 'The offset to start from', 0);
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -48,8 +48,16 @@ class SyncNewsletterRecipientsCommand extends Command
         $context = Context::createDefaultContext();
         $criteria = new Criteria();
         $salesChannelId = $input->getArgument('sales-channel-id');
-        $offset = (int) $input->getOption('offset') ?? 0;
-        $limit = (int) $input->getOption('limit') ?? 3000;
+        $offset = filter_var(
+            $input->getOption('offset'),
+            \FILTER_VALIDATE_INT,
+            ['options' => ['default' => 0, 'min_range' => 0]]
+        );
+        $limit = filter_var(
+            $input->getOption('limit'),
+            \FILTER_VALIDATE_INT,
+            ['options' => ['default' => 2000, 'min_range' => 1]]
+        );
         $criteria->addFilter(new EqualsFilter('salesChannelId', $salesChannelId));
         $criteria->setLimit(1);
         $customerIds = $this->customerRepository->searchIds($criteria, $context)->getIds();
