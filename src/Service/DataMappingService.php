@@ -7,6 +7,7 @@ namespace Listrak\Service;
 use Psr\Log\LoggerInterface;
 use Shopware\Core\Checkout\Cart\LineItem\LineItem;
 use Shopware\Core\Checkout\Order\Aggregate\OrderLineItem\OrderLineItemEntity;
+use Shopware\Core\Content\Media\MediaEntity;
 use Shopware\Core\Framework\Context;
 use Shopware\Core\Framework\DataAbstractionLayer\Entity;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
@@ -193,7 +194,7 @@ class DataMappingService
             );
             $criteria->addSorting(new FieldSorting('id'));
             $criteria->addAssociation('seoUrls');
-            $criteria->addAssociation('cover');
+            $criteria->addAssociation('cover.media');
             $criteria->addAssociation('manufacturer');
             $criteria->addAssociation('visibilities');
 
@@ -245,11 +246,22 @@ class DataMappingService
                     }
                 }
 
+                $imageUrl = '';
+                if (isset($product['cover']['media'])) {
+                    $media = $product['cover']['media'];
+                    if ($media instanceof MediaEntity) {
+                        $imageUrl = $media->getUrl() ?? '';
+                    }
+                    if ($media instanceof PartialEntity) {
+                        $imageUrl = $media['url'] ?? '';
+                    }
+                }
+
                 fputcsv($fh, [
                     $product['productNumber'],
                     $product['parentId'] ? 'V' : 'M',
                     $product['translated']['name'] ?? $product['name'] ?? '',
-                    $product['cover']['media']['url'] ?? '',
+                    $imageUrl,
                     $url,
                     $product['translated']['description'] ?? $product['description'] ?? '',
                     $this->convertToUsd($gross, $salesChannelContext),

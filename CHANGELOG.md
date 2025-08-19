@@ -2,6 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.21] - 08-19-2025
+- Fixed product image url issue.
+
 ## [1.0.20] - 08-19-2025
 - Improved CLI sync commands.
 

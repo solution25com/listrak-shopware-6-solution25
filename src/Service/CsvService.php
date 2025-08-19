@@ -51,7 +51,6 @@ class CsvService
             $headers = array_merge(['email'], $extraFields);
             $this->logger->info('Listrak newsletter recipient file: headers prepared', ['headers' => $headers]);
 
-
             $delimiter = ',';
             $enclosure = '"';
 
