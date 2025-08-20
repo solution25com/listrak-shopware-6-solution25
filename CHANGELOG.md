@@ -2,6 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.22] - 08-20-2025
+- Changed template customization definition.
+
 ## [1.0.21] - 08-19-2025
 - Fixed product image url issue.
 

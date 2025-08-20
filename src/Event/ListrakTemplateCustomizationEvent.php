@@ -12,29 +12,16 @@ class ListrakTemplateCustomizationEvent implements ShopwareEvent
 {
     public const NAME = 'listrak.template_customization_event';
 
-    private array $payload;
-
     private StorableFlow $flow;
 
-    public function __construct(array &$payload, StorableFlow $flow)
+    public function __construct(StorableFlow $flow)
     {
-        $this->payload = $payload;
         $this->flow = $flow;
     }
 
     public function getFlow(): StorableFlow
     {
         return $this->flow;
-    }
-
-    public function getPayload(): array
-    {
-        return $this->payload;
-    }
-
-    public function setPayload(array $payload): void
-    {
-        $this->payload = $payload;
     }
 
     public function getContext(): Context

@@ -37,7 +37,7 @@ class ListrakSendMailAction extends FlowAction implements DelayableAction
         private readonly ListrakApiService $listrakApiService,
         private readonly DataMappingService $dataMappingService,
         private readonly StringTemplateRenderer $templateRenderer,
-        private readonly EventDispatcherInterface $eventDispatcher,
+        private readonly EventDispatcherInterface $eventDispatcher
     ) {
     }
 
@@ -96,11 +96,13 @@ class ListrakSendMailAction extends FlowAction implements DelayableAction
             return;
         }
 
+        $event = new ListrakTemplateCustomizationEvent($flow);
+        $this->eventDispatcher->dispatch($event, ListrakTemplateCustomizationEvent::NAME);
+
         $templateData = [
             'eventName' => $flow->getName(),
             ...$flow->data(),
         ];
-
         $context = $flow->getContext();
 
         foreach ($profileFields as $key => $value) {
@@ -108,10 +110,7 @@ class ListrakSendMailAction extends FlowAction implements DelayableAction
         }
 
         $fields = $this->dataMappingService->mapTemplateVariables($profileFields);
-        $event = new ListrakTemplateCustomizationEvent($fields, $flow);
-        $this->eventDispatcher->dispatch($event, ListrakTemplateCustomizationEvent::NAME);
-        $modifiedPayload = $event->getPayload();
-        $data = $this->dataMappingService->mapTransactionalMessageData($recipients, $modifiedPayload);
+        $data = $this->dataMappingService->mapTransactionalMessageData($recipients, $fields);
         $this->listrakApiService->sendTransactionalMessage($transactionalMessageId, $data, $context, $salesChannelId);
     }
 
