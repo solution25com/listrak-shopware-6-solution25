@@ -14,7 +14,6 @@ use Shopware\Core\Content\Newsletter\Event\NewsletterConfirmEvent;
 use Shopware\Core\Content\Newsletter\Event\NewsletterUnsubscribeEvent;
 use Shopware\Core\Content\Newsletter\NewsletterEvents;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
-use Shopware\Core\Framework\DataAbstractionLayer\EntityWriteResult;
 use Shopware\Core\Framework\DataAbstractionLayer\Event\EntityWrittenEvent;
 use Shopware\Core\Framework\DataAbstractionLayer\PartialEntity;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
@@ -42,66 +41,68 @@ class CustomerSubscriber implements EventSubscriberInterface
 
     public function onCustomerWritten(EntityWrittenEvent $event): void
     {
-        $customerIds = [];
-        foreach ($event->getWriteResults() as $writeResult) {
-            if ($writeResult->getOperation() === EntityWriteResult::OPERATION_DELETE) {
-                continue;
-            }
-            $id = $writeResult->getPrimaryKey();
-            if ($id) {
-                $customerIds[] = $id;
-            }
-        }
-
-        $customerIds = array_values(array_unique($customerIds));
-        if (!$customerIds) {
+        /** @var list<string> $customerIds */
+        $customerIds = $event->getIds();
+        if ($customerIds === []) {
             return;
         }
-        $criteria = new Criteria($customerIds);
-        $criteria->addFields(['id', 'salesChannelId']);
 
-        $customers = $this->customerRepository->search($criteria, $event->getContext());
+        $criteria = (new Criteria($customerIds))->addFields(['id', 'salesChannelId']);
+        $customers = $this->customerRepository->search($criteria, $event->getContext())->getEntities();
 
+        /** @var array<string,bool> $enabledCache */
+        $enabledCache = [];
+        /** @var array<string,list<string>> $salesChannelCustomerMap */
         $salesChannelCustomerMap = [];
-        $enabledCache = []; // salesChannelId => bool.
 
         /** @var PartialEntity $customer */
         foreach ($customers as $customer) {
-            $salesChannelId = $customer['salesChannelId'];
-            if (!$salesChannelId) {
+            $cid = $customer->get('id');
+            $sc = $customer->get('salesChannelId');
+
+            if (!\is_string($cid) || $cid === '' || !\is_string($sc) || $sc === '') {
                 continue;
             }
 
-            if (!\array_key_exists($salesChannelId, $enabledCache)) {
-                $enabledCache[$salesChannelId] = $this->listrakConfigService
-                    ->isDataSyncEnabled('enableCustomerSync', $salesChannelId);
+            if (!\array_key_exists($sc, $enabledCache)) {
+                $enabledCache[$sc] = $this->listrakConfigService->isDataSyncEnabled('enableCustomerSync', $sc);
             }
 
-            if (!$enabledCache[$salesChannelId]) {
-                $this->logger->debug('Listrak customer sync skipped — not enabled for sales channel', [
-                    'customerId' => (string) $customer['id'],
-                    'salesChannelId' => (string) $salesChannelId,
+            if (!$enabledCache[$sc]) {
+                $this->logger->notice('Customer sync skipped — not enabled for sales channel', [
+                    'customerId' => $cid,
+                    'event' => CustomerEvents::CUSTOMER_WRITTEN_EVENT,
+                    'salesChannelId' => $sc,
                 ]);
-
                 continue;
             }
 
-            $salesChannelCustomerMap[$salesChannelId][] = $customer->getId();
+            $salesChannelCustomerMap[$sc][] = $cid;
         }
+
+        if ($salesChannelCustomerMap === []) {
+            return;
+        }
+
+        $this->logger->debug('Customer written event triggered', [
+            'count' => \count($customerIds),
+        ]);
 
         $batchSize = 300;
         foreach ($salesChannelCustomerMap as $salesChannelId => $ids) {
             foreach (array_chunk($ids, $batchSize) as $chunk) {
                 try {
-                    $message = new SyncCustomersMessage(0, $batchSize, $chunk, $chunk[0], $salesChannelId);
-                    $this->messageBus->dispatch($message);
+                    $this->messageBus->dispatch(
+                        new SyncCustomersMessage(0, $batchSize, $chunk, $chunk[0], $salesChannelId)
+                    );
                 } catch (\Throwable $e) {
                     $this->logger->error(
-                        \sprintf(
-                            'Listrak customer sync failed for sales channel %s: %s',
-                            $salesChannelId,
-                            $e->getMessage()
-                        )
+                        'Dispatching SyncCustomersMessage failed for batch of size ' . $batchSize,
+                        [
+                            'exception' => $e,
+                            'event' => CustomerEvents::CUSTOMER_WRITTEN_EVENT,
+                            'salesChannelId' => $salesChannelId,
+                        ]
                     );
                 }
             }
@@ -113,7 +114,7 @@ class CustomerSubscriber implements EventSubscriberInterface
         $salesChannelId = $event->getSalesChannelId();
 
         if (!$this->listrakConfigService->isEmailSyncEnabled($salesChannelId)) {
-            $this->logger->debug('Newsletter sync skipped — sync not enabled for sales channel', [
+            $this->logger->debug('Newsletter sync skipped — sync not enabled for SalesChannel', [
                 'salesChannelId' => $salesChannelId,
             ]);
 
@@ -128,7 +129,8 @@ class CustomerSubscriber implements EventSubscriberInterface
             $message = new SubscribeNewsletterRecipientMessage($newsletterRecipientId, $salesChannelId);
             $this->messageBus->dispatch($message);
         } catch (\Exception $e) {
-            $this->logger->error('Listrak newsletter sync failed: ' . $e->getMessage(), [
+            $this->logger->error('Newsletter sync failed', [
+                'exception' => $e->getMessage(),
                 'newsletterRecipientId' => $newsletterRecipientId,
                 'salesChannelId' => $salesChannelId,
             ]);
@@ -140,7 +142,7 @@ class CustomerSubscriber implements EventSubscriberInterface
         $salesChannelId = $event->getSalesChannelId();
 
         if (!$this->listrakConfigService->isEmailSyncEnabled($salesChannelId)) {
-            $this->logger->debug('Listrak newsletter sync skipped — sync not enabled for SalesChannel', [
+            $this->logger->debug('Newsletter sync skipped — sync not enabled for SalesChannel', [
                 'salesChannelId' => $salesChannelId,
             ]);
 
@@ -154,7 +156,8 @@ class CustomerSubscriber implements EventSubscriberInterface
             $message = new UnsubscribeNewsletterRecipientMessage($newsletterRecipientId, $salesChannelId);
             $this->messageBus->dispatch($message);
         } catch (\Exception $e) {
-            $this->logger->error('Listrak newsletter sync failed: ' . $e->getMessage(), [
+            $this->logger->error('Newsletter sync failed', [
+                'exception' => $e->getMessage(),
                 'newsletterRecipientId' => $newsletterRecipientId,
                 'salesChannelId' => $salesChannelId,
             ]);

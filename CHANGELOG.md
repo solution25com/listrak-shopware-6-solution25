@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.23] - 08-22-2025
+- Improved logging for the plugin.
+- Improved synchronization functionality.
+- Fixed customer address sync issue.
+- Added new config setting for enabling/disabling order syncing through the Listrak browser tracking.
+- Improved code quality.
+
 ## [1.0.22] - 08-20-2025
 - Changed template customization definition.
 

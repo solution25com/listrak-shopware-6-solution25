@@ -25,23 +25,26 @@ final class SyncProductsMessageHandler
     public function __invoke(SyncProductsMessage $message): void
     {
         $salesChannelId = $message->getSalesChannelId();
-        $restorerId = $message->getRestorerId();
         $this->logger->debug(
-            'Listrak product sync started for sales channel:',
+            'Product sync started',
             ['salesChannelId' => $salesChannelId]
         );
+        $restorerId = $message->getRestorerId();
         $context = Context::createDefaultContext();
         $salesChannelContext = $this->salesChannelContextRestorer->restoreByCustomer($restorerId, $context);
-        $offset = $message->getOffset();
         $limit = $message->getLimit();
         $local = $message->getLocal();
 
-        $tmp = $this->dataMappingService->mapProductData($offset, $limit, $salesChannelContext);
+        $tmp = $this->dataMappingService->mapProductData($limit, $salesChannelContext);
         if ($tmp === false) {
-            $this->logger->debug('Listrak product sync skipped for sales channel: ', ['salesChannelId' => $message->getSalesChannelId()]);
+            $this->logger->debug('Product sync skipped', ['salesChannelId' => $message->getSalesChannelId()]);
 
             return;
         }
         $this->listrakFtpService->exportToFTP($local, $tmp, $salesChannelContext);
+        $this->logger->debug(
+            'Product sync ended',
+            ['salesChannelId' => $salesChannelId]
+        );
     }
 }

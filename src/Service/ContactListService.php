@@ -7,7 +7,7 @@ namespace Listrak\Service;
 use Psr\Log\LoggerInterface;
 use Shopware\Core\System\SalesChannel\SalesChannelContext;
 
-class CsvService
+class ContactListService
 {
     public function __construct(
         private readonly ListrakConfigService $listrakConfigService,
@@ -17,13 +17,14 @@ class CsvService
 
     public function saveToCsv($recipients, SalesChannelContext $salesChannelContext): string
     {
-        $this->logger->info('Listrak newsletter recipient file: start', [
+        $this->logger->debug('Generating contact list', [
             'recipientCount' => is_countable($recipients) ? \count($recipients) : null,
             'recipientsType' => \is_object($recipients) ? $recipients::class : \gettype($recipients),
+            'salesChannelId' => $salesChannelContext->getSalesChannel()->getId(),
         ]);
 
         if (!is_iterable($recipients)) {
-            $this->logger->error('Listrak newsletter recipient file: $recipients is not iterable');
+            $this->logger->error('Contact list generation: $recipients is not iterable', ['salesChannelId' => $salesChannelContext->getSalesChannel()->getId()]);
 
             return '';
         }
@@ -33,14 +34,14 @@ class CsvService
         $tempFile = tempnam($tempDir, 'Listrak_Contact_Import_' . $formattedDate);
 
         if ($tempFile === false) {
-            $this->logger->error('Listrak newsletter recipient file: tempnam failed', ['tempDir' => $tempDir]);
+            $this->logger->error('Contact list generation: tempnam failed', ['tempDir' => $tempDir, 'salesChannelId' => $salesChannelContext->getSalesChannel()->getId()]);
 
             return '';
         }
 
         $file = fopen($tempFile, 'wb');
         if ($file === false) {
-            $this->logger->error('Listrak newsletter recipient file: fopen failed', ['tempFile' => $tempFile]);
+            $this->logger->error('Contact list generation: fopen failed', ['tempFile' => $tempFile, 'salesChannelId' => $salesChannelContext->getSalesChannel()->getId()]);
 
             return '';
         }
@@ -49,13 +50,13 @@ class CsvService
             $extraFields = $this->getExportFields($salesChannelContext->getSalesChannel()->getId());
 
             $headers = array_merge(['email'], $extraFields);
-            $this->logger->info('Listrak newsletter recipient file: headers prepared', ['headers' => $headers]);
+            $this->logger->debug('Contact list generation: headers prepared', ['headers' => $headers]);
 
             $delimiter = ',';
             $enclosure = '"';
 
             if (fputcsv($file, $headers, $delimiter, $enclosure) === false) {
-                $this->logger->error('Listrak newsletter recipient file: failed to write header row');
+                $this->logger->error('Contact list generation: failed to write header row', ['salesChannelId' => $salesChannelContext->getSalesChannel()->getId()]);
 
                 return '';
             }
@@ -69,7 +70,7 @@ class CsvService
                 } elseif (\is_array($recipient)) {
                     $row = $recipient;
                 } else {
-                    $this->logger->warning('Listrak newsletter recipient file: recipient not array/object', ['type' => \gettype($recipient), 'index' => $rowIndex]);
+                    $this->logger->warning('Contact list generation: recipient not array/object', ['type' => \gettype($recipient), 'index' => $rowIndex, 'salesChannelId' => $salesChannelContext->getSalesChannel()->getId()]);
                     $row = [];
                 }
 
@@ -77,7 +78,7 @@ class CsvService
                 foreach ($headers as $h) {
                     if (!\array_key_exists($h, $row)) {
                         if ($rowIndex < 5) {
-                            $this->logger->debug('Listrak newsletter recipient file: missing key in row', ['key' => $h, 'index' => $rowIndex, 'availableKeys' => array_keys($row)]);
+                            $this->logger->debug('Contact list generation: missing key in row', ['key' => $h, 'index' => $rowIndex, 'availableKeys' => array_keys($row), 'salesChannelId' => $salesChannelContext->getSalesChannel()->getId()]);
                         }
                         $csvRow[] = '';
                     } else {
@@ -87,7 +88,7 @@ class CsvService
 
                 $bytes = fputcsv($file, $csvRow, $delimiter, $enclosure);
                 if ($bytes === false) {
-                    $this->logger->error('Listrak newsletter recipient file: fputcsv failed', ['index' => $rowIndex]);
+                    $this->logger->error('Contact list generation: fputcsv failed', ['index' => $rowIndex, 'salesChannelId' => $salesChannelContext->getSalesChannel()->getId()]);
 
                     return '';
                 }
@@ -95,7 +96,7 @@ class CsvService
                 ++$rowIndex;
             }
 
-            $this->logger->info('Listrak newsletter recipient file: finished writing rows', ['rows' => $rowIndex]);
+            $this->logger->debug('Contact list generation: finished writing rows', ['rows' => $rowIndex, 'salesChannelId' => $salesChannelContext->getSalesChannel()->getId()]);
 
             fflush($file);
             fclose($file);
@@ -103,19 +104,19 @@ class CsvService
 
             $content = file_get_contents($tempFile);
             if ($content === false) {
-                $this->logger->error('Listrak newsletter recipient file: file_get_contents failed', ['tempFile' => $tempFile]);
+                $this->logger->error('Contact list generation: file_get_contents failed', ['tempFile' => $tempFile, 'salesChannelId' => $salesChannelContext->getSalesChannel()->getId()]);
 
                 return '';
             }
 
             $encoded = base64_encode($content);
             if (!$encoded) {
-                $this->logger->error('Listrak newsletter recipient file: base64_encode failed', ['bytes' => \strlen($content)]);
+                $this->logger->error('Contact list generation: base64_encode failed', ['bytes' => \strlen($content), 'salesChannelId' => $salesChannelContext->getSalesChannel()->getId()]);
 
                 return '';
             }
 
-            $this->logger->info('Listrak newsletter recipient file: success', [
+            $this->logger->debug('Contact list generation was successful', [
                 'bytesRaw' => \strlen($content),
                 'bytesBase64' => \strlen($encoded),
                 'tempFile' => $tempFile,
@@ -125,7 +126,7 @@ class CsvService
 
             return $encoded;
         } catch (\Throwable $e) {
-            $this->logger->error('Listrak newsletter recipient file: exception', ['exception' => $e]);
+            $this->logger->error('Contact list generation failed', ['exception' => $e]);
             try {
                 if (\is_resource($file)) {
                     fclose($file);

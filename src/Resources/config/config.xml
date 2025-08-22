@@ -40,14 +40,12 @@
             <name>ftpUsername</name>
             <label>FTP Username</label>
             <helpText>Listrak FTP Username</helpText>
-            <required>true</required>
         </input-field>
 
         <input-field>
             <name>ftpPassword</name>
             <label>FTP Password</label>
             <helpText>Listrak FTP Password</helpText>
-            <required>true</required>
         </input-field>
     </card>
 
@@ -118,6 +116,13 @@
             <name>enableListrakTrackingUponCookieAcceptance</name>
             <label>Enable Listrak Browser Tracking Upon Cookie Acceptance</label>
             <label lang="de-DE">Aktivieren Sie Listrak Browser Tracking nach der Cookie-Akzeptanz</label>
+            <defaultValue>false</defaultValue>
+        </input-field>
+
+        <input-field type="bool">
+            <name>enableListrakOrderTracking</name>
+            <label>Enable Listrak Browser Order Tracking</label>
+            <label lang="de-DE">Aktivieren Sie die Listrak-Browser-Auftragsverfolgung</label>
             <defaultValue>false</defaultValue>
         </input-field>
 

@@ -13,7 +13,7 @@ use Shopware\Core\Framework\Struct\ArrayStruct;
 use Shopware\Storefront\Page\GenericPageLoadedEvent;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
-class NewsletterStatusSubscriber implements EventSubscriberInterface
+class PageLoadedSubscriber implements EventSubscriberInterface
 {
     /**
      * @param EntityRepository<NewsletterRecipientCollection> $newsletterRecipientRepository

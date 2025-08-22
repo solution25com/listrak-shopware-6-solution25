@@ -127,7 +127,7 @@ export default class ListrakTracking extends PluginBaseClass {
         const csrfToken = csrfTokenMeta
             ? { 'X-CSRF-Token': csrfTokenMeta.getAttribute('content') }
             : {};
-        const urlsRes = await fetch('/listrak/product-urls', {
+        const urlsRes = await fetch('/listrak/product-url', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', csrfToken },
             body: JSON.stringify({ ids: [...new Set(productIds)] }),

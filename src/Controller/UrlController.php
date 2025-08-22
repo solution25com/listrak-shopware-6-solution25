@@ -22,7 +22,7 @@ class UrlController extends StorefrontController
     {
     }
 
-    #[Route(path: '/listrak/product-urls', name: 'frontend.listrak.product-urls', methods: ['POST'])]
+    #[Route(path: '/listrak/product-url', name: 'frontend.listrak.product-url', methods: ['POST'])]
     public function __invoke(Request $request, SalesChannelContext $scContext): JsonResponse
     {
         $ids = array_values(array_filter((array) ($request->toArray()['ids'] ?? []), fn ($id) => Uuid::isValid($id)));

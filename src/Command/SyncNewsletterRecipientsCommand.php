@@ -6,6 +6,7 @@ namespace Listrak\Command;
 
 use Listrak\Message\SyncNewsletterRecipientsMessage;
 use Listrak\Service\ListrakConfigService;
+use Psr\Log\LoggerInterface;
 use Shopware\Core\Framework\Context;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
@@ -27,6 +28,7 @@ class SyncNewsletterRecipientsCommand extends Command
         private readonly ListrakConfigService $listrakConfigService,
         private readonly SalesChannelContextRestorer $salesChannelContextRestorer,
         private readonly MessageBusInterface $messageBus,
+        private readonly LoggerInterface $logger,
     ) {
         parent::__construct();
     }
@@ -56,7 +58,7 @@ class SyncNewsletterRecipientsCommand extends Command
         $limit = filter_var(
             $input->getOption('limit'),
             \FILTER_VALIDATE_INT,
-            ['options' => ['default' => 2000, 'min_range' => 1]]
+            ['options' => ['default' => 500, 'min_range' => 1]]
         );
         $criteria->addFilter(new EqualsFilter('salesChannelId', $salesChannelId));
         $criteria->setLimit(1);
@@ -79,6 +81,10 @@ class SyncNewsletterRecipientsCommand extends Command
         }
         $this->messageBus->dispatch(
             new SyncNewsletterRecipientsMessage($offset, $limit, $restorerId, $salesChannelContext->getSalesChannelId())
+        );
+        $this->logger->debug(
+            'Newsletter recipient sync has been dispatched to queue',
+            ['salesChannelId' => $salesChannelId]
         );
 
         $output->writeln('<info>Listrak newsletter recipient sync has been dispatched to the queue for the specified sales channel</info>');

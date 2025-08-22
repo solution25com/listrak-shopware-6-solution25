@@ -38,15 +38,12 @@ final class SyncCustomersMessageHandler
     {
         $salesChannelId = $message->getSalesChannelId();
         $restorerId = $message->getRestorerId();
-        $this->logger->debug(
-            'Listrak customer sync started for sales channel:',
-            ['salesChannelId' => $salesChannelId]
-        );
         $context = Context::createDefaultContext();
         $salesChannelContext = $this->salesChannelContextRestorer->restoreByCustomer($restorerId, $context);
         $offset = $message->getOffset();
         $limit = $message->getLimit();
         $customerIds = $message->getCustomerIds();
+        $paginate = ($customerIds === null);
         try {
             $criteria = new Criteria();
             $criteria->setOffset($offset);
@@ -97,21 +94,15 @@ final class SyncCustomersMessageHandler
                 $item = $this->dataMappingService->mapCustomerData($customer);
                 $items[] = $item;
             }
-            $this->logger->debug('Customers found for Listrak sync: ' . \count($customers));
 
-            if (empty($items)) {
-                $this->logger->debug('No customers found for Listrak sync.');
-
-                return;
-            }
-
-            $this->listrakApiService->importCustomer($items, $salesChannelContext->getContext(), $salesChannelId);
-
-            if ($searchResult->count() === $limit) {
-                $nextOffset = $offset + $limit;
-                $this->messageBus->dispatch(
-                    new SyncCustomersMessage($nextOffset, $limit, null, $restorerId, $salesChannelId)
-                );
+            $this->listrakApiService->exportCustomer($items, $salesChannelContext);
+            if ($paginate) {
+                if ($searchResult->count() === $limit) {
+                    $nextOffset = $offset + $limit;
+                    $this->messageBus->dispatch(
+                        new SyncCustomersMessage($nextOffset, $limit, null, $restorerId, $salesChannelId)
+                    );
+                }
             }
         } catch (\Exception $e) {
             $this->logger->error($e->getMessage());

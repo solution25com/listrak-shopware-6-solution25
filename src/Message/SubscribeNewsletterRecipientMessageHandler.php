@@ -42,10 +42,6 @@ final class SubscribeNewsletterRecipientMessageHandler
             );
         }
         $customerId = $customerIds[0];
-        $this->logger->debug(
-            'Listrak subscribe newsletter recipient sync started for sales channel:',
-            ['salesChannelId' => $salesChannelId]
-        );
         $salesChannelContext = $this->salesChannelContextRestorer->restoreByCustomer($customerId, $context);
         $newsletterRecipientId = $message->getNewsletterRecipientId();
         try {

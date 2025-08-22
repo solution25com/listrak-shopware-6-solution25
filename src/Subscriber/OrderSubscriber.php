@@ -9,7 +9,6 @@ use Listrak\Service\ListrakConfigService;
 use Psr\Log\LoggerInterface;
 use Shopware\Core\Checkout\Order\OrderEvents;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
-use Shopware\Core\Framework\DataAbstractionLayer\EntityWriteResult;
 use Shopware\Core\Framework\DataAbstractionLayer\Event\EntityWrittenEvent;
 use Shopware\Core\Framework\DataAbstractionLayer\PartialEntity;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
@@ -35,86 +34,66 @@ class OrderSubscriber implements EventSubscriberInterface
 
     public function onOrderWritten(EntityWrittenEvent $event): void
     {
-        $orderIds = [];
-        $orderIdToSalesChannel = [];
-
-        foreach ($event->getWriteResults() as $writeResult) {
-            if ($writeResult->getOperation() === EntityWriteResult::OPERATION_DELETE) {
-                continue;
-            }
-
-            $id = $writeResult->getPrimaryKey();
-            if (!$id) {
-                continue;
-            }
-
-            $orderIds[] = $id;
-
-            $payload = $writeResult->getPayload();
-            if (isset($payload['salesChannelId']) && $payload['salesChannelId']) {
-                $orderIdToSalesChannel[$id] = $payload['salesChannelId'];
-            }
-        }
-
-        $orderIds = array_values(array_unique($orderIds));
-        if (!$orderIds) {
+        /** @var list<string> $orderIds */
+        $orderIds = $event->getIds();
+        if ($orderIds === []) {
             return;
         }
 
-        $missingIds = array_values(array_diff($orderIds, array_keys($orderIdToSalesChannel)));
-        if ($missingIds) {
-            $criteria = new Criteria($missingIds);
-            $criteria->addFields(['id', 'salesChannelId']);
+        $criteria = (new Criteria($orderIds))->addFields(['id', 'salesChannelId']);
+        $orders = $this->orderRepository->search($criteria, $event->getContext())->getEntities();
 
-            $orders = $this->orderRepository->search($criteria, $event->getContext());
+        /** @var array<string,string> $orderIdToSalesChannel */
+        $orderIdToSalesChannel = [];
 
-            /** @var PartialEntity $order */
-            foreach ($orders as $order) {
-                $orderIdToSalesChannel[$order['id']] = $order['salesChannelId'];
+        /** @var PartialEntity $order */
+        foreach ($orders as $order) {
+            $oid = $order->get('id');
+            $sc = $order->get('salesChannelId');
+            if (\is_string($oid) && $oid !== '' && \is_string($sc) && $sc !== '') {
+                $orderIdToSalesChannel[$oid] = $sc;
             }
         }
 
-        $enabledCache = [];            // salesChannelId => bool.
-        $salesChannelOrderMap = [];    // salesChannelId => orderId[].
+        if ($orderIdToSalesChannel === []) {
+            return;
+        }
 
+        /** @var array<string,bool> $enabledCache */
+        $enabledCache = [];
+        /** @var array<string,list<string>> $salesChannelOrderMap */
+        $salesChannelOrderMap = [];
+        $this->logger->debug('Order written event triggered');
         foreach ($orderIdToSalesChannel as $orderId => $salesChannelId) {
             if (!\array_key_exists($salesChannelId, $enabledCache)) {
-                $enabledCache[$salesChannelId] = $this->listrakConfigService->isDataSyncEnabled(
-                    'enableOrderSync',
-                    $salesChannelId
-                );
+                $enabledCache[$salesChannelId] = $this->listrakConfigService->isDataSyncEnabled('enableOrderSync', $salesChannelId);
             }
-
             if (!$enabledCache[$salesChannelId]) {
-                $this->logger->debug('Listrak order sync skipped — not enabled for sales channel', [
-                    'orderId' => (string) $orderId,
-                    'salesChannelId' => (string) $salesChannelId,
+                $this->logger->notice('Order sync skipped — not enabled for sales channel', [
+                    'orderId' => $orderId,
+                    'event' => OrderEvents::ORDER_WRITTEN_EVENT,
+                    'salesChannelId' => $salesChannelId,
                 ]);
                 continue;
             }
-
             $salesChannelOrderMap[$salesChannelId][] = $orderId;
         }
 
-        if (!$salesChannelOrderMap) {
+        if ($salesChannelOrderMap === []) {
             return;
         }
 
         $batchSize = 300;
-
         foreach ($salesChannelOrderMap as $salesChannelId => $ids) {
             foreach (array_chunk($ids, $batchSize) as $chunk) {
                 try {
-                    $message = new SyncOrdersMessage(0, $batchSize, $chunk, $chunk[0], $salesChannelId);
-                    $this->messageBus->dispatch($message);
+                    $this->messageBus->dispatch(new SyncOrdersMessage(0, $batchSize, $chunk, $chunk[0], $salesChannelId));
                 } catch (\Throwable $e) {
-                    $this->logger->error(
-                        \sprintf(
-                            'Listrak order sync failed for sales channel %s: %s',
-                            $salesChannelId,
-                            $e->getMessage()
-                        )
-                    );
+                    $this->logger->error('Dispatching SyncOrdersMessage failed for batch of size ' . $batchSize, [
+                        'exception' => $e,
+                        'event' => OrderEvents::ORDER_WRITTEN_EVENT,
+                        'salesChannelId' => $salesChannelId,
+                    ]);
                 }
             }
         }

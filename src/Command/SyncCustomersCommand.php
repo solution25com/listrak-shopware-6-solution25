@@ -7,6 +7,7 @@ namespace Listrak\Command;
 use Doctrine\DBAL\Exception;
 use Listrak\Message\SyncCustomersMessage;
 use Listrak\Service\ListrakConfigService;
+use Psr\Log\LoggerInterface;
 use Shopware\Core\Framework\Context;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
@@ -29,6 +30,7 @@ class SyncCustomersCommand extends Command
         private readonly ListrakConfigService $listrakConfigService,
         private readonly SalesChannelContextRestorer $salesChannelContextRestorer,
         private readonly MessageBusInterface $messageBus,
+        private readonly LoggerInterface $logger
     ) {
         parent::__construct();
     }
@@ -90,6 +92,10 @@ class SyncCustomersCommand extends Command
         }
         $this->messageBus->dispatch(
             new SyncCustomersMessage($offset, $limit, null, $restorerId, $salesChannelContext->getSalesChannelId())
+        );
+        $this->logger->debug(
+            'Customer sync has been dispatched to queue',
+            ['salesChannelId' => $salesChannelId]
         );
 
         $output->writeln('<info>Listrak customer sync has been dispatched to the queue for the specified sales channel.</info>');

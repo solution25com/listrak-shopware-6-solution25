@@ -403,7 +403,7 @@
                     .map((t) => t.referencedId),
                 i = document.querySelector('meta[name="csrf-token"]'),
                 o = i ? { 'X-CSRF-Token': i.getAttribute('content') } : {},
-                a = await fetch('/listrak/product-urls', {
+                a = await fetch('/listrak/product-url', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

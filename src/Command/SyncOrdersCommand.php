@@ -6,6 +6,7 @@ namespace Listrak\Command;
 
 use Listrak\Message\SyncOrdersMessage;
 use Listrak\Service\ListrakConfigService;
+use Psr\Log\LoggerInterface;
 use Shopware\Core\Framework\Context;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
@@ -27,6 +28,7 @@ class SyncOrdersCommand extends Command
         private readonly ListrakConfigService $listrakConfigService,
         private readonly SalesChannelContextRestorer $salesChannelContextRestorer,
         private readonly MessageBusInterface $messageBus,
+        private readonly LoggerInterface $logger
     ) {
         parent::__construct();
     }
@@ -46,7 +48,6 @@ class SyncOrdersCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $context = Context::createDefaultContext();
-        $criteria = new Criteria();
         $salesChannelId = $input->getArgument('sales-channel-id');
         $offset = filter_var(
             $input->getOption('offset'),
@@ -58,6 +59,7 @@ class SyncOrdersCommand extends Command
             \FILTER_VALIDATE_INT,
             ['options' => ['default' => 500, 'min_range' => 1]]
         );
+        $criteria = new Criteria();
         $criteria->addFilter(new EqualsFilter('salesChannelId', $salesChannelId));
         $criteria->setLimit(1);
         $orderIds = $this->orderRepository->searchIds($criteria, $context)->getIds();
@@ -84,7 +86,10 @@ class SyncOrdersCommand extends Command
         $this->messageBus->dispatch(
             new SyncOrdersMessage($offset, $limit, null, $restorerId, $salesChannelContext->getSalesChannelId())
         );
-
+        $this->logger->debug(
+            'Order sync has been dispatched to queue',
+            ['salesChannelId' => $salesChannelId]
+        );
         $output->writeln('<info>Listrak order sync has been dispatched to the queue for the specified sales channel</info>');
 
         return Command::SUCCESS;

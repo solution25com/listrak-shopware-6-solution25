@@ -9,6 +9,7 @@ use FtpClient\FtpException;
 use League\Flysystem\FilesystemException;
 use League\Flysystem\FilesystemOperator;
 use Psr\Log\LoggerInterface;
+use Shopware\Core\System\SalesChannel\SalesChannelContext;
 
 class ListrakFTPService
 {
@@ -23,7 +24,7 @@ class ListrakFTPService
     ) {
     }
 
-    public function exportToFTP($local, $tmp, $salesChannelContext): void
+    public function exportToFTP(bool $local, string $tmp, SalesChannelContext $salesChannelContext): void
     {
         $user = $this->listrakConfigService->getConfig('ftpUsername', $salesChannelContext->getSalesChannelId());
         $pass = $this->listrakConfigService->getConfig('ftpPassword', $salesChannelContext->getSalesChannelId());
@@ -32,35 +33,49 @@ class ListrakFTPService
 
         if ($local) {
             $this->generateLocalFile($remote, $tmp);
-        } else {
-            $ftp = new FtpClient();
 
+            return;
+        }
+
+        $ftp = new FtpClient();
+
+        $remoteTmp = $remote . '.part';
+        try {
+            $this->logger->debug('Connecting to FTP', ['host' => self::HOST, 'port' => self::PORT]);
+            $ftp->connect(self::HOST, false, self::PORT);
+            $ftp->login($user, $pass);
+            $ftp->pasv(true);
+
+            $remoteDir = rtrim(\dirname($remote), '/');
+            if ($remoteDir !== '' && $remoteDir !== '.') {
+                $this->ftpMkdirRecursive($ftp, $remoteDir);
+            }
+
+            $this->logger->debug('Uploading to FTP (atomic)', ['tmp' => $remoteTmp, 'final' => $remote]);
+            $ftp->put($remoteTmp, $tmp, FTP_BINARY);
+            $ftp->rename($remoteTmp, $remote);
+
+            $this->logger->debug('File successfully exported to FTP', [
+                'file' => $remote,
+                'salesChannelId' => $salesChannelContext->getSalesChannelId(),
+            ]);
+        } catch (\Throwable $e) {
+            $this->logger->error('Export to FTP failed', [
+                'exception' => $e,
+                'file' => $remote,
+                'salesChannelId' => $salesChannelContext->getSalesChannelId(),
+            ]);
             try {
-                $this->logger->debug(
-                    'Trying to connect to Listrak FTP Server',
-                    ['host' => self::HOST, 'port' => self::PORT, 'user' => $user, 'pass' => $pass]
-                );
-                $ftp->connect(self::HOST, false, self::PORT);
-                $ftp->login($user, $pass);
-                $ftp->pasv(true);
-                $this->logger->debug(
-                    'Connected to Listrak FTP Server',
-                    ['host' => self::HOST, 'port' => self::PORT]
-                );
-
-                $remoteDir = rtrim(\dirname($remote), '/');
-                if ($remoteDir !== '' && $remoteDir !== '.') {
-                    $this->ftpMkdirRecursive($ftp, $remoteDir);
-                }
-
-                $ftp->put($remote, $tmp, FTP_BINARY);
-                $this->logger->debug('File successfully exported to Listrak FTP Server', ['tmp' => $tmp]);
-
+                $ftp->delete($remoteTmp);
+            } catch (\Throwable) {
+            }
+        } finally {
+            try {
                 $ftp->close();
-            } catch (FtpException $e) {
-                $this->logger->error('Failed to connect to FTP server: ' . $e->getMessage());
-            } catch (\Throwable $e) {
-                $this->logger->error('Something went wrong: ' . $e->getMessage());
+            } catch (\Throwable) {
+            }
+            if (is_file($tmp)) {
+                @unlink($tmp);
             }
         }
     }
@@ -90,7 +105,7 @@ class ListrakFTPService
 
             return true;
         } catch (FilesystemException $e) {
-            $this->logger->error('Write/move failed', ['error' => $e->getMessage(), 'key' => $fileKey]);
+            $this->logger->error('File write/move failed', ['exception' => $e->getMessage(), 'fileKey' => $fileKey, 'tmpKey' => $tmpKey]);
             try {
                 if ($this->fileSystem->fileExists($tmpKey)) {
                     $this->fileSystem->delete($tmpKey);
@@ -120,7 +135,7 @@ class ListrakFTPService
                     $ftp->mkdir($current, true);
                 }
             } catch (FtpException $e) {
-                $this->logger->error($e->getMessage());
+                $this->logger->error('Failed to create folder in Listrak FTP server', ['exception' => $e->getMessage()]);
             }
         }
     }

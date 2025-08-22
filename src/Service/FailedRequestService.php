@@ -7,12 +7,12 @@ namespace Listrak\Service;
 use Listrak\Core\Content\FailedRequest\FailedRequestCollection;
 use Listrak\Core\Content\FailedRequest\FailedRequestEntity;
 use Psr\Log\LoggerInterface;
-use Shopware\Core\Framework\Context;
 use Shopware\Core\Framework\DataAbstractionLayer\DataAbstractionLayerException;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\RangeFilter;
 use Shopware\Core\Framework\Uuid\Uuid;
+use Shopware\Core\System\SalesChannel\SalesChannelContext;
 
 class FailedRequestService
 {
@@ -33,24 +33,23 @@ class FailedRequestService
     /**
      * @throws DataAbstractionLayerException
      */
-    public function retry(Context $context): void
+    public function retry(SalesChannelContext $salesChannelContext): void
     {
-        foreach ($this->findEntries($context) as $failedRequestEntry) {
-            $this->logger->info('Retrying failed request', [
-                'id' => $failedRequestEntry->getId(),
-                'retryCount' => $failedRequestEntry->getRetryCount(),
-                'endpoint' => $failedRequestEntry->getEndpoint(),
-            ]);
-
+        $this->logger->info('Retrying failed requests', [
+            'salesChannelId' => $salesChannelContext->getSalesChannel()->getId(),
+        ]);
+        foreach ($this->findEntries($salesChannelContext) as $failedRequestEntry) {
+            if ($failedRequestEntry->getOptions()) {
+            }
             $this->listrakApiService->request(
                 ['url' => $failedRequestEntry->getEndpoint(), 'method' => $failedRequestEntry->getMethod()],
                 $failedRequestEntry->getOptions(),
-                $context,
+                $salesChannelContext,
                 $failedRequestEntry
             );
         }
 
-        $this->flushFailedRequests($context);
+        $this->flushFailedRequests($salesChannelContext);
     }
 
     /**
@@ -61,9 +60,9 @@ class FailedRequestService
         string $method,
         array $options,
         string $response,
-        ?Context $context = null
+        ?SalesChannelContext $salesChannelContext = null
     ): void {
-        if ($context !== null) {
+        if ($salesChannelContext !== null) {
             $entity = new FailedRequestEntity();
             $entity->setId(Uuid::randomHex());
             $entity->setResponse($response);
@@ -85,9 +84,9 @@ class FailedRequestService
         $this->failedRequests[] = $entity;
     }
 
-    public function flushFailedRequests(?Context $context): void
+    public function flushFailedRequests(?SalesChannelContext $salesChannelContext): void
     {
-        if ($context !== null && !empty($this->failedRequests)) {
+        if ($salesChannelContext !== null && !empty($this->failedRequests)) {
             $data = array_map(fn ($entity) => [
                 'id' => $entity->getId(),
                 'retryCount' => $entity->getRetryCount(),
@@ -98,30 +97,30 @@ class FailedRequestService
                 'options' => $entity->getOptions(),
             ], $this->failedRequests);
 
-            $this->failedRequestRepository->upsert($data, $context);
+            $this->failedRequestRepository->upsert($data, $salesChannelContext->getContext());
             $this->failedRequests = [];
         }
     }
 
-    public function removeFromFailedRequests(?Context $context, ?FailedRequestEntity $failedRequestEntity): void
+    public function removeFromFailedRequests(?SalesChannelContext $salesChannelContext, ?FailedRequestEntity $failedRequestEntity): void
     {
-        if ($context && $failedRequestEntity !== null) {
+        if ($salesChannelContext && $failedRequestEntity !== null) {
             $this->failedRequestRepository->delete([
                 ['id' => $failedRequestEntity->getId()],
-            ], $context);
+            ], $salesChannelContext->getContext());
         }
     }
 
     /**
      * @throws DataAbstractionLayerException
      */
-    private function findEntries(Context $context): FailedRequestCollection
+    private function findEntries(SalesChannelContext $salesChannelContext): FailedRequestCollection
     {
         $criteria = new Criteria();
         $criteria->addFilter(new RangeFilter('retryCount', [
             RangeFilter::LT => self::MAX_RETRY_COUNT,
         ]));
 
-        return $this->failedRequestRepository->search($criteria, $context)->getEntities();
+        return $this->failedRequestRepository->search($criteria, $salesChannelContext->getContext())->getEntities();
     }
 }

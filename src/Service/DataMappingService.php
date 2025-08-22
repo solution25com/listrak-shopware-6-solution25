@@ -9,12 +9,15 @@ use Shopware\Core\Checkout\Cart\LineItem\LineItem;
 use Shopware\Core\Checkout\Order\Aggregate\OrderLineItem\OrderLineItemEntity;
 use Shopware\Core\Content\Media\MediaEntity;
 use Shopware\Core\Framework\Context;
+use Shopware\Core\Framework\DataAbstractionLayer\Dbal\Common\RepositoryIterator;
 use Shopware\Core\Framework\DataAbstractionLayer\Entity;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\PartialEntity;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Sorting\FieldSorting;
+use Shopware\Core\System\Country\Aggregate\CountryState\CountryStateEntity;
+use Shopware\Core\System\Country\CountryEntity;
 use Shopware\Core\System\Currency\CurrencyEntity;
 use Shopware\Core\System\SalesChannel\SalesChannelContext;
 
@@ -67,7 +70,7 @@ class DataMappingService
             'birthday' => $customer['birthday']?->format('Y-m-d') ?? '',
             'registered' => !$customer['guest'],
             'customerGroup' => $customer['group']['translated']['name'] ?? $customer['group']['name'] ?? '',
-            'zipCode' => $address['zipcode'] ?? '',
+            'zipcode' => $address['zipcode'] ?? '',
         ];
 
         if ($address) {
@@ -142,96 +145,104 @@ class DataMappingService
         ];
     }
 
-    public function mapProductData($offset, $limit, SalesChannelContext $salesChannelContext): bool|string
+    public function mapProductData($limit, SalesChannelContext $salesChannelContext): bool|string
     {
         $tmp = tempnam(sys_get_temp_dir(), 'listrak_product_export_' . $salesChannelContext->getSalesChannelId());
-        $fh = fopen($tmp, 'w');
+        $fh = fopen($tmp, 'wb');
+        if ($fh === false) {
+            $this->logger->error('Failed to create temp file', ['tmp' => $tmp, 'salesChannelId' => $salesChannelContext->getSalesChannelId()]);
 
-        $headers = [
-            'Sku',
-            'Variant',
-            'Title',
-            'ImageUrl',
-            'LinkUrl',
-            'Description',
-            'Price',
-            'SalesPrice',
-            'Brand',
-            'Category',
-            'SubCategory',
-            'SubCategory2',
-            'SubCategory3',
-            'CategoryTree',
-            'QOH',
-            'InStock',
-            'SystemInStock',
-            'MasterSku',
-            'ReviewProductID',
-            'Related_Sku_1',
-            'Related_Type_1',
-            'Related_Rank_1',
-            'Related_Sku_2',
-            'Related_Type_2',
-            'Related_Rank_2',
-            'Related_Sku_3',
-            'Related_Type_3',
-            'Related_Rank_3',
-            'Related_Sku_4',
-            'Related_Type_4',
-            'Related_Rank_4',
-            'Related_Sku_5',
-            'Related_Type_5',
-            'Related_Rank_5',
-        ];
-        fputcsv($fh, $headers, '|');
+            return false;
+        }
+
+        $criteria = new Criteria();
+        $criteria->setLimit($limit);
+        $criteria->addFilter(
+            new EqualsFilter('visibilities.salesChannelId', $salesChannelContext->getSalesChannelId())
+        );
+        $criteria->addSorting(new FieldSorting('id'));
+        $criteria->addAssociation('seoUrls');
+        $criteria->addAssociation('cover.media');
+        $criteria->addAssociation('manufacturer');
+        $criteria->addAssociation('visibilities');
+        $criteria->setTotalCountMode(Criteria::TOTAL_COUNT_MODE_NONE);
+
+        $criteria->addFields([
+            'id',
+            'productNumber',
+            'name',
+            'description',
+            'availableStock',
+            'price',
+            'parentId',
+            'categoryTree',
+            'seoUrls.id', 'seoUrls.seoPathInfo', 'seoUrls.pathInfo',
+            'seoUrls.isCanonical', 'seoUrls.languageId', 'seoUrls.salesChannelId',
+            'seoUrls.routeName', 'seoUrls.isDeleted',
+            'cover.id',
+            'cover.media.id',
+            'cover.media.path',
+            'cover.media.fileName',
+            'cover.media.fileExtension',
+            'cover.media.private',
+            'manufacturer.id',
+            'manufacturer.name',
+            'visibilities.id',
+            'visibilities.salesChannelId',
+        ]);
+
+        $iterator = new RepositoryIterator($this->productRepository, $salesChannelContext->getContext(), $criteria);
         $productCount = 0;
-        do {
-            $criteria = new Criteria();
-            $criteria->setOffset($offset);
-            $criteria->setLimit($limit);
-            $criteria->addFilter(
-                new EqualsFilter('visibilities.salesChannelId', $salesChannelContext->getSalesChannelId())
-            );
-            $criteria->addSorting(new FieldSorting('id'));
-            $criteria->addAssociation('seoUrls');
-            $criteria->addAssociation('cover.media');
-            $criteria->addAssociation('manufacturer');
-            $criteria->addAssociation('visibilities');
+        $wroteHeader = false;
 
-            $criteria->addFields([
-                'id',
-                'productNumber',
-                'name',
-                'description',
-                'availableStock',
-                'price',
-                'parentId',
-                'categoryTree',
-                'seoUrls.id', 'seoUrls.seoPathInfo', 'seoUrls.pathInfo',
-                'seoUrls.isCanonical', 'seoUrls.languageId', 'seoUrls.salesChannelId',
-                'seoUrls.routeName', 'seoUrls.isDeleted',
-                'cover.id',
-                'cover.media.id',
-                'cover.media.path',
-                'cover.media.fileName',
-                'cover.media.fileExtension',
-                'cover.media.private',
-                'manufacturer.id',
-                'manufacturer.name',
-                'visibilities.id',
-                'visibilities.salesChannelId',
-            ]);
+        while ($result = $iterator->fetch()) {
+            $entities = $result->getEntities();
+            if ($entities->count() === 0) {
+                break;
+            }
+            $headers = [
+                'Sku',
+                'Variant',
+                'Title',
+                'ImageUrl',
+                'LinkUrl',
+                'Description',
+                'Price',
+                'SalesPrice',
+                'Brand',
+                'Category',
+                'SubCategory',
+                'SubCategory2',
+                'SubCategory3',
+                'CategoryTree',
+                'QOH',
+                'InStock',
+                'SystemInStock',
+                'MasterSku',
+                'ReviewProductID',
+                'Related_Sku_1',
+                'Related_Type_1',
+                'Related_Rank_1',
+                'Related_Sku_2',
+                'Related_Type_2',
+                'Related_Rank_2',
+                'Related_Sku_3',
+                'Related_Type_3',
+                'Related_Rank_3',
+                'Related_Sku_4',
+                'Related_Type_4',
+                'Related_Rank_4',
+                'Related_Sku_5',
+                'Related_Type_5',
+                'Related_Rank_5',
+            ];
 
-            $searchResult = $this->productRepository->search($criteria, $salesChannelContext->getContext());
-            $products = $searchResult->getEntities();
-            $this->logger->debug(
-                'Products found for Listrak sync in sales channel: ',
-                ['productCount' => \count($products), 'salesChannelId' => $salesChannelContext->getSalesChannelId()]
-            );
+            if (!$wroteHeader) {
+                fputcsv($fh, $headers, '|');
+                $wroteHeader = true;
+            }
             /** @var PartialEntity $product */
-            foreach ($products as $product) {
-                ++$productCount;
-
+            foreach ($entities as $product) {
                 $url = $this->getFullProductUrl($product, $salesChannelContext);
 
                 $names = $this->getCategoryNamesFromTree($product, $salesChannelContext->getContext());
@@ -250,7 +261,7 @@ class DataMappingService
                 if (isset($product['cover']['media'])) {
                     $media = $product['cover']['media'];
                     if ($media instanceof MediaEntity) {
-                        $imageUrl = $media->getUrl() ?? '';
+                        $imageUrl = $media->getUrl();
                     }
                     if ($media instanceof PartialEntity) {
                         $imageUrl = $media['url'] ?? '';
@@ -292,15 +303,22 @@ class DataMappingService
                     '',
                     '',
                 ], '|');
+                ++$productCount;
             }
-            $offset += $limit;
-        } while ($products->count() > 0);
-
-        if ($productCount === 0) {
-            return false;
         }
 
         fclose($fh);
+
+        $this->logger->debug('Products found for synchronization', [
+            'productCount' => $productCount,
+            'salesChannelId' => $salesChannelContext->getSalesChannelId(),
+        ]);
+
+        if ($productCount === 0) {
+            @unlink($tmp);
+
+            return false;
+        }
 
         return $tmp;
     }
@@ -511,15 +529,32 @@ class DataMappingService
     private function mapAddress(mixed $address): array
     {
         if ($address) {
+            $country = $address['country'];
+            $countryState = $address['countryState'];
+            $countryName = '';
+            $countryStateName = '';
+            if ($country instanceof CountryEntity) {
+                $countryName = $country->getTranslation('name') ?? $country->getName();
+            }
+            if ($country instanceof PartialEntity) {
+                $countryName = $country['translated']['name'] ?? $country['name'] ?? '';
+            }
+            if ($countryState instanceof CountryStateEntity) {
+                $countryStateName = $countryState->getTranslation('name') ?? $countryState->getName();
+            }
+            if ($countryState instanceof PartialEntity) {
+                $countryStateName = $countryState['translated']['name'] ?? $countryState['name'] ?? '';
+            }
+
             return [
                 'firstName' => $address['firstName'],
                 'lastName' => $address['lastName'],
                 'mobilePhone' => $address['phoneNumber'] ?? '',
                 'phone' => $address['phoneNumber'] ?? '',
-                'zipCode' => $address['zipcode'] ?? '',
+                'zipcode' => $address['zipcode'] ?? '',
                 'city' => $address['city'] ?? '',
-                'country' => $address['country']['translated']['name'] ?? $address['country']['name'] ?? '',
-                'state' => $address['countryState']['translated']['name'] ?? $address['countryState']['name'] ?? '',
+                'country' => $countryName,
+                'state' => $countryStateName,
                 'address1' => $address['street'],
                 'address2' => $address['additionalAddressLine1'] ?? '',
                 'address3' => $address['additionalAddressLine2'] ?? '',

@@ -38,15 +38,12 @@ final class SyncOrdersMessageHandler
     {
         $salesChannelId = $message->getSalesChannelId();
         $restorerId = $message->getRestorerId();
-        $this->logger->debug(
-            'Listrak order sync started for sales channel:',
-            ['salesChannelId' => $salesChannelId]
-        );
         $context = Context::createDefaultContext();
         $salesChannelContext = $this->salesChannelContextRestorer->restoreByOrder($restorerId, $context);
         $offset = $message->getOffset();
         $limit = $message->getLimit();
         $orderIds = $message->getOrderIds();
+        $paginate = ($orderIds === null);
         try {
             $criteria = new Criteria();
             $criteria->setOffset($offset);
@@ -85,22 +82,17 @@ final class SyncOrdersMessageHandler
             }
             $searchResult = $this->orderRepository->search($criteria, $salesChannelContext->getContext());
             $orders = $searchResult->getEntities();
-            $this->logger->debug('Orders found for Listrak sync: ' . $orders->count());
             $items = [];
             foreach ($orders as $order) {
                 $item = $this->dataMappingService->mapOrderData($order, $salesChannelContext);
                 $items[] = $item;
             }
-            if (empty($items)) {
-                $this->logger->debug('No orders found for Listrak sync.');
-
-                return;
-            }
-            $this->listrakApiService->importOrder($items, $salesChannelContext);
-
-            if ($searchResult->count() === $limit) {
-                $nextOffset = $offset + $limit;
-                $this->messageBus->dispatch(new SyncOrdersMessage($nextOffset, $limit, null, $salesChannelId));
+            $this->listrakApiService->exportOrder($items, $salesChannelContext);
+            if ($paginate) {
+                if ($searchResult->count() === $limit) {
+                    $nextOffset = $offset + $limit;
+                    $this->messageBus->dispatch(new SyncOrdersMessage($nextOffset, $limit, null, $restorerId, $salesChannelId));
+                }
             }
         } catch (\Exception $e) {
             $this->logger->error($e->getMessage());

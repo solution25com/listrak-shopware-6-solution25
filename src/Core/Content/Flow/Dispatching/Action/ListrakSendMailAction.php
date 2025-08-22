@@ -20,6 +20,8 @@ use Shopware\Core\Framework\Adapter\Twig\StringTemplateRenderer;
 use Shopware\Core\Framework\DataAbstractionLayer\Exception\InconsistentCriteriaIdsException;
 use Shopware\Core\Framework\Event\EventData\MailRecipientStruct;
 use Shopware\Core\Framework\Event\MailAware;
+use Shopware\Core\Framework\Uuid\Uuid;
+use Shopware\Core\System\SalesChannel\Context\AbstractSalesChannelContextFactory;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 class ListrakSendMailAction extends FlowAction implements DelayableAction
@@ -29,15 +31,13 @@ class ListrakSendMailAction extends FlowAction implements DelayableAction
     private const RECIPIENT_CONFIG_CUSTOM = 'custom';
     private const RECIPIENT_CONFIG_CONTACT_FORM_MAIL = 'contactFormMail';
 
-    /**
-     * @internal
-     */
     public function __construct(
         private readonly Connection $connection,
         private readonly ListrakApiService $listrakApiService,
         private readonly DataMappingService $dataMappingService,
         private readonly StringTemplateRenderer $templateRenderer,
-        private readonly EventDispatcherInterface $eventDispatcher
+        private readonly EventDispatcherInterface $eventDispatcher,
+        private readonly AbstractSalesChannelContextFactory $salesChannelContextFactory
     ) {
     }
 
@@ -66,7 +66,13 @@ class ListrakSendMailAction extends FlowAction implements DelayableAction
         }
         $salesChannelId = $flow->getStore('salesChannelId')
             ?: $flow->getData('salesChannelId');
-
+        $salesChannelContext = null;
+        if ($salesChannelId) {
+            $salesChannelContext = $this->salesChannelContextFactory->create(
+                Uuid::randomHex(),
+                $salesChannelId,
+            );
+        }
         $eventConfig = $flow->getConfig();
         if (empty($eventConfig['recipient'])) {
             throw new MailEventConfigurationException(
@@ -111,7 +117,7 @@ class ListrakSendMailAction extends FlowAction implements DelayableAction
 
         $fields = $this->dataMappingService->mapTemplateVariables($profileFields);
         $data = $this->dataMappingService->mapTransactionalMessageData($recipients, $fields);
-        $this->listrakApiService->sendTransactionalMessage($transactionalMessageId, $data, $context, $salesChannelId);
+        $this->listrakApiService->sendTransactionalMessage($transactionalMessageId, $data, $salesChannelContext);
     }
 
     /**

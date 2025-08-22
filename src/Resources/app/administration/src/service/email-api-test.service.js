@@ -1,7 +1,7 @@
 const ApiService = Shopware.Classes.ApiService;
 
 export default class EmailApiTestService extends ApiService {
-    constructor(httpClient, loginService, apiEndpoint = 'listrak-email-api') {
+    constructor(httpClient, loginService, apiEndpoint = 'listrak/email-api') {
         super(httpClient, loginService, apiEndpoint);
     }
 

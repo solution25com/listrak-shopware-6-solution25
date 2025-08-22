@@ -6,6 +6,7 @@ namespace Listrak\Command;
 
 use Listrak\Message\SyncProductsMessage;
 use Listrak\Service\ListrakConfigService;
+use Psr\Log\LoggerInterface;
 use Shopware\Core\Framework\Context;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
@@ -27,6 +28,7 @@ class SyncProductsCommand extends Command
         private readonly ListrakConfigService $listrakConfigService,
         private readonly SalesChannelContextRestorer $salesChannelContextRestorer,
         private readonly MessageBusInterface $messageBus,
+        private readonly LoggerInterface $logger
     ) {
         parent::__construct();
     }
@@ -40,7 +42,6 @@ class SyncProductsCommand extends Command
             'Sales channel ID of the corresponding sales channel to sync products for'
         );
         $this->addOption('limit', null, InputOption::VALUE_OPTIONAL, 'The limit of product entities to query', 2000);
-        $this->addOption('offset', null, InputOption::VALUE_OPTIONAL, 'The offset to start from', 0);
         $this->addOption('local', null, InputOption::VALUE_NONE, 'Generate file locally instead of exporting to FTP');
     }
 
@@ -49,11 +50,6 @@ class SyncProductsCommand extends Command
         $context = Context::createDefaultContext();
         $criteria = new Criteria();
         $salesChannelId = $input->getArgument('sales-channel-id');
-        $offset = filter_var(
-            $input->getOption('offset'),
-            \FILTER_VALIDATE_INT,
-            ['options' => ['default' => 0, 'min_range' => 0]]
-        );
         $limit = filter_var(
             $input->getOption('limit'),
             \FILTER_VALIDATE_INT,
@@ -88,9 +84,12 @@ class SyncProductsCommand extends Command
             return Command::FAILURE;
         }
         $this->messageBus->dispatch(
-            new SyncProductsMessage($local, $offset, $limit, $restorerId, $salesChannelContext->getSalesChannelId())
+            new SyncProductsMessage($local, $limit, $restorerId, $salesChannelContext->getSalesChannelId())
         );
-
+        $this->logger->debug(
+            'Product sync has been dispatched to queue',
+            ['salesChannelId' => $salesChannelId]
+        );
         $output->writeln('<info>Listrak product sync has been dispatched to the queue for the specified sales channel</info>');
 
         return Command::SUCCESS;

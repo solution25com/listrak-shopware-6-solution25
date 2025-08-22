@@ -2,9 +2,11 @@
 
 {% block base_body_script %}
     {{ parent() }}
+    {% if config('Listrak.config.enableListrakOrderTracking')%}
 
     {% sw_include '@Listrak/storefront/component/cart-tracker.html.twig' with {
         placement: 'order'
     } %}
 
+{% endif %}
 {% endblock %}

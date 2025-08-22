@@ -36,15 +36,11 @@ final class UnsubscribeNewsletterRecipientMessageHandler
         $customerIds = $this->customerRepository->searchIds($customerCriteria, $context)->getIds();
         if (empty($customerIds)) {
             $this->logger->debug(
-                'Listrak unsubscribe newsletter recipient sync skipped for sales channel:',
+                'Unsubscribe newsletter recipient sync skipped',
                 ['newsletterRecipientId' => $newsletterRecipientId, 'salesChannelId' => $salesChannelId]
             );
         }
         $customerId = $customerIds[0];
-        $this->logger->debug(
-            'Listrak unsubscribe newsletter recipient sync started for sales channel:',
-            ['newsletterRecipientId' => $newsletterRecipientId, 'salesChannelId' => $salesChannelId]
-        );
         $salesChannelContext = $this->salesChannelContextRestorer->restoreByCustomer($customerId, $context);
         try {
             $criteria = new Criteria([$newsletterRecipientId]);

@@ -8,8 +8,11 @@ use Listrak\Service\FailedRequestService;
 use Psr\Log\LoggerInterface;
 use Shopware\Core\Framework\Context;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
+use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\MessageQueue\ScheduledTask\ScheduledTaskCollection;
 use Shopware\Core\Framework\MessageQueue\ScheduledTask\ScheduledTaskHandler;
+use Shopware\Core\Framework\Uuid\Uuid;
+use Shopware\Core\System\SalesChannel\Context\AbstractSalesChannelContextFactory;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 #[AsMessageHandler(handles: RequestRetryTask::class)]
@@ -20,8 +23,10 @@ class RequestRetryTaskHandler extends ScheduledTaskHandler
      */
     public function __construct(
         protected EntityRepository $scheduledTaskRepository,
-        private FailedRequestService $failedRequestService,
-        private LoggerInterface $logger,
+        private readonly EntityRepository $salesChannelRepository,
+        private readonly AbstractSalesChannelContextFactory $salesChannelContextFactory,
+        private readonly FailedRequestService $failedRequestService,
+        private readonly LoggerInterface $logger,
     ) {
         parent::__construct($scheduledTaskRepository);
     }
@@ -37,11 +42,23 @@ class RequestRetryTaskHandler extends ScheduledTaskHandler
     public function run(): void
     {
         $context = Context::createDefaultContext();
-        try {
-            $this->logger->notice('Running Listrak request retry task');
-            $this->failedRequestService->retry($context);
-        } catch (\Exception $exception) {
-            $this->logger->error($exception->getMessage() . ' ' . $exception->getTraceAsString());
+        $criteria = new Criteria();
+        $criteria->addFields(['id']);
+        $salesChannel = $this->salesChannelRepository->search($criteria, $context)->first();
+        if ($salesChannel) {
+            $salesChannelContext = $this->salesChannelContextFactory->create(
+                Uuid::randomHex(),
+                $salesChannel['id'],
+            );
+            try {
+                $this->logger->notice('RequestRetryTask started');
+
+                $this->failedRequestService->retry($salesChannelContext);
+
+                $this->logger->notice('RequestRetryTask ended');
+            } catch (\Exception $exception) {
+                $this->logger->error($exception->getMessage() . ' ' . $exception->getTraceAsString());
+            }
         }
     }
 }

@@ -1,7 +1,7 @@
 const ApiService = Shopware.Classes.ApiService;
 
 export default class DataApiTestService extends ApiService {
-    constructor(httpClient, loginService, apiEndpoint = 'listrak-data-api') {
+    constructor(httpClient, loginService, apiEndpoint = 'listrak/data-api') {
         super(httpClient, loginService, apiEndpoint);
     }
 

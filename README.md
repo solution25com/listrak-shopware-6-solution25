@@ -112,6 +112,7 @@ The Listrak plugin integrates your Shopware 6 store with Listrak’s marketing p
 3. **Sync Settings**
 
 - Enable Listrak Browser Tracking by clicking on the toggle.
+- Enable Listrak Browser Order Tracking by clicking on the toggle.
 - Enable ongoing Customer Synchronization by clicking on the toggle.
 - Enable ongoing Order Synchronization by clicking on the toggle.
 
@@ -129,7 +130,7 @@ This document describes the custom Admin API endpoints provided by the Listrak P
 ## Data API Connection Test
 
 **Endpoint**  
-`POST /api/_action/listrak-data-api/test`
+`POST /api/_action/listrak/data-api/test`
 
 ### Description
 
@@ -175,7 +176,7 @@ Content-Type: application/json
 ## Email API Connection Test
 
 **Endpoint**  
-`POST /api/_action/listrak-email-api/test`
+`POST /api/_action/listrak/email-api/test`
 
 ### Description
 
@@ -256,7 +257,6 @@ Sync products to Listrak for the specified sales channel.
 | Option | Description |
 |--------|-------------|
 | `--limit=<n>` | Maximum number of products to export.
-| `--offset=<n>` | Starting offset for export (for batching).
 | `--local` | Generate file locally instead of transferring via FTP.
 
 ---
