@@ -48,7 +48,6 @@
         <service id="Listrak\Subscriber\OrderSubscriber">
             <argument type="service" id="Listrak\Service\ListrakConfigService"/>
             <argument type="service" id="messenger.default_bus"/>
-            <argument type="service" id="order.repository"/>
             <argument type="service" id="listrak.logger"/>
             <tag name="kernel.event_subscriber"/>
         </service>

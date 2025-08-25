@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+
+## [1.0.24] - 08-25-2025
+- Switched order event that is tracked for syncing.
+
 ## [1.0.23] - 08-22-2025
 - Improved logging for the plugin.
 - Improved synchronization functionality.
