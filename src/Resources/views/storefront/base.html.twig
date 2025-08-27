@@ -1,6 +1,24 @@
 {% sw_extends '@Storefront/storefront/base.html.twig' %}
-
 {% block base_body_script %}
     {{ parent() }}
-{% sw_include '@Listrak/storefront/component/listrak-framework.html.twig' %}
+    {% block listrak_script %}
+
+        {% if config('Listrak.config.merchantId') and config('Listrak.config.enableListrakTracking') %}
+            {% set email = context.customer.email | default('') %}
+            {% set merchantId = config('Listrak.config.merchantId') %}
+            {% set requiresCookieConsent = config('Listrak.config.enableListrakTrackingUponCookieAcceptance') %}
+            {% if listrakTrackingOptions is not defined %}
+
+                {% set listrakTrackingOptions = {
+                    merchantId: merchantId,
+                    requiresCookieConsent: requiresCookieConsent,
+                    email: email
+                } %}
+            {% endif %}
+        {% endif %}
+
+
+        <template data-listrak-tracking
+                  data-listrak-tracking-options='{{ listrakTrackingOptions|json_encode }}'></template>
+    {% endblock %}
 {% endblock %}

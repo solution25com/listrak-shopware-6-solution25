@@ -389,11 +389,23 @@
                 });
         }
         convertToUsd(t) {
-            let r = this.options.data.currencyIsoCode,
-                n = this.options.data.usdCurrency.factor;
-            return 'USD' === r.toUpperCase()
-                ? t
-                : Math.round(t * n * 100) / 100;
+            var r;
+            let n = String(
+                    this.options.data.currencyIsoCode || ''
+                ).toUpperCase(),
+                i = Number(this.options.data.currencyFactor) || 1,
+                o = Number(
+                    (r = this.options.data.usdCurrency) === null || void 0 === r
+                        ? void 0
+                        : r.factor
+                );
+            if (!o) throw Error('USD currency factor is missing.');
+            if ('USD' === n) return t;
+            let a = Number(t) * (o / i);
+            return this.round2(a);
+        }
+        round2(t) {
+            return Math.round((Number(t) + Number.EPSILON) * 100) / 100;
         }
         async handleCartItems(t) {
             let r = this.options.data;
@@ -445,7 +457,7 @@
                                         : t.totalPrice) !== null && void 0 !== l
                                     ? l
                                     : 0,
-                            k = {
+                            f = {
                                 sku:
                                     (s =
                                         (c =
@@ -480,7 +492,7 @@
                                         : '',
                                 productUrl: t.productUrl,
                             };
-                        r.push(k);
+                        r.push(f);
                     }),
                 r
             );

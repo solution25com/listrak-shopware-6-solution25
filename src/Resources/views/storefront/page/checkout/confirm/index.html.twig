@@ -46,3 +46,11 @@
             </div>
         {% endif %}
     {% endblock %}
+
+
+    {% block listrak_script %}
+    {% sw_include '@Listrak/storefront/component/cart-tracker.html.twig' with {
+        placement: 'cart'
+    }  %}
+    {% endblock %}
+

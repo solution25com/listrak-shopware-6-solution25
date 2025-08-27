@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.25] - 08-27-2025
+- Added new Product Sync file columns and logic for them.
+- Fixed JS tracking script duplication.
+- Other small fixes.
 
 ## [1.0.24] - 08-25-2025
 - Switched order event that is tracked for syncing.

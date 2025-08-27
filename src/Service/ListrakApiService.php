@@ -331,8 +331,38 @@ class ListrakApiService extends Endpoints
         if ($s === null) {
             return null;
         }
+        $s = $this->redactTokens($s);
 
         return mb_strlen($s) > $limit ? (mb_substr($s, 0, $limit) . '…[truncated]') : $s;
+    }
+
+    private function redactTokens(string $s): string
+    {
+        $s = preg_replace(
+            '/([?&]|^)(access_token|refresh_token)=([^&#\s]+)/i',
+            '$1$2=[REDACTED]',
+            $s
+        );
+
+        $s = preg_replace(
+            '/("(?:access_token|refresh_token)"\s*:\s*)"([^"]*)"/i',
+            '$1"[REDACTED]"',
+            $s
+        );
+
+        $s = preg_replace(
+            '/(\'(?:access_token|refresh_token)\'\s*:\s*)\'([^\']*)\'/i',
+            '$1\'[REDACTED]\'',
+            $s
+        );
+
+        $s = preg_replace(
+            '/(Authorization\s*:\s*Bearer\s+)[A-Za-z0-9._~+\-\/=]+/i',
+            '$1[REDACTED]',
+            $s
+        );
+
+        return $s;
     }
 
     private function extractError(array $decoded): ?string

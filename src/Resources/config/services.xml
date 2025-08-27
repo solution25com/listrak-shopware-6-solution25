@@ -32,7 +32,7 @@
 
 
         <service id="Listrak\Service\DataMappingService">
-            <argument type="service" id="product.repository"/>
+            <argument type="service" id="sales_channel.product.repository"/>
             <argument type="service" id="category.repository"/>
             <argument type="service" id="currency.repository"/>
             <argument type="service" id="Listrak\Service\ListrakConfigService"/>

@@ -8,7 +8,8 @@
         firstName: context.customer.firstName | default(''),
         lastName: context.customer.lastName | default(''),
         currencyIsoCode: context.currency.isoCode | default(''),
-        usdCurrency: page.extensions.listrakInfo.usdCurrency
+        currencyFactor: context.currency.factor | default(''),
+        usdCurrency: page.extensions.listrakInfo.usdCurrency | default('')
     } %}
     {% if placement == 'order' %}
 

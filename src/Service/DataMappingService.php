@@ -6,10 +6,12 @@ namespace Listrak\Service;
 
 use Psr\Log\LoggerInterface;
 use Shopware\Core\Checkout\Cart\LineItem\LineItem;
+use Shopware\Core\Checkout\Cart\Price\Struct\CalculatedPrice;
+use Shopware\Core\Checkout\Cart\Price\Struct\ListPrice;
 use Shopware\Core\Checkout\Order\Aggregate\OrderLineItem\OrderLineItemEntity;
 use Shopware\Core\Content\Media\MediaEntity;
 use Shopware\Core\Framework\Context;
-use Shopware\Core\Framework\DataAbstractionLayer\Dbal\Common\RepositoryIterator;
+use Shopware\Core\Framework\DataAbstractionLayer\Dbal\Common\SalesChannelRepositoryIterator;
 use Shopware\Core\Framework\DataAbstractionLayer\Entity;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\PartialEntity;
@@ -19,12 +21,13 @@ use Shopware\Core\Framework\DataAbstractionLayer\Search\Sorting\FieldSorting;
 use Shopware\Core\System\Country\Aggregate\CountryState\CountryStateEntity;
 use Shopware\Core\System\Country\CountryEntity;
 use Shopware\Core\System\Currency\CurrencyEntity;
+use Shopware\Core\System\SalesChannel\Entity\SalesChannelRepository;
 use Shopware\Core\System\SalesChannel\SalesChannelContext;
 
 class DataMappingService
 {
     public function __construct(
-        private readonly EntityRepository $productRepository,
+        private readonly SalesChannelRepository $productRepository,
         private readonly EntityRepository $categoryRepository,
         private readonly EntityRepository $currencyRepository,
         private readonly ListrakConfigService $listrakConfigService,
@@ -145,6 +148,9 @@ class DataMappingService
         ];
     }
 
+    /**
+     * @throws \DateMalformedStringException
+     */
     public function mapProductData($limit, SalesChannelContext $salesChannelContext): bool|string
     {
         $tmp = tempnam(sys_get_temp_dir(), 'listrak_product_export_' . $salesChannelContext->getSalesChannelId());
@@ -170,6 +176,12 @@ class DataMappingService
         $criteria->addFields([
             'id',
             'productNumber',
+            'childCount',
+            'active',
+            'available',
+            'isCloseout',
+            'minPurchase',
+            'releaseDate',
             'name',
             'description',
             'availableStock',
@@ -189,9 +201,10 @@ class DataMappingService
             'manufacturer.name',
             'visibilities.id',
             'visibilities.salesChannelId',
+            'calculatedPrice',
         ]);
 
-        $iterator = new RepositoryIterator($this->productRepository, $salesChannelContext->getContext(), $criteria);
+        $iterator = new SalesChannelRepositoryIterator($this->productRepository, $salesChannelContext, $criteria);
         $productCount = 0;
         $wroteHeader = false;
 
@@ -208,7 +221,7 @@ class DataMappingService
                 'LinkUrl',
                 'Description',
                 'Price',
-                'SalesPrice',
+                'SalePrice',
                 'Brand',
                 'Category',
                 'SubCategory',
@@ -218,6 +231,8 @@ class DataMappingService
                 'QOH',
                 'InStock',
                 'SystemInStock',
+                'OnSale',
+                'IsPurchasable',
                 'MasterSku',
                 'ReviewProductID',
                 'Related_Sku_1',
@@ -241,22 +256,34 @@ class DataMappingService
                 fputcsv($fh, $headers, '|');
                 $wroteHeader = true;
             }
+            $parentIds = [];
+            foreach ($entities as $p) {
+                $pid = $p->get('parentId');
+                if ($pid) {
+                    $parentIds[$pid] = true;
+                }
+            }
+            $parentIdList = array_keys($parentIds);
+
+            $parentSkuById = [];
+            if (!empty($parentIdList)) {
+                $parentCrit = new Criteria($parentIdList);
+                $parentCrit->addFields(['id', 'productNumber']);
+                $parents = $this->productRepository->search($parentCrit, $salesChannelContext)->getEntities();
+                foreach ($parents as $parent) {
+                    $parentSkuById[$parent->get('id')] = $parent->get('productNumber');
+                }
+            }
+
             /** @var PartialEntity $product */
             foreach ($entities as $product) {
                 $url = $this->getFullProductUrl($product, $salesChannelContext);
-
+                $parentId = $product['parentId'] ?? null;
+                $parentSku = $parentId ? ($parentSkuById[$parentId] ?? '') : '';
                 $names = $this->getCategoryNamesFromTree($product, $salesChannelContext->getContext());
                 [$parent, $sub1, $sub2, $sub3] = array_pad($names, 4, null);
-                $priceCollection = $product['price'];
-                $gross = 0;
-
-                if ($priceCollection !== null) {
-                    $price = $priceCollection->first();
-                    if ($price !== null) {
-                        $gross = $price->getGross();
-                    }
-                }
-
+                [$unit, $list, $onSale] = $this->extractPricesFromProduct($product);
+                $isPurchasable = $this->isPurchasable($product, $unit);
                 $imageUrl = '';
                 if (isset($product['cover']['media'])) {
                     $media = $product['cover']['media'];
@@ -275,8 +302,8 @@ class DataMappingService
                     $imageUrl,
                     $url,
                     $product['translated']['description'] ?? $product['description'] ?? '',
-                    $this->convertToUsd($gross, $salesChannelContext),
-                    $this->convertToUsd($gross, $salesChannelContext),
+                    $this->convertToUsd($list, $salesChannelContext),
+                    $this->convertToUsd($unit, $salesChannelContext),
                     $product['manufacturer']['translated']['name'] ?? $product['manufacturer']['name'] ?? '',
                     $parent,
                     $sub1,
@@ -286,7 +313,9 @@ class DataMappingService
                     $product['availableStock'],
                     $product['availableStock'] > 0 ? 'true' : 'false',
                     $product['availableStock'] > 0 ? 'true' : 'false',
-                    '',
+                    $onSale ? 'true' : 'false',
+                    $isPurchasable ? 'true' : 'false',
+                    $parentSku,
                     $product['productNumber'],
                     '',
                     '',
@@ -347,38 +376,96 @@ class DataMappingService
         return $profileFields;
     }
 
-    public function convertToUsd(
-        float $amount,
-        SalesChannelContext $salesChannelContext
-    ): float {
-        // Short-circuit if already USD.
-        $criteria = new Criteria([$salesChannelContext->getCurrencyId()]);
-        $criteria->addFields(['isoCode', 'factor']);
-        $criteria->setLimit(1);
+    public function convertToUsd(float $amount, SalesChannelContext $ctx): float
+    {
+        $from = $ctx->getCurrency();
 
-        $fromCurrency = $this->currencyRepository->search(
-            $criteria,
-            $salesChannelContext->getContext()
-        )->first();
-
-        if (strtoupper($fromCurrency['isoCode']) === 'USD') {
+        if (strtoupper($from->getIsoCode()) === 'USD') {
             return $amount;
         }
-        $channelCurrency = $salesChannelContext->getCurrency();
-        $usdCriteria = new Criteria();
-        $usdCriteria->addFilter(new EqualsFilter('isoCode', 'USD'));
-        $usdCriteria->addFields(['isoCode', 'factor']);
-        $usdCurrency = $this->currencyRepository->search($usdCriteria, $salesChannelContext->getContext())->first();
-        /** @var CurrencyEntity $fromCurrency */
-        $amountInDefault = $fromCurrency->getId() === $channelCurrency->getId()
-            ? $amount
-            : $amount /
-            $fromCurrency['factor'];
 
-        /** @var PartialEntity $usdCurrency */
-        $amountInUsd = $amountInDefault * $usdCurrency['factor'];
+        $criteria = (new Criteria())
+            ->addFilter(new EqualsFilter('isoCode', 'USD'))
+            ->setLimit(1);
 
-        return round($amountInUsd, 2);
+        /** @var CurrencyEntity|null $usd */
+        $usd = $this->currencyRepository->search($criteria, $ctx->getContext())->first();
+
+        if (!$usd) {
+            throw new \RuntimeException('USD currency not found in system currencies.');
+        }
+
+        $rate = $usd->getFactor() / $from->getFactor();
+        $usdAmount = $amount * $rate;
+
+        return round($usdAmount, 2);
+    }
+
+    /**
+     * @return array{0: float, 1: float, 2: bool} [unit, list, onSale]
+     */
+    public function extractPricesFromProduct(PartialEntity $product): array
+    {
+        $calc = $product->get('calculatedPrice');
+
+        if ($calc instanceof CalculatedPrice) {
+            $unit = (float) $calc->getUnitPrice();
+            $lp = $calc->getListPrice();
+            $list = $lp ? (float) $lp->getPrice() : $unit;
+
+            return [$unit, $list, ($list - $unit) > 0.00001];
+        }
+
+        if (\is_array($calc)) {
+            $unit = isset($calc['unitPrice']) ? (float) $calc['unitPrice'] : 0.0;
+
+            $list = $unit;
+            if (\array_key_exists('listPrice', $calc)) {
+                $raw = $calc['listPrice'];
+                if ($raw instanceof ListPrice) {
+                    $list = (float) $raw->getPrice();
+                } elseif (\is_array($raw) && isset($raw['price'])) {
+                    $list = (float) $raw['price'];
+                }
+            }
+
+            return [$unit, $list, ($list - $unit) > 0.00001];
+        }
+
+        return [0.0, 0.0, false];
+    }
+
+    /**
+     * @throws \DateMalformedStringException
+     */
+    public function isPurchasable(PartialEntity $p, $unitPrice): bool
+    {
+        if ($p->get('parentId') === null && (int) ($p->get('childCount') ?? 0) > 0) {
+            return false;
+        }
+
+        if (!$p->get('active')) {
+            return false;
+        }
+
+        if ($p->has('available')) {
+            if ($p->get('available') !== true) {
+                return false;
+            }
+        } else {
+            $min = (int) ($p->get('minPurchase') ?? 1);
+            $stock = (int) ($p->get('availableStock') ?? 0);
+            $close = (bool) ($p->get('isCloseout') ?? false);
+            if ($close && $stock < $min) {
+                return false;
+            }
+            $release = $p->get('releaseDate');
+            if ($release && new \DateTimeImmutable($release) > new \DateTimeImmutable()) {
+                return false;
+            }
+        }
+
+        return $unitPrice > 0.0;
     }
 
     private function getFullProductUrl(PartialEntity $product, SalesChannelContext $ctx): ?string
@@ -397,7 +484,7 @@ class DataMappingService
                 'seoUrls.isCanonical', 'seoUrls.languageId', 'seoUrls.salesChannelId',
                 'seoUrls.routeName', 'seoUrls.isDeleted',
             ]);
-            $parent = $this->productRepository->search($c, $ctx->getContext())->first();
+            $parent = $this->productRepository->search($c, $ctx)->first();
             if ($parent) {
                 $seo = $this->pickCanonicalSeo($parent['seoUrls'], $scId, $langId);
             }
@@ -564,7 +651,7 @@ class DataMappingService
         return [];
     }
 
-    private function mapFileFields(?string $salesChannelId = null)
+    private function mapFileFields(?string $salesChannelId = null): array
     {
         $salutationListrakFieldId = $this->listrakConfigService->getConfig(
             'salutationSegmentationFieldId',

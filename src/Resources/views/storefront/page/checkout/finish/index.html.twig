@@ -1,12 +1,12 @@
 {% sw_extends '@Storefront/storefront/page/checkout/finish/index.html.twig' %}
 
-{% block base_body_script %}
-    {{ parent() }}
+{% block listrak_script %}
     {% if config('Listrak.config.enableListrakOrderTracking')%}
 
     {% sw_include '@Listrak/storefront/component/cart-tracker.html.twig' with {
         placement: 'order'
     } %}
+    {% endif %}
 
-{% endif %}
 {% endblock %}
+

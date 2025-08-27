@@ -42,7 +42,6 @@ class OrderSubscriber implements EventSubscriberInterface
 
         $order = $event->getOrder();
 
-
         try {
             $this->messageBus->dispatch(new SyncOrdersMessage(0, 300, [$order->getId()], $order->getId(), $salesChannelId));
         } catch (\Exception $e) {

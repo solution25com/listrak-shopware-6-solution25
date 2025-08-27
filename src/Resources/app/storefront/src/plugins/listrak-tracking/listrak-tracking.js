@@ -105,14 +105,27 @@ export default class ListrakTracking extends PluginBaseClass {
     }
 
     convertToUsd(amount) {
-        let fromCurrencyIso = this.options.data.currencyIsoCode;
-        let usdCurrencyFactor = this.options.data.usdCurrency.factor;
-        if (fromCurrencyIso.toUpperCase() === 'USD') {
+        const fromIso = String(
+            this.options.data.currencyIsoCode || ''
+        ).toUpperCase();
+        const fromFactor = Number(this.options.data.currencyFactor) || 1;
+        const usdFactor = Number(this.options.data.usdCurrency?.factor);
+
+        if (!usdFactor) {
+            throw new Error('USD currency factor is missing.');
+        }
+
+        if (fromIso === 'USD') {
             return amount;
         }
-        const amountInUsd = amount * usdCurrencyFactor;
 
-        return Math.round(amountInUsd * 100) / 100;
+        const rate = usdFactor / fromFactor;
+        const amountInUsd = Number(amount) * rate;
+        return this.round2(amountInUsd);
+    }
+
+    round2(x) {
+        return Math.round((Number(x) + Number.EPSILON) * 100) / 100;
     }
 
     async handleCartItems(cart) {
