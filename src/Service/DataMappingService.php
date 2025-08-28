@@ -230,7 +230,6 @@ class DataMappingService
                 'CategoryTree',
                 'QOH',
                 'InStock',
-                'SystemInStock',
                 'OnSale',
                 'IsPurchasable',
                 'MasterSku',
@@ -274,7 +273,7 @@ class DataMappingService
                     $parentSkuById[$parent->get('id')] = $parent->get('productNumber');
                 }
             }
-
+            $this->logger->debug('Product: ', [$entities->first()]);
             /** @var PartialEntity $product */
             foreach ($entities as $product) {
                 $url = $this->getFullProductUrl($product, $salesChannelContext);
@@ -294,16 +293,15 @@ class DataMappingService
                         $imageUrl = $media['url'] ?? '';
                     }
                 }
-
-                fputcsv($fh, [
+                $row = [
                     $product['productNumber'],
                     $product['parentId'] ? 'V' : 'M',
                     $product['translated']['name'] ?? $product['name'] ?? '',
                     $imageUrl,
                     $url,
                     $product['translated']['description'] ?? $product['description'] ?? '',
-                    $this->convertToUsd($list, $salesChannelContext),
-                    $this->convertToUsd($unit, $salesChannelContext),
+                    $onSale ? $this->convertToUsd($list, $salesChannelContext) : $this->convertToUsd($unit, $salesChannelContext),
+                    $onSale ? $this->convertToUsd($unit, $salesChannelContext) : '',
                     $product['manufacturer']['translated']['name'] ?? $product['manufacturer']['name'] ?? '',
                     $parent,
                     $sub1,
@@ -311,7 +309,6 @@ class DataMappingService
                     $sub3,
                     implode(' > ', $names),
                     $product['availableStock'],
-                    $product['availableStock'] > 0 ? 'true' : 'false',
                     $product['availableStock'] > 0 ? 'true' : 'false',
                     $onSale ? 'true' : 'false',
                     $isPurchasable ? 'true' : 'false',
@@ -331,7 +328,10 @@ class DataMappingService
                     '',
                     '',
                     '',
-                ], '|');
+                    '',
+                ];
+
+                fputcsv($fh, $row, '|');
                 ++$productCount;
             }
         }
@@ -402,7 +402,7 @@ class DataMappingService
     }
 
     /**
-     * @return array{0: float, 1: float, 2: bool} [unit, list, onSale]
+     * @return array{0: float, 1: float|null, 2: bool} [unit, list, onSale]
      */
     public function extractPricesFromProduct(PartialEntity $product): array
     {
@@ -411,28 +411,36 @@ class DataMappingService
         if ($calc instanceof CalculatedPrice) {
             $unit = (float) $calc->getUnitPrice();
             $lp = $calc->getListPrice();
-            $list = $lp ? (float) $lp->getPrice() : $unit;
+            $list = $lp ? (float) $lp->getPrice() : null;
 
-            return [$unit, $list, ($list - $unit) > 0.00001];
+            return [
+                $unit,
+                $list,
+                $list !== null && ($list - $unit) > 0.00001,
+            ];
         }
 
         if (\is_array($calc)) {
             $unit = isset($calc['unitPrice']) ? (float) $calc['unitPrice'] : 0.0;
+            $list = null;
 
-            $list = $unit;
             if (\array_key_exists('listPrice', $calc)) {
                 $raw = $calc['listPrice'];
                 if ($raw instanceof ListPrice) {
-                    $list = (float) $raw->getPrice();
+                    $list = $raw->getPrice();
                 } elseif (\is_array($raw) && isset($raw['price'])) {
                     $list = (float) $raw['price'];
                 }
             }
 
-            return [$unit, $list, ($list - $unit) > 0.00001];
+            return [
+                $unit,
+                $list,
+                $list !== null && ($list - $unit) > 0.00001,
+            ];
         }
 
-        return [0.0, 0.0, false];
+        return [0.0, null, false];
     }
 
     /**

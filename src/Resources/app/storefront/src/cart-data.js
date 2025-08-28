@@ -39,7 +39,6 @@ export default class CartData {
                     );
                 });
             }
-
             _ltk.SCA.Total = data.totalPrice;
             _ltk.SCA.CartLink = data.cartLink;
             _ltk.SCA.Submit();

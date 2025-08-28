@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.26] - 08-28-2025
+- Fix column mismatch in product file and change the way the price fields are filled out.
+- Added Cart Recreation Link functionality.
+
 ## [1.0.25] - 08-27-2025
 - Added new Product Sync file columns and logic for them.
 - Fixed JS tracking script duplication.

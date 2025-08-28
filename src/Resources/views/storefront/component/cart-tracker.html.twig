@@ -2,7 +2,12 @@
     {% set merchantId = config('Listrak.config.merchantId') %}
     {% set placement = placement | default('base') %}
     {% set cartLink = path('frontend.checkout.cart.page') %}
+    {% if page.extensions.listrakCartRecreate is defined and page.extensions.listrakCartRecreate.link %}
+        {% set cartLink =  page.extensions.listrakCartRecreate.link %}
+    {% endif %}
+
     {% set payloadData = {
+        cartLink: cartLink,
         placement: placement,
         email: context.customer.email | default(''),
         firstName: context.customer.firstName | default(''),
