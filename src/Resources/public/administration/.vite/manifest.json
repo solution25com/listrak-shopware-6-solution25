@@ -1,0 +1,11 @@
+{
+  "main.js": {
+    "file": "assets/listrak-B7gKJtKZ.js",
+    "name": "listrak",
+    "src": "main.js",
+    "isEntry": true,
+    "css": [
+      "assets/listrak-C7vKkzvK.css"
+    ]
+  }
+}

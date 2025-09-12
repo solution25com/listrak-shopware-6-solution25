@@ -7,6 +7,7 @@ namespace Listrak\Command;
 use Listrak\Message\SyncProductsMessage;
 use Listrak\Service\ListrakConfigService;
 use Psr\Log\LoggerInterface;
+use Shopware\Core\Framework\Api\Context\SystemSource;
 use Shopware\Core\Framework\Context;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
@@ -47,7 +48,7 @@ class SyncProductsCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $context = Context::createDefaultContext();
+        $context = new Context(new SystemSource());
         $criteria = new Criteria();
         $salesChannelId = $input->getArgument('sales-channel-id');
         $limit = filter_var(

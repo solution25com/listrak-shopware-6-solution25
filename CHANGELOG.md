@@ -2,6 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.27] - 09-12-2025
+- Made plugin compatible with Shopware 6.7.
+
 ## [1.0.26] - 08-28-2025
 - Fix column mismatch in product file and change the way the price fields are filled out.
 - Added Cart Recreation Link functionality.

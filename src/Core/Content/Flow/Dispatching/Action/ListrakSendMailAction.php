@@ -64,8 +64,10 @@ class ListrakSendMailAction extends FlowAction implements DelayableAction
         if (!$flow->hasData(MailAware::MAIL_STRUCT) || !$flow->hasData(MailAware::SALES_CHANNEL_ID)) {
             throw new MailEventConfigurationException('Not have data from MailAware', $flow::class);
         }
+
         $salesChannelId = $flow->getStore('salesChannelId')
             ?: $flow->getData('salesChannelId');
+
         $salesChannelContext = null;
         if ($salesChannelId) {
             $salesChannelContext = $this->salesChannelContextFactory->create(
@@ -73,19 +75,23 @@ class ListrakSendMailAction extends FlowAction implements DelayableAction
                 $salesChannelId,
             );
         }
+
         $eventConfig = $flow->getConfig();
+
         if (empty($eventConfig['recipient'])) {
             throw new MailEventConfigurationException(
                 'The recipient value in the flow action configuration is missing.',
                 $flow::class
             );
         }
+
         if (empty($eventConfig['transactionalMessageId'])) {
             throw new MailEventConfigurationException(
                 'The transactional message ID value in the flow action configuration is missing.',
                 $flow::class
             );
         }
+
         $transactionalMessageId = $eventConfig['transactionalMessageId'];
         $profileFields = $eventConfig['profileFields'] ?? '';
 
@@ -134,6 +140,7 @@ class ListrakSendMailAction extends FlowAction implements DelayableAction
         switch ($recipients['type']) {
             case self::RECIPIENT_CONFIG_CUSTOM:
                 return $recipients['data'];
+
             case self::RECIPIENT_CONFIG_ADMIN:
                 $admins = $this->connection->fetchAllAssociative(
                     'SELECT first_name, last_name, email FROM user WHERE admin = true'
@@ -144,6 +151,7 @@ class ListrakSendMailAction extends FlowAction implements DelayableAction
                 }
 
                 return $emails;
+
             case self::RECIPIENT_CONFIG_CONTACT_FORM_MAIL:
                 if (empty($contactFormData)) {
                     return [];
@@ -153,7 +161,10 @@ class ListrakSendMailAction extends FlowAction implements DelayableAction
                     return [];
                 }
 
-                return [$contactFormData['email'] => ($contactFormData['firstName'] ?? '') . ' ' . ($contactFormData['lastName'] ?? '')];
+                return [
+                    $contactFormData['email'] => ($contactFormData['firstName'] ?? '') . ' ' . ($contactFormData['lastName'] ?? ''),
+                ];
+
             default:
                 return $mailStructRecipients;
         }

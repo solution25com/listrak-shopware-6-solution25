@@ -6,6 +6,7 @@ namespace Listrak\ScheduledTask;
 
 use Listrak\Service\FailedRequestService;
 use Psr\Log\LoggerInterface;
+use Shopware\Core\Framework\Api\Context\SystemSource;
 use Shopware\Core\Framework\Context;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
@@ -28,7 +29,7 @@ class RequestRetryTaskHandler extends ScheduledTaskHandler
         private readonly FailedRequestService $failedRequestService,
         private readonly LoggerInterface $logger,
     ) {
-        parent::__construct($scheduledTaskRepository);
+        parent::__construct($scheduledTaskRepository, $logger);
     }
 
     /**
@@ -41,7 +42,7 @@ class RequestRetryTaskHandler extends ScheduledTaskHandler
 
     public function run(): void
     {
-        $context = Context::createDefaultContext();
+        $context = new Context(new SystemSource());
         $criteria = new Criteria();
         $criteria->addFields(['id']);
         $salesChannel = $this->salesChannelRepository->search($criteria, $context)->first();

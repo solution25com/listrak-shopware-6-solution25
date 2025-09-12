@@ -7,6 +7,7 @@ namespace Listrak\Message;
 use Listrak\Service\DataMappingService;
 use Listrak\Service\ListrakApiService;
 use Psr\Log\LoggerInterface;
+use Shopware\Core\Framework\Api\Context\SystemSource;
 use Shopware\Core\Framework\Context;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
@@ -29,7 +30,7 @@ final class SubscribeNewsletterRecipientMessageHandler
 
     public function __invoke(SubscribeNewsletterRecipientMessage $message): void
     {
-        $context = Context::createDefaultContext();
+        $context = new Context(new SystemSource());
         $salesChannelId = $message->getSalesChannelId();
         $newsletterRecipientId = $message->getNewsletterRecipientId();
         $customerCriteria = new Criteria();

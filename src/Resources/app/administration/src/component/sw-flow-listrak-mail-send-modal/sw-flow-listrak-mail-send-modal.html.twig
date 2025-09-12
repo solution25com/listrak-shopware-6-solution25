@@ -31,6 +31,17 @@
         >
             {% block sw_event_action_detail_recipients_grid_column_email %}
             <template #column-email="{ item, column, isInlineEdit, compact }">
+                {% if context.feature.isActive('v6.7.0.0') %}
+                <mt-text-field
+                    v-if="isInlineEdit"
+                    v-model="item.email"
+                    name="sw-field--item-email"
+                    class="sw-flow-listrak-mail-send-modal__recipient-email"
+                    :size="compact ? 'small' : 'default'"
+                    :error="item.errorMail"
+                    :placeholder="$tc('sw-flow.modals.mail.placeholderRecipientEmailAddress')"
+                />
+                {% else %}
                 <sw-text-field
                     v-if="isInlineEdit"
                     v-model:value="item.email"
@@ -40,6 +51,7 @@
                     :error="item.errorMail"
                     :placeholder="$tc('sw-flow.modals.mail.placeholderRecipientEmailAddress')"
                 />
+                {% endif %}
                 <template v-else>
                             {{ item.email }}
                         </template>
@@ -48,6 +60,17 @@
 
                 {% block sw_event_action_detail_recipients_grid_column_name %}
             <template #column-name="{ item, column, isInlineEdit, compact }">
+                {% if context.feature.isActive('v6.7.0.0') %}
+                <mt-text-field
+                    v-if="isInlineEdit"
+                    v-model="item.name"
+                    name="sw-field--item-name"
+                    class="sw-flow-listrak-mail-send-modal__recipient-name"
+                    :size="compact ? 'small' : 'default'"
+                    :error="item.errorName"
+                    :placeholder="$tc('sw-flow.modals.mail.placeholderRecipientName')"
+                />
+                {% else %}
                 <sw-text-field
                     v-if="isInlineEdit"
                     v-model:value="item.name"
@@ -57,6 +80,7 @@
                     :error="item.errorName"
                     :placeholder="$tc('sw-flow.modals.mail.placeholderRecipientName')"
                 />
+                {% endif %}
                 <template v-else>
                             {{ item.name }}
                         </template>
@@ -90,6 +114,16 @@
         {% endblock %}
 
         {% block sw_flow_mail_send_modal_custom_modal %}
+            {% if context.feature.isActive('v6.7.0.0') %}
+        <mt-number-field
+            class="sw-flow-listrak-mail-send-modal__transactional-message-id"
+            v-model="transactionalMessageId"
+            :label="$tc('listrakMailSendAction.transactionalMessageIdLabel')"
+            :help-text="$tc('listrakMailSendAction.transactionalMessageIdHelpText')"
+            :error="transactionalMessageIdError"
+            placeholder="11379312"
+        />
+        {% else %}
         <sw-number-field
             class="sw-flow-listrak-mail-send-modal__transactional-message-id"
             v-model:value="transactionalMessageId"
@@ -98,6 +132,7 @@
             :error="transactionalMessageIdError"
             placeholder="11379312"
         />
+        {% endif %}
         <sw-data-grid
             ref="profileFieldsGrid"
             class="sw-flow-listrak-mail-send-modal__profile-fields-grid"
@@ -110,6 +145,16 @@
             @inline-edit-cancel="cancelSaveProfileField"
         >
             <template #column-field-id="{ item, column, isInlineEdit, compact }">
+                {% if context.feature.isActive('v6.7.0.0') %}
+                <mt-number-field
+                    v-if="isInlineEdit"
+                    v-model="item.fieldId"
+                    class="sw-flow-listrak-mail-send-modal__profile-field-id"
+                    :size="compact ? 'small' : 'default'"
+                    :error="item.errorId"
+                    placeholder="1205"
+                />
+                {% else %}
                 <sw-number-field
                     v-if="isInlineEdit"
                     v-model:value="item.fieldId"
@@ -118,12 +163,24 @@
                     :error="item.errorId"
                     placeholder="1205"
                 />
+                {% endif %}
                 <template v-else>
                         {{ item.fieldId }}
                     </template>
             </template>
 
             <template #column-field-value="{ item, column, isInlineEdit, compact }">
+                {% if context.feature.isActive('v6.7.0.0') %}
+                <mt-textarea
+                    v-if="isInlineEdit"
+                    v-model="item.fieldValue"
+                    class="listrak-fixed-grid-textarea"
+                    :size="compact ? 'small' : 'default'"
+                    :error="item.errorValue"
+                    :title="item.fieldValue"
+                    placeholder="{{ customer.firstName }}"
+                />
+                {% else %}
                 <sw-textarea-field
                     v-if="isInlineEdit"
                     v-model:value="item.fieldValue"
@@ -133,6 +190,7 @@
                     :title="item.fieldValue"
                     placeholder="{{ customer.firstName }}"
                 />
+                {% endif %}
                 <template v-else>
                     {{ item.fieldValue.length > 25 ? item.fieldValue.slice(0, 25) + '…' : item.fieldValue }}
                 </template>

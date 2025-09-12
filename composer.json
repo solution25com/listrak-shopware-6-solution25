@@ -2,7 +2,7 @@
   "name": "solution25/listrak",
   "description": "Listrak - Shopware 6 Plugin",
   "type": "shopware-platform-plugin",
-  "version": "1.0.26",
+  "version": "1.0.27",
   "license": "MIT",
   "authors": [
     {
@@ -12,7 +12,7 @@
     }
   ],
   "require": {
-    "shopware/core": "~6.6.0",
+    "shopware/core": "^6.6",
     "shopware/storefront": "^6.6",
     "nicolab/php-ftp-client": "^2.0"
   },

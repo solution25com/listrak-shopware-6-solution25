@@ -28,13 +28,15 @@ final class CartSubscriber implements EventSubscriberInterface
 
     public function onCartLoaded(PageLoadedEvent $event): void
     {
-        $cart = $event->getPage()->getCart();
-        $scId = $event->getSalesChannelContext()->getSalesChannelId();
+        if ($event instanceof OffcanvasCartPageLoadedEvent || $event instanceof CheckoutCartPageLoadedEvent || $event instanceof CheckoutConfirmPageLoadedEvent) {
+            $cart = $event->getPage()->getCart();
+            $scId = $event->getSalesChannelContext()->getSalesChannelId();
 
-        $link = $this->builder->build($cart, $scId);
+            $link = $this->builder->build($cart, $scId);
 
-        $event->getPage()->addExtension('listrakCartRecreate', new ArrayStruct([
-            'link' => $link,
-        ]));
+            $event->getPage()->addExtension('listrakCartRecreate', new ArrayStruct([
+                'link' => $link,
+            ]));
+        }
     }
 }

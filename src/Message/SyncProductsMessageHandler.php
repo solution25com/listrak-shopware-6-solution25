@@ -7,6 +7,7 @@ namespace Listrak\Message;
 use Listrak\Service\DataMappingService;
 use Listrak\Service\ListrakFTPService;
 use Psr\Log\LoggerInterface;
+use Shopware\Core\Framework\Api\Context\SystemSource;
 use Shopware\Core\Framework\Context;
 use Shopware\Core\System\SalesChannel\Context\SalesChannelContextRestorer;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
@@ -30,7 +31,7 @@ final class SyncProductsMessageHandler
             ['salesChannelId' => $salesChannelId]
         );
         $restorerId = $message->getRestorerId();
-        $context = Context::createDefaultContext();
+        $context = new Context(new SystemSource());
         $salesChannelContext = $this->salesChannelContextRestorer->restoreByCustomer($restorerId, $context);
         $limit = $message->getLimit();
         $local = $message->getLocal();

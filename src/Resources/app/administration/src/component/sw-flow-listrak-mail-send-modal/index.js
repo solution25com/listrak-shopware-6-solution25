@@ -195,11 +195,16 @@ Component.register('sw-flow-listrak-mail-send-modal', {
             return [...this.recipientDefault, ...this.recipientCustom];
         },
 
-        ...mapState('swFlowState', [
-            'mailTemplates',
-            'triggerEvent',
-            'triggerActions',
-        ]),
+        ...(Shopware.Feature.isActive('v6.7.0.0')
+            ? mapState(
+                  () => Shopware.Store.get('swFlow'),
+                  ['mailTemplates', 'triggerEvent', 'triggerActions']
+              )
+            : mapState('swFlowState', [
+                  'mailTemplates',
+                  'triggerEvent',
+                  'triggerActions',
+              ])),
     },
 
     created() {
@@ -528,19 +533,8 @@ Component.register('sw-flow-listrak-mail-send-modal', {
 
             // Recheck error in current item
             if (!item.name && !item.email) {
-                if (this.isCompatEnabled('INSTANCE_SET')) {
-                    this.$set(this.recipients, index, {
-                        ...item,
-                        errorName: null,
-                    });
-                    this.$set(this.recipients, index, {
-                        ...item,
-                        errorMail: null,
-                    });
-                } else {
-                    this.recipients[index] = { ...item, errorName: null };
-                    this.recipients[index] = { ...item, errorMail: null };
-                }
+                this.recipients[index] = { ...item, errorName: null };
+                this.recipients[index] = { ...item, errorMail: null };
             } else {
                 this.validateRecipient(item, index);
             }
@@ -561,20 +555,8 @@ Component.register('sw-flow-listrak-mail-send-modal', {
 
             // Recheck error in current item
             if (!item.fieldId && !item.fieldValue) {
-                if (this.isCompatEnabled('INSTANCE_SET')) {
-                    this.$set(this.profileFields, index, {
-                        ...item,
-                        errorId: null,
-                    });
-
-                    this.$set(this.profileFields, index, {
-                        ...item,
-                        errorValue: null,
-                    });
-                } else {
-                    this.profileFields[index] = { ...item, errorId: null };
-                    this.profileFields[index] = { ...item, errorValue: null };
-                }
+                this.profileFields[index] = { ...item, errorId: null };
+                this.profileFields[index] = { ...item, errorValue: null };
             } else {
                 this.validateProfileField(item, index);
             }
@@ -650,19 +632,11 @@ Component.register('sw-flow-listrak-mail-send-modal', {
             const errorName = this.setNameError(item.name);
             const errorMail = this.setMailError(item.email);
 
-            if (this.isCompatEnabled('INSTANCE_SET')) {
-                this.$set(this.recipients, itemIndex, {
-                    ...item,
-                    errorName,
-                    errorMail,
-                });
-            } else {
-                this.recipients[itemIndex] = {
-                    ...item,
-                    errorName,
-                    errorMail,
-                };
-            }
+            this.recipients[itemIndex] = {
+                ...item,
+                errorName,
+                errorMail,
+            };
 
             return errorName || errorMail;
         },
@@ -671,19 +645,12 @@ Component.register('sw-flow-listrak-mail-send-modal', {
             const errorId = this.setIdError(item.fieldId);
             const errorValue = this.setValueError(item.fieldValue);
 
-            if (this.isCompatEnabled('INSTANCE_SET')) {
-                this.$set(this.profileFields, itemIndex, {
-                    ...item,
-                    errorId,
-                    errorValue,
-                });
-            } else {
-                this.profileFields[itemIndex] = {
-                    ...item,
-                    errorId,
-                    errorValue,
-                };
-            }
+            this.profileFields[itemIndex] = {
+                ...item,
+                errorId,
+                errorValue,
+            };
+
             return errorId || errorValue;
         },
 

@@ -273,7 +273,7 @@ class DataMappingService
                     $parentSkuById[$parent->get('id')] = $parent->get('productNumber');
                 }
             }
-            $this->logger->debug('Product: ', [$entities->first()]);
+
             /** @var PartialEntity $product */
             foreach ($entities as $product) {
                 $url = $this->getFullProductUrl($product, $salesChannelContext);

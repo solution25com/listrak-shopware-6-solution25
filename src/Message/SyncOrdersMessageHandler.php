@@ -8,6 +8,7 @@ use Listrak\Service\DataMappingService;
 use Listrak\Service\ListrakApiService;
 use Psr\Log\LoggerInterface;
 use Shopware\Core\Checkout\Order\OrderCollection;
+use Shopware\Core\Framework\Api\Context\SystemSource;
 use Shopware\Core\Framework\Context;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
@@ -38,7 +39,7 @@ final class SyncOrdersMessageHandler
     {
         $salesChannelId = $message->getSalesChannelId();
         $restorerId = $message->getRestorerId();
-        $context = Context::createDefaultContext();
+        $context = new Context(new SystemSource());
         $salesChannelContext = $this->salesChannelContextRestorer->restoreByOrder($restorerId, $context);
         $offset = $message->getOffset();
         $limit = $message->getLimit();

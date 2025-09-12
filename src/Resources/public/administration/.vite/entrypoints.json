@@ -1,0 +1,25 @@
+{
+  "base": "/bundles/listrak/administration/",
+  "entryPoints": {
+    "listrak": {
+      "css": [
+        "/bundles/listrak/administration/assets/listrak-C7vKkzvK.css"
+      ],
+      "dynamic": [],
+      "js": [
+        "/bundles/listrak/administration/assets/listrak-B7gKJtKZ.js"
+      ],
+      "legacy": false,
+      "preload": []
+    }
+  },
+  "legacy": false,
+  "metadatas": {},
+  "version": [
+    "7.1.0",
+    7,
+    1,
+    0
+  ],
+  "viteServer": null
+}
