@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.28] - 09-17-2025
+- Fixed Listrak JS Conversion Tracking not being triggered for guest customers in the case they're immediately logged out.
+- Improved Listrak JS Cart Activity Tracking.
+
 ## [1.0.27] - 09-12-2025
 - Made plugin compatible with Shopware 6.7.
 

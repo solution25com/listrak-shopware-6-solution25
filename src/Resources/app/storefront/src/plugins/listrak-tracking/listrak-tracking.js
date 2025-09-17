@@ -72,8 +72,14 @@ export default class ListrakTracking extends PluginBaseClass {
 
                     this._orderData.init(payload);
                 } else if (placement === 'cart') {
-                    this._cartData = new CartData();
-                    this.getCart();
+                    if (this.options.data.cart) {
+                        if (this.options.data.cart.lineItems.length > 0) {
+                            this._cartData = new CartData();
+                            this.handleCartItems(this.options.data.cart);
+                        } else {
+                            this.clearCart();
+                        }
+                    }
                 }
             }
         }
@@ -87,21 +93,6 @@ export default class ListrakTracking extends PluginBaseClass {
         payload.itemTotal = this.convertToUsd(payload.itemTotal);
         payload.lineItems = this.mapLineItems(payload.lineItems);
         return payload;
-    }
-
-    getCart() {
-        fetch('/checkout/cart.json')
-            .then((response) => response.json())
-            .then((cart) => {
-                if (cart.lineItems.length) {
-                    this.handleCartItems(cart);
-                } else {
-                    this.clearCart();
-                }
-            })
-            .catch((error) => {
-                console.error('Error fetching cart:', error);
-            });
     }
 
     convertToUsd(amount) {

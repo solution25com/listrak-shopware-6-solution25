@@ -1,4 +1,5 @@
 {% if config('Listrak.config.merchantId') and config('Listrak.config.enableListrakTracking') %}
+    {% set payloadData = {} %}
     {% set merchantId = config('Listrak.config.merchantId') %}
     {% set placement = placement | default('base') %}
     {% set cartLink = path('frontend.checkout.cart.page') %}
@@ -6,7 +7,16 @@
         {% set cartLink =  page.extensions.listrakCartRecreate.link %}
     {% endif %}
 
-    {% set payloadData = {
+    {% if page.cart is defined %}
+        {% set payloadData = payloadData|merge({
+            cart:{
+                price: page.cart.price,
+                lineItems: page.cart.lineItems,
+            }
+        }) %}
+    {% endif %}
+
+    {% set payloadData = payloadData|merge({
         cartLink: cartLink,
         placement: placement,
         email: context.customer.email | default(''),
@@ -15,15 +25,22 @@
         currencyIsoCode: context.currency.isoCode | default(''),
         currencyFactor: context.currency.factor | default(''),
         usdCurrency: page.extensions.listrakInfo.usdCurrency | default('')
-    } %}
+    }) %}
+
     {% if placement == 'order' %}
 
-        {% set cartObject = page.order %}
+        {% set orderObject = page.order %}
 
         {% set discountTotal = 0 %}
         {% set processedLineItems = [] %}
 
-        {% for lineItem in cartObject.lineItems %}
+        {% set payloadData = payloadData|merge({
+            email: orderObject.orderCustomer.email | default(''),
+            firstName: orderObject.orderCustomer.firstName | default(''),
+            lastName: orderObject.orderCustomer.lastName | default(''),
+        }) %}
+
+        {% for lineItem in orderObject.lineItems %}
             {% if lineItem.type == "promotion" %}
                 {% set discountTotal = discountTotal + lineItem.price.totalPrice %}
                 {% set sku = 'PROMOTION_ITEM_'  ~ lineItem.id %}
@@ -62,18 +79,18 @@
         {% endfor %}
 
         {% set taxTotal = 0 %}
-        {% for item in cartObject.price.calculatedTaxes %}
+        {% for item in orderObject.price.calculatedTaxes %}
             {% set taxTotal = taxTotal + item.tax %}
         {% endfor %}
 
 
         {% set shippingTotal = 0 %}
-        {% for item in cartObject.deliveries %}
+        {% for item in orderObject.deliveries %}
             {% set shippingTotal = shippingTotal + item.shippingCosts.totalPrice %}
         {% endfor %}
 
         {% set itemTotal = 0 %}
-        {% for item in cartObject.lineItems %}
+        {% for item in orderObject.lineItems %}
             {% set itemTotal = itemTotal + item.price.totalPrice %}
         {% endfor %}
 
@@ -82,7 +99,7 @@
             shippingTotal: shippingTotal,
             taxTotal: taxTotal,
             itemTotal: itemTotal,
-            orderTotal: cartObject.price.totalPrice | default(0),
+            orderTotal: orderObject.price.totalPrice | default(0),
             lineItems: processedLineItems
         }) %}
 

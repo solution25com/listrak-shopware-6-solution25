@@ -20,9 +20,6 @@ The Listrak plugin integrates your Shopware 6 store with Listrak’s marketing p
     - Capture cart data and sync it with Listrak for automated follow-up campaigns.
 5. **Transactional Mails**
     - Send Transactional Mails via Listrak.
-  
-## Compatibility
-- ✅ Shopware 6.6.x 
 
 
 ## Get Started
@@ -239,10 +236,8 @@ Content-Type: application/json
     3. Add a new flow.
     4. Select an event for the trigger.
     5. After selecting the event, select the 'Send email with Listrak' action.
-       <img width="980" alt="Screenshot 2025-05-12 at 16 59 52" src="https://github.com/user-attachments/assets/2d2b9cd1-46dc-4379-ab76-10bcc0be1993" />
     6. In the modal that has opened up, define the Recipient, Transactional Message ID, and any Listrak profile fields
        needed for the transactional mail.
-       <img width="980" alt="Screenshot 2025-05-12 at 16 59 52" src="https://github.com/user-attachments/assets/2d2b9cd1-46dc-4379-ab76-10bcc0be1993" />
     7. After making sure that you've specified the correct data and Shopware template variables for the transactional
        mail, click Add Action. You can use Twig syntax in the Field Value cell.
     8. Activate the flow and then save it.
@@ -322,7 +317,6 @@ Sync customers to Listrak for the specified sales channel.
 
         * order
             * {{ order.orderNumber }}
-
             * {{ order.orderDate|date('Y-m-d H:i') }} (Date needs formatting)
             * {{ order.currency.isoCode }}
             * {{ order.lineItems }}
@@ -334,7 +328,6 @@ Sync customers to Listrak for the specified sales channel.
             * {{ order.defaultBillingAddress.zipcode}}
             * {{ order.defaultBillingAddress.city}}
             * {{ order.defaultBillingAddress.phoneNumber}}
-
             * etc.
 
         * salesChannel
