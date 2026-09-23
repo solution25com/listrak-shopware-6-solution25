@@ -9,6 +9,8 @@ use Shopware\Core\Framework\DataAbstractionLayer\Field\DateTimeField;
 use Shopware\Core\Framework\DataAbstractionLayer\Field\Flag\PrimaryKey;
 use Shopware\Core\Framework\DataAbstractionLayer\Field\Flag\Required;
 use Shopware\Core\Framework\DataAbstractionLayer\Field\IdField;
+use Shopware\Core\Framework\DataAbstractionLayer\Field\FkField;
+use Shopware\Core\System\SalesChannel\SalesChannelDefinition;
 use Shopware\Core\Framework\DataAbstractionLayer\Field\IntField;
 use Shopware\Core\Framework\DataAbstractionLayer\Field\JsonField;
 use Shopware\Core\Framework\DataAbstractionLayer\Field\LongTextField;
@@ -44,6 +46,8 @@ class FailedRequestDefinition extends EntityDefinition
             new StringField('method', 'method'),
             new StringField('endpoint', 'endpoint'),
             new JsonField('options', 'options'),
+            new FkField('sales_channel_id', 'salesChannelId', SalesChannelDefinition::class),
+            new StringField('integration_type', 'integrationType'),
         ]);
     }
 }

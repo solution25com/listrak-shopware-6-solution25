@@ -7,8 +7,8 @@ namespace Listrak\Message;
 use Listrak\Service\DataMappingService;
 use Listrak\Service\ListrakFTPService;
 use Psr\Log\LoggerInterface;
-use Shopware\Core\Framework\Context;
-use Shopware\Core\System\SalesChannel\Context\SalesChannelContextRestorer;
+use Shopware\Core\Framework\Uuid\Uuid;
+use Shopware\Core\System\SalesChannel\Context\AbstractSalesChannelContextFactory;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 #[AsMessageHandler]
@@ -17,7 +17,7 @@ final class SyncProductsMessageHandler
     public function __construct(
         private readonly ListrakFTPService $listrakFtpService,
         private readonly DataMappingService $dataMappingService,
-        private readonly SalesChannelContextRestorer $salesChannelContextRestorer,
+        private readonly AbstractSalesChannelContextFactory $salesChannelContextFactory,
         private readonly LoggerInterface $logger
     ) {
     }
@@ -29,9 +29,10 @@ final class SyncProductsMessageHandler
             'Product sync started',
             ['salesChannelId' => $salesChannelId]
         );
-        $restorerId = $message->getRestorerId();
-        $context = Context::createDefaultContext();
-        $salesChannelContext = $this->salesChannelContextRestorer->restoreByCustomer($restorerId, $context);
+        if ($salesChannelId === null) {
+            throw new \InvalidArgumentException('Listrak sync message is missing its sales channel.');
+        }
+        $salesChannelContext = $this->salesChannelContextFactory->create(Uuid::randomHex(), $salesChannelId);
         $limit = $message->getLimit();
         $local = $message->getLocal();
 

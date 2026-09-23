@@ -19,7 +19,7 @@ class SubscribeNewsletterRecipientMessage implements AsyncMessageInterface
         return $this->newsletterRecipientId;
     }
 
-    public function getSalesChannelId(): string
+    public function getSalesChannelId(): ?string
     {
         return $this->salesChannelId;
     }

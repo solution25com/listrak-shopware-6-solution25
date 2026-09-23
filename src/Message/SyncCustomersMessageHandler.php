@@ -8,12 +8,12 @@ use Listrak\Service\DataMappingService;
 use Listrak\Service\ListrakApiService;
 use Psr\Log\LoggerInterface;
 use Shopware\Core\Checkout\Customer\CustomerCollection;
-use Shopware\Core\Framework\Context;
+use Shopware\Core\Framework\Uuid\Uuid;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Sorting\FieldSorting;
-use Shopware\Core\System\SalesChannel\Context\SalesChannelContextRestorer;
+use Shopware\Core\System\SalesChannel\Context\AbstractSalesChannelContextFactory;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Messenger\Exception\ExceptionInterface;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -28,7 +28,7 @@ final class SyncCustomersMessageHandler
         private readonly EntityRepository $customerRepository,
         private readonly ListrakApiService $listrakApiService,
         private readonly DataMappingService $dataMappingService,
-        private readonly SalesChannelContextRestorer $salesChannelContextRestorer,
+        private readonly AbstractSalesChannelContextFactory $salesChannelContextFactory,
         private readonly MessageBusInterface $messageBus,
         private readonly LoggerInterface $logger
     ) {
@@ -38,8 +38,10 @@ final class SyncCustomersMessageHandler
     {
         $salesChannelId = $message->getSalesChannelId();
         $restorerId = $message->getRestorerId();
-        $context = Context::createDefaultContext();
-        $salesChannelContext = $this->salesChannelContextRestorer->restoreByCustomer($restorerId, $context);
+        if ($salesChannelId === null) {
+            throw new \InvalidArgumentException('Listrak sync message is missing its sales channel.');
+        }
+        $salesChannelContext = $this->salesChannelContextFactory->create(Uuid::randomHex(), $salesChannelId);
         $offset = $message->getOffset();
         $limit = $message->getLimit();
         $customerIds = $message->getCustomerIds();
@@ -97,7 +99,7 @@ final class SyncCustomersMessageHandler
 
             $this->listrakApiService->exportCustomer($items, $salesChannelContext);
             if ($paginate) {
-                if ($searchResult->count() === $limit) {
+                if ($searchResult->getEntities()->count() === $limit) {
                     $nextOffset = $offset + $limit;
                     $this->messageBus->dispatch(
                         new SyncCustomersMessage($nextOffset, $limit, null, $restorerId, $salesChannelId)
@@ -105,9 +107,11 @@ final class SyncCustomersMessageHandler
                 }
             }
         } catch (\Exception $e) {
-            $this->logger->error($e->getMessage());
+            $this->logger->error('Listrak synchronization failed', ['salesChannelId' => $salesChannelId, 'exceptionClass' => $e::class]);
+            throw $e;
         } catch (ExceptionInterface $e) {
-            $this->logger->error($e->getMessage());
+            $this->logger->error('Listrak synchronization failed', ['salesChannelId' => $salesChannelId, 'exceptionClass' => $e::class]);
+            throw $e;
         }
     }
 }

@@ -22,6 +22,9 @@ use Symfony\Component\Messenger\MessageBusInterface;
 
 class CustomerSubscriber implements EventSubscriberInterface
 {
+    /**
+     * @param EntityRepository<\Shopware\Core\Checkout\Customer\CustomerCollection> $customerRepository
+     */
     public function __construct(
         private readonly ListrakConfigService $listrakConfigService,
         private readonly MessageBusInterface $messageBus,

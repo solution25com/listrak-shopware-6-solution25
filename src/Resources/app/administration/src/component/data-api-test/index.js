@@ -19,19 +19,21 @@ Component.register('data-api-test', {
 
     computed: {
         pluginConfig() {
-            let $parent = this.$parent;
-
-            while ($parent.actualConfigData === undefined) {
-                $parent = $parent.$parent;
+            let parent = this.$parent;
+            while (parent && parent.actualConfigData === undefined) {
+                parent = parent.$parent;
             }
-
-            const salesChannelId = $parent.currentSalesChannelId;
-
-            // Fallback: if no sales channel selected, use global.
-            return (
-                $parent.actualConfigData[salesChannelId] ||
-                $parent.actualConfigData.null
-            );
+            if (!parent) {
+                return {};
+            }
+            const values = { ...parent.actualConfigData.null };
+            const channelValues = parent.actualConfigData[parent.currentSalesChannelId] ?? {};
+            Object.entries(channelValues).forEach(([key, value]) => {
+                if (value !== null && value !== undefined) {
+                    values[key] = value;
+                }
+            });
+            return values;
         },
     },
 

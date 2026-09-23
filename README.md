@@ -22,7 +22,13 @@ The Listrak plugin integrates your Shopware 6 store with Listrak’s marketing p
     - Send Transactional Mails via Listrak.
   
 ## Compatibility
-- ✅ Shopware 6.6.x 
+
+- Shopware 6.7.x (plugin 1.1.0 and later)
+- PHP 8.2 or later
+- `main-6.7` contains the Shopware 6.7 code and administration build.
+- `main` remains the original version; the 6.7 changes are maintained separately.
+
+See [Shopware 6.7 fixes and validation](SHOPWARE_6.7_FIXES.md) for upgrade instructions, test commands, and known limits.
 
 
 ## Get Started
@@ -36,13 +42,16 @@ The Listrak plugin integrates your Shopware 6 store with Listrak’s marketing p
 - Clone the Plugin Repository:
 - Open your terminal and run the following command in your Shopware 6 custom plugins directory (usually located at custom/plugins/):
   ```
-  git clone https://github.com/solution25com/listrak-shopware-6-solution25.git
+  git clone --branch main-6.7 https://github.com/solution25com/listrak-shopware-6-solution25.git
   ```
 
 ## Packagist
+
+Select the 6.7 branch explicitly once it is published to the repository and available through Composer:
+
  ```
-  composer require solution25/listrak
-  ```
+  composer require solution25/listrak:dev-main-6.7
+ ```
 
 2. **Install the Plugin in Shopware 6**
 

@@ -1,4 +1,5 @@
 {% if config('Listrak.config.merchantId') and config('Listrak.config.enableListrakTracking') %}
+    {% set requiresCookieConsent = config('Listrak.config.enableListrakTrackingUponCookieAcceptance') %}
     {% set merchantId = config('Listrak.config.merchantId') %}
     {% set placement = placement | default('base') %}
     {% set cartLink = path('frontend.checkout.cart.page') %}
@@ -19,6 +20,13 @@
     {% if placement == 'order' %}
 
         {% set cartObject = page.order %}
+        {% set payloadData = payloadData|merge({
+            currencyIsoCode: cartObject.currency.isoCode|default(context.currency.isoCode),
+            currencyFactor: cartObject.currencyFactor|default(context.currency.factor),
+            email: cartObject.orderCustomer.email|default(payloadData.email),
+            firstName: cartObject.orderCustomer.firstName|default(payloadData.firstName),
+            lastName: cartObject.orderCustomer.lastName|default(payloadData.lastName)
+        }) %}
 
         {% set discountTotal = 0 %}
         {% set processedLineItems = [] %}
@@ -31,9 +39,9 @@
                 {% set sku = 'CONTAINER_ITEM_'  ~ lineItem.id %}
             {% elseif lineItem.type == 'custom' %}
                 {% set sku = 'CUSTOM_ITEM_'  ~ lineItem.id %}
-            {% elseif lineItem.type == 'custom' %}
+            {% elseif lineItem.type == 'credit' %}
                 {% set sku = 'CREDIT_ITEM_'  ~ lineItem.id %}
-            {% elseif lineItem.type == 'custom' %}
+            {% elseif lineItem.type == 'discount' %}
                 {% set sku = 'DISCOUNT_ITEM_'  ~ lineItem.id %}
             {% elseif lineItem.type == 'product' %}
                 {% set sku = lineItem.payload.productNumber | default('PRODUCT_ITEM_' ~ lineItem.id ) %}
@@ -46,9 +54,10 @@
                 lineItem.price.unitPrice %}
 
             {% set imageUrl = lineItem.cover.url | default('') %}
-            {% set productUrl = seoUrl('frontend.detail.page', {'productId': lineItem.id}) %}
+            {% set productUrl = lineItem.type == 'product' and lineItem.referencedId ? seoUrl('frontend.detail.page', {'productId': lineItem.referencedId}) : '' %}
             {% set productData = {
                 sku: sku,
+                type: lineItem.type,
                 name: lineItem.label,
                 quantity: lineItem.quantity,
                 price: unitPrice,
@@ -91,9 +100,11 @@
     {% set listrakTrackingOptions = {
         merchantId: merchantId,
         requiresCookieConsent: requiresCookieConsent,
+        cartUrl: path('frontend.checkout.cart.json'),
+        productUrl: path('frontend.listrak.product-url'),
         data: payloadData | default('')
     } %}
 
     <template data-listrak-tracking
-              data-listrak-tracking-options='{{ listrakTrackingOptions|json_encode }}'></template>
+              data-listrak-tracking-options="{{ listrakTrackingOptions|json_encode|escape('html_attr') }}"></template>
 {% endif %}

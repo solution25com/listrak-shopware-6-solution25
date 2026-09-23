@@ -7,11 +7,6 @@ namespace Listrak\Command;
 use Listrak\Message\SyncProductsMessage;
 use Listrak\Service\ListrakConfigService;
 use Psr\Log\LoggerInterface;
-use Shopware\Core\Framework\Context;
-use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
-use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
-use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
-use Shopware\Core\System\SalesChannel\Context\SalesChannelContextRestorer;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -24,9 +19,7 @@ use Symfony\Component\Messenger\MessageBusInterface;
 class SyncProductsCommand extends Command
 {
     public function __construct(
-        private readonly EntityRepository $customerRepository,
         private readonly ListrakConfigService $listrakConfigService,
-        private readonly SalesChannelContextRestorer $salesChannelContextRestorer,
         private readonly MessageBusInterface $messageBus,
         private readonly LoggerInterface $logger
     ) {
@@ -47,8 +40,6 @@ class SyncProductsCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $context = Context::createDefaultContext();
-        $criteria = new Criteria();
         $salesChannelId = $input->getArgument('sales-channel-id');
         $limit = filter_var(
             $input->getOption('limit'),
@@ -56,27 +47,13 @@ class SyncProductsCommand extends Command
             ['options' => ['default' => 2000, 'min_range' => 1]]
         );
         $local = $input->getOption('local');
-        $criteria->addFilter(new EqualsFilter('salesChannelId', $salesChannelId));
-        $criteria->setLimit(1);
-        $customerIds = $this->customerRepository->searchIds($criteria, $context)->getIds();
-        if (empty($customerIds)) {
-            $output->writeln(
-                '<error>Listrak product sync has been skipped. No sales channel context restorer found.</error>'
-            );
-
-            return Command::FAILURE;
-        }
-        $restorerId = $customerIds[0];
-
-        $salesChannelContext = $this->salesChannelContextRestorer->restoreByCustomer($restorerId, $context);
-
         $ftpUser = $this->listrakConfigService->getConfig(
             'ftpUsername',
-            $salesChannelContext->getSalesChannel()->getId()
+            $salesChannelId
         );
         $ftpPassword = $this->listrakConfigService->getConfig(
             'ftpPassword',
-            $salesChannelContext->getSalesChannel()->getId()
+            $salesChannelId
         );
         if ((!$ftpUser || !$ftpPassword) && !$local) {
             $output->writeln('<error>Listrak product sync has been skipped. The FTP credentials are missing.</error>');
@@ -84,7 +61,7 @@ class SyncProductsCommand extends Command
             return Command::FAILURE;
         }
         $this->messageBus->dispatch(
-            new SyncProductsMessage($local, $limit, $restorerId, $salesChannelContext->getSalesChannelId())
+            new SyncProductsMessage($local, $limit, null, $salesChannelId)
         );
         $this->logger->debug(
             'Product sync has been dispatched to queue',

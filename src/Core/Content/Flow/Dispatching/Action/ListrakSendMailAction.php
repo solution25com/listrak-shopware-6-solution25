@@ -66,13 +66,10 @@ class ListrakSendMailAction extends FlowAction implements DelayableAction
         }
         $salesChannelId = $flow->getStore('salesChannelId')
             ?: $flow->getData('salesChannelId');
-        $salesChannelContext = null;
-        if ($salesChannelId) {
-            $salesChannelContext = $this->salesChannelContextFactory->create(
-                Uuid::randomHex(),
-                $salesChannelId,
-            );
+        if (!\is_string($salesChannelId) || !Uuid::isValid($salesChannelId)) {
+            throw new MailEventConfigurationException('The flow has no valid sales channel.', $flow::class);
         }
+        $salesChannelContext = $this->salesChannelContextFactory->create(Uuid::randomHex(), $salesChannelId);
         $eventConfig = $flow->getConfig();
         if (empty($eventConfig['recipient'])) {
             throw new MailEventConfigurationException(
@@ -87,7 +84,7 @@ class ListrakSendMailAction extends FlowAction implements DelayableAction
             );
         }
         $transactionalMessageId = $eventConfig['transactionalMessageId'];
-        $profileFields = $eventConfig['profileFields'] ?? '';
+        $profileFields = $eventConfig['profileFields'] ?? [];
 
         /** @var MailRecipientStruct $mailStruct */
         $mailStruct = $flow->getData(MailAware::MAIL_STRUCT);

@@ -32,7 +32,9 @@ class ListrakFTPService
         $remote = 'Listrak_Product_Feed_' . $salesChannelContext->getSalesChannelId() . '_' . $formattedDate . '.txt';
 
         if ($local) {
-            $this->generateLocalFile($remote, $tmp);
+            if (!$this->generateLocalFile($remote, $tmp)) {
+                throw new \RuntimeException('The local Listrak product export could not be saved.');
+            }
 
             return;
         }
@@ -61,7 +63,7 @@ class ListrakFTPService
             ]);
         } catch (\Throwable $e) {
             $this->logger->error('Export to FTP failed', [
-                'exception' => $e,
+                'exceptionClass' => $e::class,
                 'file' => $remote,
                 'salesChannelId' => $salesChannelContext->getSalesChannelId(),
             ]);
@@ -69,12 +71,14 @@ class ListrakFTPService
                 $ftp->delete($remoteTmp);
             } catch (\Throwable) {
             }
+            throw $e;
         } finally {
             try {
                 $ftp->close();
             } catch (\Throwable) {
             }
             if (is_file($tmp)) {
+                // @phpstan-ignore shopware.forbidLocalDiskWrite (Deletes the system temporary export supplied by DataMappingService.)
                 @unlink($tmp);
             }
         }
@@ -82,6 +86,7 @@ class ListrakFTPService
 
     public function generateLocalFile(string $fileKey, string $tmpPath): bool
     {
+        $fileKey = 'listrak/' . ltrim($fileKey, '/');
         $in = @fopen($tmpPath, 'rb');
         if ($in === false) {
             $this->logger->error('Cannot open temp file', ['tmp' => $tmpPath]);
@@ -118,6 +123,7 @@ class ListrakFTPService
             if (\is_resource($in)) {
                 fclose($in);
             }
+            // @phpstan-ignore shopware.forbidLocalDiskWrite (Deletes the system temporary export supplied by DataMappingService.)
             if (is_file($tmpPath) && !@unlink($tmpPath)) {
                 $this->logger->warning('Failed to delete temp file', ['tmp' => $tmpPath]);
             }

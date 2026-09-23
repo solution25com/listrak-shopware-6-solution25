@@ -26,6 +26,9 @@ class CheckoutConfirmPageLoadedSubscriber implements EventSubscriberInterface
     {
         $context = $event->getSalesChannelContext();
         $customer = $context->getCustomer();
+        if ($customer === null) {
+            return;
+        }
         $request = $event->getRequest();
         $pagelet = $this->newsletterAccountPageletLoader->load($request, $context, $customer);
         $event->getPage()->addExtension('newsletterAccountPagelet', $pagelet);

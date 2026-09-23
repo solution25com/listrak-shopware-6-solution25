@@ -26,8 +26,8 @@ class ListrakConfigService
     public function isDataSyncEnabled(string $configName, ?string $salesChannelId = null): bool
     {
         $enabled = trim((string) $this->getConfig($configName, $salesChannelId));
-        $clientId = trim((string) $this->getConfig('emailClientId', $salesChannelId));
-        $clientSecret = trim((string) $this->getConfig('emailClientSecret', $salesChannelId));
+        $clientId = trim((string) $this->getConfig('dataClientId', $salesChannelId));
+        $clientSecret = trim((string) $this->getConfig('dataClientSecret', $salesChannelId));
 
         return $enabled && $clientId !== '' && $clientSecret !== '';
     }

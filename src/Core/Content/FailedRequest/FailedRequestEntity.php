@@ -30,7 +30,9 @@ class FailedRequestEntity extends Entity
     /**
      * @var string
      */
-    protected $salesChannelId;
+    protected ?string $salesChannelId = null;
+
+    protected ?string $integrationType = null;
 
     /**
      * @var array<string,mixed>
@@ -51,6 +53,16 @@ class FailedRequestEntity extends Entity
      * @var SalesChannelEntity|null
      */
     protected $salesChannel;
+
+    public function getIntegrationType(): ?string
+    {
+        return $this->integrationType;
+    }
+
+    public function setIntegrationType(?string $integrationType): void
+    {
+        $this->integrationType = $integrationType;
+    }
 
     public function getRetryCount(): int
     {
@@ -98,12 +110,12 @@ class FailedRequestEntity extends Entity
         $this->response = $response;
     }
 
-    public function getSalesChannelId(): string
+    public function getSalesChannelId(): ?string
     {
         return $this->salesChannelId;
     }
 
-    public function setSalesChannelId(string $salesChannelId): void
+    public function setSalesChannelId(?string $salesChannelId): void
     {
         $this->salesChannelId = $salesChannelId;
     }

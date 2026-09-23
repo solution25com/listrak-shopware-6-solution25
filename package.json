@@ -1,0 +1,15 @@
+{
+  "name": "listrak-shopware-67-tests",
+  "private": true,
+  "scripts": {
+    "test": "node --test tests/Frontend/*.test.cjs"
+  },
+  "devDependencies": {
+    "@vue/test-utils": "2.4.6",
+    "deepmerge": "4.3.1",
+    "jsdom": "26.1.0",
+    "pinia": "2.3.1",
+    "typescript": "5.7.3",
+    "vue": "3.5.22"
+  }
+}

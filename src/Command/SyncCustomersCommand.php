@@ -8,11 +8,6 @@ use Doctrine\DBAL\Exception;
 use Listrak\Message\SyncCustomersMessage;
 use Listrak\Service\ListrakConfigService;
 use Psr\Log\LoggerInterface;
-use Shopware\Core\Framework\Context;
-use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
-use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
-use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
-use Shopware\Core\System\SalesChannel\Context\SalesChannelContextRestorer;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -26,9 +21,7 @@ use Symfony\Component\Messenger\MessageBusInterface;
 class SyncCustomersCommand extends Command
 {
     public function __construct(
-        private readonly EntityRepository $customerRepository,
         private readonly ListrakConfigService $listrakConfigService,
-        private readonly SalesChannelContextRestorer $salesChannelContextRestorer,
         private readonly MessageBusInterface $messageBus,
         private readonly LoggerInterface $logger
     ) {
@@ -53,8 +46,6 @@ class SyncCustomersCommand extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $context = Context::createDefaultContext();
-        $criteria = new Criteria();
         $salesChannelId = $input->getArgument('sales-channel-id');
         $offset = filter_var(
             $input->getOption('offset'),
@@ -66,24 +57,13 @@ class SyncCustomersCommand extends Command
             \FILTER_VALIDATE_INT,
             ['options' => ['default' => 500, 'min_range' => 1]]
         );
-        $criteria->addFilter(new EqualsFilter('salesChannelId', $salesChannelId));
-        $criteria->setLimit(1);
-        $customerIds = $this->customerRepository->searchIds($criteria, $context)->getIds();
-        if (empty($customerIds)) {
-            $output->writeln('<error>Listrak customer sync has been skipped. No sales channel context restorer found.</error>');
-
-            return Command::FAILURE;
-        }
-        $restorerId = $customerIds[0];
-
-        $salesChannelContext = $this->salesChannelContextRestorer->restoreByCustomer($restorerId, $context);
         $clientId = $this->listrakConfigService->getConfig(
             'dataClientId',
-            $salesChannelContext->getSalesChannel()->getId()
+            $salesChannelId
         );
         $clientSecret = $this->listrakConfigService->getConfig(
             'dataClientSecret',
-            $salesChannelContext->getSalesChannel()->getId()
+            $salesChannelId
         );
         if (!$clientId || !$clientSecret) {
             $output->writeln('<error>Listrak customer sync has been skipped. The API keys are missing.</error>');
@@ -91,7 +71,7 @@ class SyncCustomersCommand extends Command
             return Command::FAILURE;
         }
         $this->messageBus->dispatch(
-            new SyncCustomersMessage($offset, $limit, null, $restorerId, $salesChannelContext->getSalesChannelId())
+            new SyncCustomersMessage($offset, $limit, null, null, $salesChannelId)
         );
         $this->logger->debug(
             'Customer sync has been dispatched to queue',

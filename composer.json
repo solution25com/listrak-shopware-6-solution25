@@ -2,7 +2,7 @@
   "name": "solution25/listrak",
   "description": "Listrak - Shopware 6 Plugin",
   "type": "shopware-platform-plugin",
-  "version": "1.0.26",
+  "version": "1.1.0",
   "license": "MIT",
   "authors": [
     {
@@ -12,12 +12,16 @@
     }
   ],
   "require": {
-    "shopware/core": "~6.6.0",
-    "shopware/storefront": "^6.6",
+    "php": "^8.2",
+    "shopware/core": "~6.7.0",
+    "shopware/storefront": "~6.7.0",
     "nicolab/php-ftp-client": "^2.0"
   },
   "require-dev": {
-    "squizlabs/php_codesniffer": "^3.7"
+    "phpunit/phpunit": "^11.5",
+    "squizlabs/php_codesniffer": "^3.7",
+    "symfony/browser-kit": "^7.2",
+    "symfony/css-selector": "^7.2"
   },
   "extra": {
     "shopware-plugin-class": "Listrak\\Listrak",
@@ -27,8 +31,8 @@
       "en-GB": "Listrak Plugin"
     },
     "description": {
-      "de-DE": "Listrak Marketing Automation Plugin für Shopware",
-      "en-GB": "Listrak marketing automation plugin for Shopware"
+      "en-GB": "Connect Shopware with Listrak to synchronize customers, orders and products, manage newsletter subscriptions, track consented storefront activity and send transactional emails.",
+      "de-DE": "Verbinden Sie Shopware mit Listrak: Synchronisieren Sie Kunden, Bestellungen und Produkte, verwalten Sie Newsletter und senden Sie transaktionale E-Mails mit dem Flow Builder."
     },
     "manufacturerLink": {
       "de-DE": "https://solution25.com/",
@@ -50,6 +54,8 @@
     }
   },
   "scripts": {
+    "test": "phpunit --configuration phpunit.xml",
+    "test:integration": "phpunit --configuration phpunit.integration.xml",
     "post-install-cmd": [
       "@enable-precommit"
     ],

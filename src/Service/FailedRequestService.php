@@ -11,6 +11,9 @@ use Shopware\Core\Framework\DataAbstractionLayer\DataAbstractionLayerException;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\RangeFilter;
+use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
+use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsAnyFilter;
+use Shopware\Core\Framework\DataAbstractionLayer\Search\Sorting\FieldSorting;
 use Shopware\Core\Framework\Uuid\Uuid;
 use Shopware\Core\System\SalesChannel\SalesChannelContext;
 
@@ -39,12 +42,15 @@ class FailedRequestService
             'salesChannelId' => $salesChannelContext->getSalesChannel()->getId(),
         ]);
         foreach ($this->findEntries($salesChannelContext) as $failedRequestEntry) {
-            if ($failedRequestEntry->getOptions()) {
+            $integrationType = $failedRequestEntry->getIntegrationType();
+            if ($integrationType === null || $failedRequestEntry->getSalesChannelId() !== $salesChannelContext->getSalesChannelId()) {
+                continue;
             }
-            $this->listrakApiService->request(
+            $this->listrakApiService->authorizedRequest(
                 ['url' => $failedRequestEntry->getEndpoint(), 'method' => $failedRequestEntry->getMethod()],
                 $failedRequestEntry->getOptions(),
                 $salesChannelContext,
+                $integrationType,
                 $failedRequestEntry
             );
         }
@@ -60,19 +66,22 @@ class FailedRequestService
         string $method,
         array $options,
         string $response,
-        ?SalesChannelContext $salesChannelContext = null
+        ?SalesChannelContext $salesChannelContext = null,
+        ?string $integrationType = null
     ): void {
-        if ($salesChannelContext !== null) {
+        if ($salesChannelContext !== null && \in_array($integrationType, [ListrakApiService::DATA_INTEGRATION, ListrakApiService::EMAIL_INTEGRATION], true)) {
             $entity = new FailedRequestEntity();
             $entity->setId(Uuid::randomHex());
             $entity->setResponse($response);
             $entity->setMethod($method);
             $entity->setEndpoint($endpoint);
-            $entity->setOptions($options);
+            $entity->setOptions(self::withoutCredentials($options));
+            $entity->setSalesChannelId($salesChannelContext->getSalesChannelId());
+            $entity->setIntegrationType($integrationType);
             $entity->setRetryCount(1);
             $entity->setLastRetryAt(new \DateTime('now'));
 
-            $this->failedRequests[] = $entity;
+            $this->failedRequests[$entity->getId()] = $entity;
         }
     }
 
@@ -81,7 +90,7 @@ class FailedRequestService
         $entity->setRetryCount($entity->getRetryCount() + 1);
         $entity->setLastRetryAt(new \DateTime());
 
-        $this->failedRequests[] = $entity;
+        $this->failedRequests[$entity->getId()] = $entity;
     }
 
     public function flushFailedRequests(?SalesChannelContext $salesChannelContext): void
@@ -94,8 +103,10 @@ class FailedRequestService
                 'method' => $entity->getMethod(),
                 'endpoint' => $entity->getEndpoint(),
                 'response' => $entity->getResponse(),
-                'options' => $entity->getOptions(),
-            ], $this->failedRequests);
+                'options' => self::withoutCredentials($entity->getOptions()),
+                'salesChannelId' => $entity->getSalesChannelId(),
+                'integrationType' => $entity->getIntegrationType(),
+            ], array_values($this->failedRequests));
 
             $this->failedRequestRepository->upsert($data, $salesChannelContext->getContext());
             $this->failedRequests = [];
@@ -105,10 +116,21 @@ class FailedRequestService
     public function removeFromFailedRequests(?SalesChannelContext $salesChannelContext, ?FailedRequestEntity $failedRequestEntity): void
     {
         if ($salesChannelContext && $failedRequestEntity !== null) {
+            unset($this->failedRequests[$failedRequestEntity->getId()]);
             $this->failedRequestRepository->delete([
                 ['id' => $failedRequestEntity->getId()],
             ], $salesChannelContext->getContext());
         }
+    }
+
+    /** Store only the business payload and non-sensitive content headers. */
+    public static function withoutCredentials(array $options): array
+    {
+        $safe = array_intersect_key($options, array_flip(['body', 'json', 'headers']));
+        $safe['headers'] = array_filter($safe['headers'] ?? [], static fn (string $name): bool =>
+            \in_array(strtolower($name), ['content-type', 'accept'], true), ARRAY_FILTER_USE_KEY);
+
+        return $safe;
     }
 
     /**
@@ -116,7 +138,10 @@ class FailedRequestService
      */
     private function findEntries(SalesChannelContext $salesChannelContext): FailedRequestCollection
     {
-        $criteria = new Criteria();
+        $criteria = (new Criteria())->setLimit(100);
+        $criteria->addFilter(new EqualsFilter('salesChannelId', $salesChannelContext->getSalesChannelId()));
+        $criteria->addFilter(new EqualsAnyFilter('integrationType', [ListrakApiService::DATA_INTEGRATION, ListrakApiService::EMAIL_INTEGRATION]));
+        $criteria->addSorting(new FieldSorting('lastRetryAt'), new FieldSorting('id'));
         $criteria->addFilter(new RangeFilter('retryCount', [
             RangeFilter::LT => self::MAX_RETRY_COUNT,
         ]));

@@ -20,6 +20,7 @@ class RequestRetryTaskHandler extends ScheduledTaskHandler
 {
     /**
      * @param EntityRepository<ScheduledTaskCollection> $scheduledTaskRepository
+     * @param EntityRepository<\Shopware\Core\System\SalesChannel\SalesChannelCollection> $salesChannelRepository
      */
     public function __construct(
         protected EntityRepository $scheduledTaskRepository,
@@ -28,7 +29,7 @@ class RequestRetryTaskHandler extends ScheduledTaskHandler
         private readonly FailedRequestService $failedRequestService,
         private readonly LoggerInterface $logger,
     ) {
-        parent::__construct($scheduledTaskRepository);
+        parent::__construct($scheduledTaskRepository, $logger);
     }
 
     /**
@@ -41,23 +42,20 @@ class RequestRetryTaskHandler extends ScheduledTaskHandler
 
     public function run(): void
     {
-        $context = Context::createDefaultContext();
+        $context = Context::createCLIContext();
         $criteria = new Criteria();
         $criteria->addFields(['id']);
-        $salesChannel = $this->salesChannelRepository->search($criteria, $context)->first();
-        if ($salesChannel) {
-            $salesChannelContext = $this->salesChannelContextFactory->create(
-                Uuid::randomHex(),
-                $salesChannel['id'],
-            );
+        /** @var list<string> $salesChannelIds Sales-channel IDs have a single UUID primary key in every 6.7 release. */
+        $salesChannelIds = $this->salesChannelRepository->searchIds($criteria, $context)->getIds();
+        foreach ($salesChannelIds as $salesChannelId) {
             try {
-                $this->logger->notice('RequestRetryTask started');
-
+                $salesChannelContext = $this->salesChannelContextFactory->create(Uuid::randomHex(), $salesChannelId);
                 $this->failedRequestService->retry($salesChannelContext);
-
-                $this->logger->notice('RequestRetryTask ended');
-            } catch (\Exception $exception) {
-                $this->logger->error($exception->getMessage() . ' ' . $exception->getTraceAsString());
+            } catch (\Throwable $exception) {
+                $this->logger->error('Listrak retry failed for sales channel', [
+                    'salesChannelId' => $salesChannelId,
+                    'exceptionClass' => $exception::class,
+                ]);
             }
         }
     }

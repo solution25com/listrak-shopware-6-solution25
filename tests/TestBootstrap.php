@@ -2,6 +2,8 @@
 
 use Shopware\Core\TestBootstrapper;
 
+require __DIR__ . '/UnitBootstrap.php';
+
 $loader = (new TestBootstrapper())
     ->addCallingPlugin()
     ->addActivePlugins('Listrak')

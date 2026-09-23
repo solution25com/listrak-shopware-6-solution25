@@ -49,7 +49,7 @@ abstract class Endpoints
     }
 
     /**
-     * @param array<string> $params
+     * @param array<int|string> $params
      * @param array<string> $queryParam
      *
      * @return array<string,array<string>|string>
@@ -59,7 +59,7 @@ abstract class Endpoints
         $endpointDetails = self::getEndpoint($endpoint);
         $baseUrl = $endpointDetails['url'];
 
-        $paramBuilder = implode('/', $params);
+        $paramBuilder = implode('/', $params ?? []);
 
         $queryString = !empty($queryParam) ? '?' . http_build_query($queryParam) : '';
 

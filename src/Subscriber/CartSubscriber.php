@@ -26,7 +26,7 @@ final class CartSubscriber implements EventSubscriberInterface
         ];
     }
 
-    public function onCartLoaded(PageLoadedEvent $event): void
+    public function onCartLoaded(OffcanvasCartPageLoadedEvent|CheckoutCartPageLoadedEvent|CheckoutConfirmPageLoadedEvent $event): void
     {
         $cart = $event->getPage()->getCart();
         $scId = $event->getSalesChannelContext()->getSalesChannelId();

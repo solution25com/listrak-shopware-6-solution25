@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Listrak\Service;
 
 use GuzzleHttp\Client;
+use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Exception\GuzzleException;
-use GuzzleHttp\Exception\RequestException;
 use Listrak\Core\Content\FailedRequest\FailedRequestEntity;
 use Listrak\Library\Endpoints;
 use Psr\Log\LoggerInterface;
@@ -18,20 +18,14 @@ class ListrakApiService extends Endpoints
     public const DATA_INTEGRATION = 'DATA';
     public const TOKEN_URL = 'https://auth.listrak.com/OAuth2/Token';
 
-    private ?string $dataToken = null;
-
-    private ?int $dataTokenExp = null;
-
-    private ?string $emailToken = null;
-
-    private ?int $emailTokenExp = null;
-
-    private ?Client $http = null;
+    /** @var array<string, array{token: string, expiresAt: int}> */
+    private array $tokens = [];
 
     public function __construct(
         private readonly ListrakConfigService $listrakConfigService,
         private readonly FailedRequestService $failedRequestService,
-        private readonly LoggerInterface $logger
+        private readonly LoggerInterface $logger,
+        private ?ClientInterface $http = null
     ) {
     }
 
@@ -92,7 +86,7 @@ class ListrakApiService extends Endpoints
 
     public function startListImport(array $data, SalesChannelContext $salesChannelContext): void
     {
-        $listId = trim($this->listrakConfigService->getConfig('listId', $salesChannelContext->getSalesChannelId()));
+        $listId = trim((string) $this->listrakConfigService->getConfig('listId', $salesChannelContext->getSalesChannelId()));
         if ($listId) {
             $fullEndpointUrl = Endpoints::getUrlDynamicParam(Endpoints::START_LIST_IMPORT, [$listId, 'ListImport']);
             $this->logger->debug(
@@ -109,12 +103,12 @@ class ListrakApiService extends Endpoints
     }
 
     public function sendTransactionalMessage(
-        $transactionalMessageId,
+        string|int $transactionalMessageId,
         array $data,
-        ?SalesChannelContext $salesChannelContext,
+        SalesChannelContext $salesChannelContext,
     ): void {
         $listId = trim(
-            $this->listrakConfigService->getConfig('transactionalListId', $salesChannelContext->getSalesChannelId())
+            (string) $this->listrakConfigService->getConfig('transactionalListId', $salesChannelContext->getSalesChannelId())
         );
         if ($listId) {
             $fullEndpointUrl = Endpoints::getUrlDynamicParam(
@@ -134,122 +128,9 @@ class ListrakApiService extends Endpoints
     }
 
     /**
-     * Generic HTTP request (no auth). Returns body even on API errors; returns null on transport error.
-     *
-     * @param array{method:string,url:string} $endpoint
-     * @param array<string,mixed> $options
+     * Send a business request with channel-specific credentials. Only the final
+     * outcome is recorded, so a refreshed 401 never creates a duplicate retry.
      */
-    public function request(
-        array $endpoint,
-        array $options,
-        SalesChannelContext $salesChannelContext,
-        ?FailedRequestEntity $failed = null
-    ): ?string {
-        $cid = $this->cid();
-        ['method' => $method, 'url' => $url] = $endpoint;
-        $options = array_replace(['http_errors' => false, 'timeout' => 30], $options);
-
-        $this->logger->debug('HTTP request: start', [
-            'cid' => $cid,
-            'method' => $method,
-            'url' => $url,
-            'options' => $this->sanitizeOptions($options),
-            'salesChannelId' => $salesChannelContext->getSalesChannelId(),
-        ]);
-
-        $start = microtime(true);
-
-        try {
-            $resp = $this->http()->request($method, $url, $options);
-            $status = $resp->getStatusCode();
-            $body = (string) $resp->getBody();
-            $dur = (int) ((microtime(true) - $start) * 1000);
-
-            $decoded = json_decode($body, true);
-            $jsonErr = (json_last_error() !== \JSON_ERROR_NONE) ? json_last_error_msg() : null;
-            $apiErr = \is_array($decoded) ? $this->extractError($decoded) : null;
-
-            $ctx = ['cid' => $cid, 'method' => $method, 'url' => $url, 'status' => $status, 'durationMs' => $dur];
-
-            if ($jsonErr) {
-                $this->logger->warning(
-                    'HTTP response: invalid JSON',
-                    $ctx + [
-                        'jsonError' => $jsonErr,
-                        'bodyPreview' => $this->trunc($body),
-                    ]
-                );
-            }
-
-            if ($status >= 200 && $status < 300 && !$apiErr) {
-                $this->logger->debug(
-                    'HTTP request: success',
-                    $ctx + [
-                        'bodyPreview' => $this->trunc($body),
-                    ]
-                );
-                $this->failedRequestService->removeFromFailedRequests($salesChannelContext, $failed);
-            } else {
-                $level = ($status >= 400 && $status < 500) ? 'warning' : 'error';
-                $this->logger->log(
-                    $level,
-                    'HTTP request: API error',
-                    $ctx + [
-                        'error' => $apiErr ?? ('HTTP ' . $status),
-                        'bodyPreview' => $this->trunc($body),
-                    ]
-                );
-                $payloadForFailed = $body ?: ($apiErr ?? 'Unknown error');
-                if ($failed) {
-                    $failed->setResponse($payloadForFailed);
-                    $this->failedRequestService->updateFailedRequest($failed);
-                } else {
-                    $this->failedRequestService->saveRequestToFailedRequests(
-                        $url,
-                        $method,
-                        $options,
-                        $payloadForFailed,
-                        $salesChannelContext
-                    );
-                }
-            }
-
-            return $body;
-        } catch (GuzzleException $e) {
-            $dur = (int) ((microtime(true) - $start) * 1000);
-            $errorBody = null;
-            if ($e instanceof RequestException && $e->hasResponse()) {
-                $errorBody = (string) $e->getResponse()->getBody();
-            }
-
-            $this->logger->error('HTTP request: transport failure', [
-                'cid' => $cid,
-                'method' => $method,
-                'url' => $url,
-                'durationMs' => $dur,
-                'message' => $e->getMessage(),
-                'code' => $e->getCode(),
-                'bodyPreview' => $this->trunc($errorBody),
-            ]);
-
-            $payloadForFailed = $errorBody ?? $e->getMessage();
-            if ($failed) {
-                $failed->setResponse($payloadForFailed);
-                $this->failedRequestService->updateFailedRequest($failed);
-            } else {
-                $this->failedRequestService->saveRequestToFailedRequests(
-                    $url,
-                    $method,
-                    $options,
-                    $payloadForFailed,
-                    $salesChannelContext
-                );
-            }
-
-            return null;
-        }
-    }
-
     public function authorizedRequest(
         array $endpoint,
         array $options,
@@ -257,209 +138,161 @@ class ListrakApiService extends Endpoints
         string $type,
         ?FailedRequestEntity $failed = null
     ): ?string {
+        $this->assertIntegrationType($type);
+        $options = FailedRequestService::withoutCredentials($options);
         $token = $this->getAccessToken($type, $ctx);
-        $options['headers']['Authorization'] = 'Bearer ' . $token;
+        $result = ['status' => 0, 'body' => null];
 
-        $body = $this->request($endpoint, $options, $ctx, $failed);
-        if ($body === null) {
-            return null;
+        if ($token !== '') {
+            $result = $this->send($endpoint, $this->withToken($options, $token));
+            if ($result['status'] === 401) {
+                $token = $this->refreshAccessToken($type, $ctx);
+                $result = $token === ''
+                    ? ['status' => 0, 'body' => null]
+                    : $this->send($endpoint, $this->withToken($options, $token));
+            }
         }
 
-        $decoded = json_decode($body, true);
-        $status = \is_array($decoded) ? (int) ($decoded['status'] ?? 0) : null;
+        $decoded = json_decode($result['body'] ?? '', true);
+        $success = $result['status'] >= 200 && $result['status'] < 300
+            && !(\is_array($decoded) && !empty($decoded['error']));
 
-        if ($status === 401) {
-            $token = $this->refreshAccessToken($type, $ctx);
-            $options['headers']['Authorization'] = 'Bearer ' . $token;
-
-            return $this->request($endpoint, $options, $ctx, $failed);
+        if ($success) {
+            $this->failedRequestService->removeFromFailedRequests($ctx, $failed);
+        } else {
+            // Do not persist token responses, credentials, or customer data from errors.
+            $reason = $result['status'] === 0 ? 'Authentication or transport failure' : 'HTTP ' . $result['status'];
+            if ($failed !== null) {
+                $failed->setResponse($reason);
+                $failed->setOptions($options);
+                $this->failedRequestService->updateFailedRequest($failed);
+            } else {
+                $this->failedRequestService->saveRequestToFailedRequests(
+                    $endpoint['url'], $endpoint['method'], $options, $reason, $ctx, $type
+                );
+            }
         }
 
-        return $body;
+        return $result['body'];
+    }
+
+    /**
+     * Backwards-compatible business-request entry point. Authentication requests
+     * are deliberately excluded from the persistent retry queue.
+     */
+    public function request(
+        array $endpoint,
+        array $options,
+        SalesChannelContext $salesChannelContext,
+        ?FailedRequestEntity $failed = null
+    ): ?string {
+        if ($endpoint['url'] === self::TOKEN_URL) {
+            return $this->send($endpoint, $options)['body'];
+        }
+        $type = $failed?->getIntegrationType()
+            ?? (str_starts_with($endpoint['url'], 'https://api.listrak.com/data/') ? self::DATA_INTEGRATION : self::EMAIL_INTEGRATION);
+
+        return $this->authorizedRequest($endpoint, $options, $salesChannelContext, $type, $failed);
     }
 
     public function getAccessToken(string $type, SalesChannelContext $sc): string
     {
-        $now = time();
-        $skew = 60;
-        if ($type === self::DATA_INTEGRATION && $this->dataToken && $this->dataTokenExp && $this->dataTokenExp > ($now + $skew)) {
-            return $this->dataToken;
-        }
-        if ($type === self::EMAIL_INTEGRATION && $this->emailToken && $this->emailTokenExp && $this->emailTokenExp > ($now + $skew)) {
-            return $this->emailToken;
+        $key = $this->tokenKey($type, $sc);
+        $cached = $this->tokens[$key] ?? null;
+        if ($cached !== null && $cached['expiresAt'] > time() + 60) {
+            return $cached['token'];
         }
 
         return $this->refreshAccessToken($type, $sc);
     }
 
-    private function http(): Client
+    /** @return array{status: int, body: ?string} */
+    private function send(array $endpoint, array $options): array
     {
-        return $this->http ??= new Client([
-            'http_errors' => false,
-        ]);
-    }
+        $this->http ??= new Client();
+        $options = array_replace($options, ['http_errors' => false, 'timeout' => 30, 'allow_redirects' => false]);
+        try {
+            $response = $this->http->request($endpoint['method'], $endpoint['url'], $options);
+            $status = $response->getStatusCode();
+            $this->logger->log($status >= 400 ? 'warning' : 'debug', 'Listrak HTTP response', [
+                'method' => $endpoint['method'], 'status' => $status,
+            ]);
 
-    private function cid(): string
-    {
-        return bin2hex(random_bytes(8));
-    }
+            return ['status' => $status, 'body' => (string) $response->getBody()];
+        } catch (GuzzleException $exception) {
+            // Guzzle messages may include request credentials or response payloads.
+            $this->logger->error('Listrak HTTP transport failure', ['exceptionClass' => $exception::class]);
 
-    private function sanitizeOptions(array $options): array
-    {
-        $opt = $options;
-        $mask = static fn ($v) => \is_string($v) ? mb_substr($v, 0, 6) . '***' : '***';
-        if (isset($opt['headers'])) {
-            foreach (['Authorization', 'authorization', 'X-Api-Key', 'x-api-key'] as $h) {
-                if (isset($opt['headers'][$h])) {
-                    $opt['headers'][$h] = $mask($opt['headers'][$h]);
-                }
-            }
+            return ['status' => 0, 'body' => null];
         }
-        if (isset($opt['form_params'])) {
-            foreach (['password', 'client_secret', 'refresh_token'] as $k) {
-                if (isset($opt['form_params'][$k])) {
-                    $opt['form_params'][$k] = $mask($opt['form_params'][$k]);
-                }
-            }
-        }
-
-        return $opt;
-    }
-
-    private function trunc(?string $s, int $limit = 1500): ?string
-    {
-        if ($s === null) {
-            return null;
-        }
-        $s = $this->redactTokens($s);
-
-        return mb_strlen($s) > $limit ? (mb_substr($s, 0, $limit) . '…[truncated]') : $s;
-    }
-
-    private function redactTokens(string $s): string
-    {
-        $s = preg_replace(
-            '/([?&]|^)(access_token|refresh_token)=([^&#\s]+)/i',
-            '$1$2=[REDACTED]',
-            $s
-        );
-
-        $s = preg_replace(
-            '/("(?:access_token|refresh_token)"\s*:\s*)"([^"]*)"/i',
-            '$1"[REDACTED]"',
-            $s
-        );
-
-        $s = preg_replace(
-            '/(\'(?:access_token|refresh_token)\'\s*:\s*)\'([^\']*)\'/i',
-            '$1\'[REDACTED]\'',
-            $s
-        );
-
-        $s = preg_replace(
-            '/(Authorization\s*:\s*Bearer\s+)[A-Za-z0-9._~+\-\/=]+/i',
-            '$1[REDACTED]',
-            $s
-        );
-
-        return $s;
-    }
-
-    private function extractError(array $decoded): ?string
-    {
-        if (isset($decoded['error'])) {
-            return $decoded['message'] ?? null;
-        }
-
-        return null;
     }
 
     private function refreshAccessToken(string $type, SalesChannelContext $sc): string
     {
-        $this->logger->debug('AccessToken: fetching new token', ['type' => $type]);
+        $key = $this->tokenKey($type, $sc);
+        unset($this->tokens[$key]);
+        $credentials = $this->buildAuthRequestBody($type, $sc->getSalesChannelId());
+        if ($credentials['client_id'] === '' || $credentials['client_secret'] === '') {
+            return '';
+        }
+        $response = $this->send(['method' => 'POST', 'url' => self::TOKEN_URL], [
+            'form_params' => $credentials,
+            'headers' => ['Accept' => 'application/json'],
+        ]);
+        $data = json_decode($response['body'] ?? '', true);
+        if ($response['status'] < 200 || $response['status'] >= 300 || !\is_array($data)
+            || !empty($data['error']) || !\is_string($data['access_token'] ?? null) || $data['access_token'] === '') {
+            $this->logger->warning('Listrak authentication failed', ['type' => $type, 'salesChannelId' => $sc->getSalesChannelId()]);
 
-        $body = $this->buildAuthRequestBody($type, $sc->getSalesChannelId());
-        $options = [
-            'form_params' => $body,
-            'headers' => ['Content-Type' => 'application/x-www-form-urlencoded'],
+            return '';
+        }
+        $this->tokens[$key] = [
+            'token' => $data['access_token'],
+            'expiresAt' => time() + max(1, (int) ($data['expires_in'] ?? 3599)),
         ];
 
-        $resp = $this->request(
-            ['method' => 'POST', 'url' => self::TOKEN_URL],
-            $options,
-            $sc
-        );
-
-        if (!$resp) {
-            $this->logger->error('AccessToken: empty/failed token response');
-
-            return '';
-        }
-
-        $data = json_decode($resp, true);
-        if (json_last_error() !== \JSON_ERROR_NONE) {
-            $this->logger->error('AccessToken: invalid JSON from token endpoint', [
-                'jsonError' => json_last_error_msg(),
-                'bodyPreview' => $this->trunc($resp),
-            ]);
-
-            return '';
-        }
-
-        $err = $this->extractError($data);
-        if ($err) {
-            $this->logger->error('AccessToken: API error', ['error' => $err, 'bodyPreview' => $this->trunc($resp)]);
-
-            return '';
-        }
-
-        $token = $data['access_token'] ?? '';
-        $ttl = (int) ($data['expires_in'] ?? 3599);
-        if ($token === '') {
-            $this->logger->error('AccessToken: missing access_token in response');
-
-            return '';
-        }
-
-        $exp = time() + max(1, $ttl);
-        if ($type === self::DATA_INTEGRATION) {
-            $this->dataToken = $token;
-            $this->dataTokenExp = $exp;
-        } else {
-            $this->emailToken = $token;
-            $this->emailTokenExp = $exp;
-        }
-
-        $this->logger->debug('AccessToken: obtained and stored', ['type' => $type, 'ttlSec' => $ttl]);
-
-        return $token;
+        return $data['access_token'];
     }
 
-    /**
-     * @return array<string,string>
-     */
-    private function buildAuthRequestBody(string $type, ?string $salesChannelId = null): array
+    private function tokenKey(string $type, SalesChannelContext $sc): string
     {
-        $dataClientId = $this->listrakConfigService->getConfig('dataClientId', $salesChannelId);
-        $dataClientSecret = $this->listrakConfigService->getConfig('dataClientSecret', $salesChannelId);
-        $emailClientId = $this->listrakConfigService->getConfig('emailClientId', $salesChannelId);
-        $emailClientSecret = $this->listrakConfigService->getConfig('emailClientSecret', $salesChannelId);
+        $credentials = $this->buildAuthRequestBody($type, $sc->getSalesChannelId());
+
+        return $sc->getSalesChannelId() . ':' . $type . ':' . hash('sha256', json_encode($credentials, JSON_THROW_ON_ERROR));
+    }
+
+    private function assertIntegrationType(string $type): void
+    {
+        if (!\in_array($type, [self::DATA_INTEGRATION, self::EMAIL_INTEGRATION], true)) {
+            throw new \InvalidArgumentException('Unknown Listrak integration type.');
+        }
+    }
+
+    /** @return array<string,string> */
+    private function buildAuthRequestBody(string $type, string $salesChannelId): array
+    {
+        $this->assertIntegrationType($type);
+        $prefix = $type === self::DATA_INTEGRATION ? 'data' : 'email';
 
         return [
             'grant_type' => 'client_credentials',
-            'client_id' => $type === self::DATA_INTEGRATION ? $dataClientId : $emailClientId,
-            'client_secret' => $type === self::DATA_INTEGRATION ? $dataClientSecret : $emailClientSecret,
+            'client_id' => (string) $this->listrakConfigService->getConfig($prefix . 'ClientId', $salesChannelId),
+            'client_secret' => (string) $this->listrakConfigService->getConfig($prefix . 'ClientSecret', $salesChannelId),
         ];
+    }
+
+    private function withToken(array $options, string $token): array
+    {
+        $options['headers']['Authorization'] = 'Bearer ' . $token;
+
+        return $options;
     }
 
     private function jsonOptions(array $data, array $extraHeaders = []): array
     {
         return [
-            'headers' => array_merge(
-                ['Content-Type' => 'application/json', 'Accept' => 'application/json'],
-                $extraHeaders
-            ),
-            'body' => json_encode($data),
+            'headers' => array_merge(['Content-Type' => 'application/json', 'Accept' => 'application/json'], $extraHeaders),
+            'body' => json_encode($data, JSON_THROW_ON_ERROR),
         ];
     }
 }

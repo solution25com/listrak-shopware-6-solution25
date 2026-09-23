@@ -20,7 +20,7 @@ final class TokenCodec
 
     public function encode(array $payload): string
     {
-        $json = json_encode($payload, \JSON_UNESCAPED_SLASHES);
+        $json = json_encode($payload, \JSON_UNESCAPED_SLASHES | \JSON_THROW_ON_ERROR);
 
         $useCompression = false;
         $body = $json;
@@ -90,6 +90,10 @@ final class TokenCodec
 
         $data = json_decode($json, true, 512, \JSON_THROW_ON_ERROR);
 
+        if (!\is_array($data)) {
+            throw new \RuntimeException('Invalid token payload');
+        }
+
         if (isset($data['exp']) && time() > (int) $data['exp']) {
             throw new \RuntimeException('Expired token');
         }
@@ -102,7 +106,7 @@ final class TokenCodec
         return rtrim(strtr(base64_encode($bin), '+/', '-_'), '=');
     }
 
-    private static function b64urlDecode(string $b64)
+    private static function b64urlDecode(string $b64): string|false
     {
         $pad = \strlen($b64) % 4;
         if ($pad) {

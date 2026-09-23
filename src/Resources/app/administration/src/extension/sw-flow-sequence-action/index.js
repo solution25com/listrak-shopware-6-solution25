@@ -14,23 +14,24 @@ Component.override('sw-flow-sequence-action', {
 
             return this.$super('modalName');
         },
-        actionDescription() {
-            const actionDescriptionList = this.$super('actionDescription');
-
-            return {
-                ...actionDescriptionList,
-                [ACTION.LISTRAK_MAIL_SEND]: (config) =>
-                    this.getListrakMailSendActionDescription(config),
-            };
-        },
     },
 
     methods: {
-        getListrakMailSendActionDescription(config) {
-            const recipient = config.recipient.type;
-            return this.$tc(
-                `Recipient: ${recipient.charAt(0).toUpperCase() + recipient.slice(1)}`
-            );
+        getActionDescriptions(sequence) {
+            if (sequence.actionName !== ACTION.LISTRAK_MAIL_SEND) {
+                return this.$super('getActionDescriptions', sequence);
+            }
+
+            const labels = {
+                default: 'labelDefault',
+                admin: 'labelAdmin',
+                custom: 'labelCustom',
+                contactFormMail: 'labelContactFormMail',
+            };
+            const recipient = sequence.config?.recipient?.type ?? 'default';
+            const label = labels[recipient] ?? 'labelDefault';
+
+            return `${this.$t('listrakMailSendAction.labelRecipient')}: ${this.$t(`listrakMailSendAction.${label}`)}`;
         },
 
         getActionTitle(actionName) {
