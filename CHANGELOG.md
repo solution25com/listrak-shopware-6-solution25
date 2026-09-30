@@ -2,17 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.1.0] - 2026-09-23
-- Target Shopware 6.7 and rebuild administration assets with Vite.
-- Fix scheduled-task construction, private filesystem wiring, and Flow Builder editing with Vue 3 and Pinia.
-- Respect storefront consent during acceptance, revocation, and asynchronous tracking; preserve original order amounts.
-- Scope API tokens and failed requests by sales channel and integration, refresh expired authorization, and remove credentials from retry payloads.
-- Preserve legacy failed requests without replaying them under an unknown sales channel.
-- Correct data-sync credential checks and PHP 8 / Shopware 6.7 validation issues.
-- Fix confirmed newsletter subscriptions, inherited API test credentials, and canceled Flow Builder grid edits.
-- Export partial order line items and use each order's stored currency; generate channel-wide exports without requiring an existing customer.
-- Bind checkout newsletter updates to the authenticated guest, recover the checkbox after request failures, and preserve failed export jobs for worker retry.
-- Add PHPUnit 11, native Vue 3, storefront consent, and Shopware integration regression coverage.
+## [2.0.0] - 2026-09-30
+  - Target Shopware 6.7 and rebuild administration assets with Vite.                 
+  - Fix scheduled-task construction, private filesystem wiring, and Flow Builder editing with Vue 3 and Pinia.
+  - Respect storefront consent during acceptance, revocation, and asynchronous tracking; preserve original order amounts.
+  - Retry failed requests for the correct sales channel and integration, and refresh expired authorization.
+  - Failed requests created before this release are kept for review and are not replayed automatically.
+  - Correct data-sync credential checks and PHP 8 / Shopware 6.7 validation issues.
+  - Fix confirmed newsletter subscriptions, inherited API test credentials, and canceled Flow Builder grid edits.
+  - Export partial order line items and use each order's stored currency; generate channel-wide exports without requiring an
+  existing customer.
+  - Recover the checkout newsletter checkbox after request failures, and preserve failed export jobs for worker retry.
+  - Hardened API authentication, logging, storefront tracking and the guest newsletter subscription.
+  - Add PHPUnit 11, native Vue 3, storefront consent, and Shopware integration regression coverage.
 
 ## [1.0.26] - 08-28-2025
 - Fix column mismatch in product file and change the way the price fields are filled out.
