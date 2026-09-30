@@ -22,8 +22,12 @@ The Listrak plugin integrates your Shopware 6 store with Listrak’s marketing p
     - Send Transactional Mails via Listrak.
   
 ## Compatibility
-- ✅ Shopware 6.6.x 
+  - ✅ Shopware 6.6.x
 
+  | Shopware | Branch | Plugin version |
+  |---|---|---|
+  | 6.6.x | `main` | 1.x |
+  | 6.7.x | `main-6.7` | 2.x |
 
 ## Get Started
 
